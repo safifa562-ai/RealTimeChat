@@ -3,7 +3,8 @@ const socket = io();
 let username = "";
 
 function joinChat() {
-  const name = document.getElementById("nameInput").value.trim();
+  const input = document.getElementById("nameInput");
+  const name = input.value.trim();
 
   if (!name) {
     alert("Please enter your name");
@@ -30,17 +31,14 @@ function sendMessage() {
   input.value = "";
 }
 
-socket.on("chat message", (data) => {
+socket.on("chat message", function(data) {
   const messages = document.getElementById("messages");
 
   const div = document.createElement("div");
   div.className = "message";
 
-  div.innerHTML = `
-    <b>${data.name}</b><br>
-    ${data.message}<br>
-    <small>${data.time}</small>
-  `;
+  div.textContent =
+    data.name + ": " + data.message + " (" + data.time + ")";
 
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
