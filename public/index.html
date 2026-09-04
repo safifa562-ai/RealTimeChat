@@ -3,119 +3,48 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>RealTimeChat</title>
-
   <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
 
-  <div class="auth-container">
+<div id="app">
 
-    <div class="auth-box">
+  <header>
+    <h2>💬 RealTimeChat</h2>
+    <button onclick="logout()">Logout</button>
+  </header>
 
-      <h1>💬 RealTimeChat</h1>
-      <p id="authTitle">Login to continue</p>
+  <!-- SEARCH -->
+  <section>
+    <h3>🔍 Find People</h3>
 
-      <!-- LOGIN -->
-      <div id="loginForm">
+    <input
+      id="searchInput"
+      type="text"
+      placeholder="Search username..."
+      oninput="searchUsers()"
+    >
 
-        <input
-          type="text"
-          id="loginUsername"
-          placeholder="Username"
-        >
+    <div id="searchResults"></div>
+  </section>
 
-        <input
-          type="password"
-          id="loginPassword"
-          placeholder="Password"
-        >
+  <!-- REQUESTS -->
+  <section>
+    <h3>📩 Friend Requests</h3>
+    <div id="requests"></div>
+  </section>
 
-        <button onclick="login()">
-          Login
-        </button>
+  <!-- FRIENDS -->
+  <section>
+    <h3>👥 Friends</h3>
+    <div id="friends"></div>
+  </section>
 
-        <p>
-          Don't have an account?
-          <button class="link-btn" onclick="showSignup()">
-            Sign up
-          </button>
-        </p>
+</div>
 
-      </div>
-
-
-      <!-- SIGNUP -->
-      <div id="signupForm" style="display:none;">
-
-        <input
-          type="text"
-          id="signupUsername"
-          placeholder="Choose username"
-        >
-
-        <input
-          type="password"
-          id="signupPassword"
-          placeholder="Create password"
-        >
-
-        <button onclick="signup()">
-          Create Account
-        </button>
-
-        <p>
-          Already have an account?
-          <button class="link-btn" onclick="showLogin()">
-            Login
-          </button>
-        </p>
-
-      </div>
-
-
-      <p id="authMessage"></p>
-
-    </div>
-
-  </div>
-
-
-  <!-- CHAT APP -->
-  <div id="chatApp" style="display:none;">
-
-    <div class="chat-header">
-      <h2>💬 Messages</h2>
-
-      <button onclick="logout()">
-        Logout
-      </button>
-    </div>
-
-    <div id="messages"></div>
-
-    <div class="message-box">
-
-      <input
-        type="text"
-        id="messageInput"
-        placeholder="Type a message..."
-        onkeydown="handleEnter(event)"
-      >
-
-      <button onclick="sendMessage()">
-        Send
-      </button>
-
-    </div>
-
-  </div>
-
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js"></script>
+<script src="/app.js"></script>
 
 </body>
 </html>
