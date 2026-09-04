@@ -4,122 +4,109 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>RealTimeChat DM</title>
+  <title>RealTimeChat</title>
 
   <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
 
-  <!-- APP -->
-  <div class="app">
+  <div class="auth-container">
 
-    <!-- TOP BAR -->
-    <div class="topbar">
-      <h2>Messages</h2>
-      <button class="new-chat">✎</button>
-    </div>
+    <div class="auth-box">
 
-    <!-- SEARCH -->
-    <div class="search-box">
-      <input
-        type="text"
-        id="searchInput"
-        placeholder="🔍 Search"
-      >
-    </div>
+      <h1>💬 RealTimeChat</h1>
+      <p id="authTitle">Login to continue</p>
 
-    <!-- CHAT LIST -->
-    <div class="chat-list">
+      <!-- LOGIN -->
+      <div id="loginForm">
 
-      <div class="chat-user" onclick="openChat('Alex')">
-        <div class="avatar">A</div>
+        <input
+          type="text"
+          id="loginUsername"
+          placeholder="Username"
+        >
 
-        <div class="user-info">
-          <b>Alex</b>
-          <span>Hey! 👋</span>
-        </div>
+        <input
+          type="password"
+          id="loginPassword"
+          placeholder="Password"
+        >
 
-        <small>2m</small>
+        <button onclick="login()">
+          Login
+        </button>
+
+        <p>
+          Don't have an account?
+          <button class="link-btn" onclick="showSignup()">
+            Sign up
+          </button>
+        </p>
+
       </div>
 
-      <div class="chat-user" onclick="openChat('Rahul')">
-        <div class="avatar">R</div>
 
-        <div class="user-info">
-          <b>Rahul</b>
-          <span>See you tomorrow</span>
-        </div>
+      <!-- SIGNUP -->
+      <div id="signupForm" style="display:none;">
 
-        <small>10m</small>
+        <input
+          type="text"
+          id="signupUsername"
+          placeholder="Choose username"
+        >
+
+        <input
+          type="password"
+          id="signupPassword"
+          placeholder="Create password"
+        >
+
+        <button onclick="signup()">
+          Create Account
+        </button>
+
+        <p>
+          Already have an account?
+          <button class="link-btn" onclick="showLogin()">
+            Login
+          </button>
+        </p>
+
       </div>
 
-      <div class="chat-user" onclick="openChat('Sara')">
-        <div class="avatar">S</div>
 
-        <div class="user-info">
-          <b>Sara</b>
-          <span>😊</span>
-        </div>
-
-        <small>1h</small>
-      </div>
+      <p id="authMessage"></p>
 
     </div>
 
   </div>
 
 
-  <!-- PRIVATE CHAT -->
-  <div id="chatScreen" class="chat-screen">
+  <!-- CHAT APP -->
+  <div id="chatApp" style="display:none;">
 
-    <!-- CHAT HEADER -->
     <div class="chat-header">
+      <h2>💬 Messages</h2>
 
-      <button onclick="closeChat()">←</button>
-
-      <div class="avatar small-avatar" id="chatAvatar">
-        A
-      </div>
-
-      <div>
-        <b id="chatName">Alex</b>
-        <span class="online">● Online</span>
-      </div>
-
-    </div>
-
-
-    <!-- MESSAGES -->
-    <div id="messages" class="messages">
-
-      <div class="received">
-        Hey! 👋
-      </div>
-
-      <div class="sent">
-        Hello! 😊
-      </div>
-
-    </div>
-
-
-    <!-- MESSAGE BOX -->
-    <div class="message-box">
-
-      <button class="emoji-btn" onclick="addEmoji()">
-        😊
+      <button onclick="logout()">
+        Logout
       </button>
+    </div>
+
+    <div id="messages"></div>
+
+    <div class="message-box">
 
       <input
         type="text"
         id="messageInput"
-        placeholder="Message..."
+        placeholder="Type a message..."
         onkeydown="handleEnter(event)"
       >
 
-      <button class="send-btn" onclick="sendMessage()">
-        ➤
+      <button onclick="sendMessage()">
+        Send
       </button>
 
     </div>
