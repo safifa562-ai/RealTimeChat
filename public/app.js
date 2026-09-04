@@ -1,263 +1,226 @@
-const socket = io();
+let token = localStorage.getItem("token");
 
-let currentUser = null;
-
-
-// ======================
-// SHOW LOGIN
-// ======================
-
-function showLogin() {
-
-  document.getElementById("loginForm").style.display = "block";
-  document.getElementById("signupForm").style.display = "none";
-
-  document.getElementById("authTitle").textContent =
-    "Login to continue";
-
-  document.getElementById("authMessage").textContent = "";
+if (!token) {
+  window.location.href = "/";
 }
 
 
-// ======================
-// SHOW SIGNUP
-// ======================
+// =========================
+// API HELPER
+// =========================
 
-function showSignup() {
+async function api(url, options = {}) {
 
-  document.getElementById("loginForm").style.display = "none";
-  document.getElementById("signupForm").style.display = "block";
+  options.headers = {
+    ...(options.headers || {}),
+    "Authorization": "Bearer " + token,
+    "Content-Type": "application/json"
+  };
 
-  document.getElementById("authTitle").textContent =
-    "Create your account";
+  const response = await fetch(url, options);
 
-  document.getElementById("authMessage").textContent = "";
-}
+  const data = await response.json();
 
-
-// ======================
-// SIGNUP
-// ======================
-
-async function signup() {
-
-  const username =
-    document.getElementById("signupUsername").value.trim();
-
-  const password =
-    document.getElementById("signupPassword").value;
-
-  if (!username || !password) {
-
-    showMessage("Enter username and password");
-
+  if (response.status === 401) {
+    logout();
     return;
   }
 
-  try {
+  return data;
+}
 
-    const response = await fetch("/api/signup", {
+
+// =========================
+// SEARCH USERS
+// =========================
+
+async function searchUsers() {
+
+  const search =
+    document.getElementById("searchInput").value.trim();
+
+  const results =
+    document.getElementById("searchResults");
+
+  if (!search) {
+    results.innerHTML = "";
+    return;
+  }
+
+  const users = await api(
+    "/api/users?search=" + encodeURIComponent(search)
+  );
+
+  results.innerHTML = "";
+
+  users.forEach(user => {
+
+    const div = document.createElement("div");
+
+    div.className = "user-card";
+
+    div.innerHTML = `
+      <span>👤 ${user.username}</span>
+      <button onclick="sendRequest(${user.id})">
+        Add Friend
+      </button>
+    `;
+
+    results.appendChild(div);
+  });
+}
+
+
+// =========================
+// SEND REQUEST
+// =========================
+
+async function sendRequest(userId) {
+
+  const data = await api("/api/friend-request", {
+
+    method: "POST",
+
+    body: JSON.stringify({
+      receiverId: userId
+    })
+
+  });
+
+  alert(data.message);
+
+}
+
+
+// =========================
+// LOAD REQUESTS
+// =========================
+
+async function loadRequests() {
+
+  const requests =
+    await api("/api/friend-requests");
+
+  const box =
+    document.getElementById("requests");
+
+  box.innerHTML = "";
+
+  requests.forEach(request => {
+
+    const div = document.createElement("div");
+
+    div.className = "user-card";
+
+    div.innerHTML = `
+      <span>👤 ${request.username}</span>
+
+      <button onclick="requestAction(${request.id}, 'accept')">
+        ✅ Accept
+      </button>
+
+      <button onclick="requestAction(${request.id}, 'reject')">
+        ❌ Reject
+      </button>
+    `;
+
+    box.appendChild(div);
+
+  });
+
+}
+
+
+// =========================
+// ACCEPT / REJECT
+// =========================
+
+async function requestAction(id, action) {
+
+  const data =
+    await api("/api/friend-request/" + id, {
 
       method: "POST",
 
-      headers: {
-        "Content-Type": "application/json"
-      },
-
       body: JSON.stringify({
-        username,
-        password
+        action: action
       })
 
     });
 
-    const data = await response.json();
+  alert(data.message);
 
-    if (!response.ok) {
+  loadRequests();
+  loadFriends();
 
-      showMessage(data.message);
-
-      return;
-    }
-
-    localStorage.setItem("token", data.token);
-
-    currentUser = data.user;
-
-    openChat();
-
-  } catch (error) {
-
-    showMessage("Server connection error");
-
-  }
 }
 
 
-// ======================
-// LOGIN
-// ======================
+// =========================
+// FRIENDS
+// =========================
 
-async function login() {
+async function loadFriends() {
 
-  const username =
-    document.getElementById("loginUsername").value.trim();
+  const friends =
+    await api("/api/friends");
 
-  const password =
-    document.getElementById("loginPassword").value;
+  const box =
+    document.getElementById("friends");
 
-  if (!username || !password) {
+  box.innerHTML = "";
 
-    showMessage("Enter username and password");
+  friends.forEach(friend => {
 
-    return;
-  }
+    const div = document.createElement("div");
 
-  try {
+    div.className = "user-card";
 
-    const response = await fetch("/api/login", {
+    div.innerHTML = `
+      <span>🟢 ${friend.username}</span>
 
-      method: "POST",
+      <button onclick="openChat(${friend.id}, '${friend.username}')">
+        💬 Message
+      </button>
+    `;
 
-      headers: {
-        "Content-Type": "application/json"
-      },
+    box.appendChild(div);
 
-      body: JSON.stringify({
-        username,
-        password
-      })
+  });
 
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-
-      showMessage(data.message);
-
-      return;
-    }
-
-    localStorage.setItem("token", data.token);
-
-    currentUser = data.user;
-
-    openChat();
-
-  } catch (error) {
-
-    showMessage("Server connection error");
-
-  }
 }
 
 
-// ======================
+// =========================
 // OPEN CHAT
-// ======================
+// =========================
 
-function openChat() {
+function openChat(id, username) {
 
-  document.querySelector(".auth-container").style.display =
-    "none";
-
-  document.getElementById("chatApp").style.display =
-    "flex";
+  alert(
+    "Private chat with " +
+    username +
+    " next step mein banega."
+  );
 
 }
 
 
-// ======================
+// =========================
 // LOGOUT
-// ======================
+// =========================
 
 function logout() {
 
   localStorage.removeItem("token");
 
-  currentUser = null;
-
-  location.reload();
-
+  window.location.href = "/";
 }
 
 
-// ======================
-// MESSAGE
-// ======================
+// =========================
+// START
+// =========================
 
-function sendMessage() {
-
-  const input =
-    document.getElementById("messageInput");
-
-  const message = input.value.trim();
-
-  if (!message || !currentUser) return;
-
-  socket.emit("chat message", {
-
-    name: currentUser.username,
-
-    message: message
-
-  });
-
-  input.value = "";
-}
-
-
-// ======================
-// RECEIVE MESSAGE
-// ======================
-
-socket.on("chat message", function(data) {
-
-  const messages =
-    document.getElementById("messages");
-
-  const div =
-    document.createElement("div");
-
-  div.className = "message";
-
-  div.textContent =
-    data.name +
-    ": " +
-    data.message +
-    " • " +
-    data.time;
-
-  messages.appendChild(div);
-
-  messages.scrollTop =
-    messages.scrollHeight;
-
-});
-
-
-// ======================
-// ENTER TO SEND
-// ======================
-
-function handleEnter(event) {
-
-  if (event.key === "Enter") {
-
-    sendMessage();
-
-  }
-}
-
-
-// ======================
-// MESSAGE DISPLAY
-// ======================
-
-function showMessage(message) {
-
-  document.getElementById("authMessage")
-    .textContent = message;
-
-}
+loadRequests();
+loadFriends();
