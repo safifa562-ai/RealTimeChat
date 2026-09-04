@@ -3,46 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Real Time Chat</title>
-  <link rel="stylesheet" href="style.css">
+
+  <title>RealTimeChat DM</title>
+
+  <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
 
-  <div id="login" class="login-box">
-    <h1>💬 Real Time Chat</h1>
+  <!-- APP -->
+  <div class="app">
 
-    <input
-      type="text"
-      id="nameInput"
-      placeholder="Enter your name"
-    >
-
-    <button onclick="joinChat()">Join Chat</button>
-  </div>
-
-  <div id="chat" class="app" style="display:none;">
-
-    <div class="header">
-      💬 Real Time Chat
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <h2>Messages</h2>
+      <button class="new-chat">✎</button>
     </div>
 
-    <div id="messages"></div>
+    <!-- SEARCH -->
+    <div class="search-box">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="🔍 Search"
+      >
+    </div>
 
-    <div class="send-box">
+    <!-- CHAT LIST -->
+    <div class="chat-list">
+
+      <div class="chat-user" onclick="openChat('Alex')">
+        <div class="avatar">A</div>
+
+        <div class="user-info">
+          <b>Alex</b>
+          <span>Hey! 👋</span>
+        </div>
+
+        <small>2m</small>
+      </div>
+
+      <div class="chat-user" onclick="openChat('Rahul')">
+        <div class="avatar">R</div>
+
+        <div class="user-info">
+          <b>Rahul</b>
+          <span>See you tomorrow</span>
+        </div>
+
+        <small>10m</small>
+      </div>
+
+      <div class="chat-user" onclick="openChat('Sara')">
+        <div class="avatar">S</div>
+
+        <div class="user-info">
+          <b>Sara</b>
+          <span>😊</span>
+        </div>
+
+        <small>1h</small>
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- PRIVATE CHAT -->
+  <div id="chatScreen" class="chat-screen">
+
+    <!-- CHAT HEADER -->
+    <div class="chat-header">
+
+      <button onclick="closeChat()">←</button>
+
+      <div class="avatar small-avatar" id="chatAvatar">
+        A
+      </div>
+
+      <div>
+        <b id="chatName">Alex</b>
+        <span class="online">● Online</span>
+      </div>
+
+    </div>
+
+
+    <!-- MESSAGES -->
+    <div id="messages" class="messages">
+
+      <div class="received">
+        Hey! 👋
+      </div>
+
+      <div class="sent">
+        Hello! 😊
+      </div>
+
+    </div>
+
+
+    <!-- MESSAGE BOX -->
+    <div class="message-box">
+
+      <button class="emoji-btn" onclick="addEmoji()">
+        😊
+      </button>
+
       <input
         type="text"
         id="messageInput"
-        placeholder="Type a message..."
+        placeholder="Message..."
+        onkeydown="handleEnter(event)"
       >
 
-      <button onclick="sendMessage()">Send</button>
+      <button class="send-btn" onclick="sendMessage()">
+        ➤
+      </button>
+
     </div>
 
   </div>
 
+
   <script src="/socket.io/socket.io.js"></script>
-  <script src="app.js"></script>
+  <script src="/app.js"></script>
 
 </body>
 </html>
