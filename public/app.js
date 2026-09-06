@@ -1,442 +1,587 @@
-let score = 0;
-let time = 30;
-let combo = 0;
-
-let level = 1;
-
-let playing = false;
-
-let timer = null;
-
-let soundOn = true;
+let token = localStorage.getItem("movieToken");
+let currentUser = null;
 
 
-// ==========================
-// SAVED DATA
-// ==========================
+// --------------------
+// API
+// --------------------
 
-let coins =
-  Number(localStorage.getItem("tapRushCoins")) || 0;
+async function api(url, options = {}) {
 
-let best =
-  Number(localStorage.getItem("tapRushBest")) || 0;
+  options.headers = {
+    ...(options.headers || {})
+  };
 
-let totalTaps =
-  Number(localStorage.getItem("tapRushTotalTaps")) || 0;
+  if (token) {
+    options.headers.Authorization =
+      "Bearer " + token;
+  }
 
+  const response = await fetch(url, options);
 
-// ==========================
-// ELEMENTS
-// ==========================
+  const data = await response.json();
 
-const scoreElement =
-  document.getElementById("score");
+  if (response.status === 401) {
+    logout();
+    return null;
+  }
 
-const timeElement =
-  document.getElementById("time");
-
-const comboElement =
-  document.getElementById("combo");
-
-const coinsElement =
-  document.getElementById("coins");
-
-const bestElement =
-  document.getElementById("best");
-
-const levelElement =
-  document.getElementById("level");
-
-const messageElement =
-  document.getElementById("message");
-
-const tapButton =
-  document.getElementById("tapButton");
-
-const startButton =
-  document.getElementById("startButton");
-
-const progressBar =
-  document.getElementById("progressBar");
-
-const progressText =
-  document.getElementById("progressText");
-
-const recordScore =
-  document.getElementById("recordScore");
-
-const totalTapsElement =
-  document.getElementById("totalTaps");
-
-const totalCoinsElement =
-  document.getElementById("totalCoins");
+  return data;
+}
 
 
-// ==========================
-// INITIAL DISPLAY
-// ==========================
+// --------------------
+// Start
+// --------------------
 
-updateDisplay();
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
 
-
-// ==========================
-// START GAME
-// ==========================
-
-function startGame() {
-
-  if (playing) return;
-
-  score = 0;
-  time = 30;
-  combo = 0;
-
-  playing = true;
-
-  scoreElement.textContent = score;
-  timeElement.textContent = time;
-  comboElement.textContent = combo;
-
-  messageElement.textContent = "🔥 GO!";
-
-  tapButton.classList.add("running");
-
-  startButton.textContent = "GAME RUNNING...";
-
-  clearInterval(timer);
-
-  timer = setInterval(() => {
-
-    time--;
-
-    timeElement.textContent = time;
-
-    if (time <= 0) {
-      endGame();
+    if (!token) {
+      showAuth();
+      return;
     }
 
-  }, 1000);
-}
+    const data = await api("/api/me");
 
+    if (!data || !data.user) {
+      logout();
+      return;
+    }
 
-// ==========================
-// TAP
-// ==========================
+    currentUser = data.user;
 
-function tap() {
+    showApp();
 
-  if (!playing) return;
-
-
-  score++;
-
-  combo++;
-
-  coins++;
-
-  totalTaps++;
-
-
-  // Combo bonus
-
-  if (combo % 10 === 0) {
-
-    score += 5;
-
-    coins += 5;
-
-    messageElement.textContent =
-      "🔥 COMBO BONUS +5!";
+    loadMovies();
   }
+);
 
 
-  // Level system
+// --------------------
+// Auth UI
+// --------------------
 
-  level =
-    Math.floor(score / 50) + 1;
+function showAuth() {
 
+  document
+    .getElementById("authScreen")
+    .classList.remove("hidden");
 
-  // Update screen
-
-  scoreElement.textContent = score;
-
-  comboElement.textContent = combo;
-
-  coinsElement.textContent = coins;
-
-  levelElement.textContent = level;
-
-
-  updateProgress();
-
-  updateAchievements();
-
-  saveData();
-
-  playTapSound();
+  document
+    .getElementById("app")
+    .classList.add("hidden");
 }
 
 
-// ==========================
-// END GAME
-// ==========================
+function showApp() {
 
-function endGame() {
+  document
+    .getElementById("authScreen")
+    .classList.add("hidden");
 
-  playing = false;
-
-  clearInterval(timer);
-
-  tapButton.classList.remove("running");
-
-  startButton.textContent = "▶ PLAY AGAIN";
+  document
+    .getElementById("app")
+    .classList.remove("hidden");
+}
 
 
-  if (score > best) {
+function showLogin() {
 
-    best = score;
+  document
+    .getElementById("loginBox")
+    .classList.remove("hidden");
 
-    messageElement.textContent =
-      "🏆 NEW HIGH SCORE: " + score;
+  document
+    .getElementById("signupBox")
+    .classList.add("hidden");
 
-  } else {
+  document
+    .getElementById("authMessage")
+    .textContent = "";
+}
 
-    messageElement.textContent =
-      "Game Over! Score: " + score;
+
+function showSignup() {
+
+  document
+    .getElementById("loginBox")
+    .classList.add("hidden");
+
+  document
+    .getElementById("signupBox")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("authMessage")
+    .textContent = "";
+}
+
+
+// --------------------
+// Signup
+// --------------------
+
+async function signup() {
+
+  const username =
+    document
+      .getElementById("signupUsername")
+      .value
+      .trim();
+
+  const password =
+    document
+      .getElementById("signupPassword")
+      .value;
+
+  if (!username || !password) {
+    showAuthMessage(
+      "Enter username and password"
+    );
+    return;
   }
-
-
-  saveData();
-
-  updateDisplay();
-
-  playEndSound();
-}
-
-
-// ==========================
-// PROGRESS
-// ==========================
-
-function updateProgress() {
-
-  const current =
-    score % 50;
-
-  const percent =
-    (current / 50) * 100;
-
-
-  progressBar.style.width =
-    percent + "%";
-
-
-  if (score < 50) {
-
-    progressText.textContent =
-      score + " / 50";
-
-  } else {
-
-    progressText.textContent =
-      current + " / 50";
-  }
-}
-
-
-// ==========================
-// ACHIEVEMENTS
-// ==========================
-
-function updateAchievements() {
-
-  const a10 =
-    document.getElementById("a10");
-
-  const a50 =
-    document.getElementById("a50");
-
-  const a100 =
-    document.getElementById("a100");
-
-
-  if (score >= 10) {
-
-    a10.classList.add("unlocked");
-
-  }
-
-
-  if (score >= 50) {
-
-    a50.classList.add("unlocked");
-
-  }
-
-
-  if (score >= 100) {
-
-    a100.classList.add("unlocked");
-
-  }
-}
-
-
-// ==========================
-// UPDATE DISPLAY
-// ==========================
-
-function updateDisplay() {
-
-  coinsElement.textContent = coins;
-
-  bestElement.textContent = best;
-
-  levelElement.textContent =
-    Math.floor(best / 50) + 1;
-
-  recordScore.textContent = best;
-
-  totalTapsElement.textContent =
-    totalTaps;
-
-  totalCoinsElement.textContent =
-    coins;
-
-  updateProgress();
-
-  updateAchievements();
-}
-
-
-// ==========================
-// SAVE
-// ==========================
-
-function saveData() {
-
-  localStorage.setItem(
-    "tapRushCoins",
-    coins
-  );
-
-  localStorage.setItem(
-    "tapRushBest",
-    best
-  );
-
-  localStorage.setItem(
-    "tapRushTotalTaps",
-    totalTaps
-  );
-}
-
-
-// ==========================
-// SOUND
-// ==========================
-
-function toggleSound() {
-
-  soundOn = !soundOn;
-
-  const button =
-    document.getElementById("soundBtn");
-
-  button.textContent =
-    soundOn ? "🔊" : "🔇";
-}
-
-
-function playTapSound() {
-
-  if (!soundOn) return;
 
   try {
 
-    const audio =
-      new Audio();
+    const response = await fetch(
+      "/api/signup",
+      {
+        method: "POST",
 
-    audio.src =
-      "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-    audio.volume = 0.05;
-
-    audio.play().catch(() => {});
-
-  } catch (error) {}
-
-}
-
-
-function playEndSound() {
-
-  if (!soundOn) return;
-
-}
-
-
-// ==========================
-// RESET
-// ==========================
-
-function resetGame() {
-
-  const confirmReset =
-    confirm(
-      "Are you sure you want to reset your game data?"
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
     );
 
-  if (!confirmReset) return;
+    const data = await response.json();
+
+    if (!response.ok) {
+      showAuthMessage(data.message);
+      return;
+    }
+
+    token = data.token;
+
+    localStorage.setItem(
+      "movieToken",
+      token
+    );
+
+    currentUser = data.user;
+
+    showApp();
+
+    loadMovies();
+
+  } catch (error) {
+
+    showAuthMessage(
+      "Server connection error"
+    );
+  }
+}
 
 
-  clearInterval(timer);
+// --------------------
+// Login
+// --------------------
 
-  score = 0;
+async function login() {
 
-  time = 30;
+  const username =
+    document
+      .getElementById("loginUsername")
+      .value
+      .trim();
 
-  combo = 0;
+  const password =
+    document
+      .getElementById("loginPassword")
+      .value;
 
-  level = 1;
+  if (!username || !password) {
+    showAuthMessage(
+      "Enter username and password"
+    );
+    return;
+  }
 
-  coins = 0;
+  try {
 
-  best = 0;
+    const response = await fetch(
+      "/api/login",
+      {
+        method: "POST",
 
-  totalTaps = 0;
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-  playing = false;
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
+    );
 
+    const data = await response.json();
+
+    if (!response.ok) {
+      showAuthMessage(data.message);
+      return;
+    }
+
+    token = data.token;
+
+    localStorage.setItem(
+      "movieToken",
+      token
+    );
+
+    currentUser = data.user;
+
+    showApp();
+
+    loadMovies();
+
+  } catch (error) {
+
+    showAuthMessage(
+      "Server connection error"
+    );
+  }
+}
+
+
+function showAuthMessage(message) {
+
+  document
+    .getElementById("authMessage")
+    .textContent = message;
+}
+
+
+// --------------------
+// Logout
+// --------------------
+
+function logout() {
 
   localStorage.removeItem(
-    "tapRushCoins"
+    "movieToken"
   );
 
-  localStorage.removeItem(
-    "tapRushBest"
+  token = null;
+  currentUser = null;
+
+  location.reload();
+}
+
+
+// --------------------
+// Pages
+// --------------------
+
+function showHome() {
+
+  document
+    .getElementById("homePage")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("watchPage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("adminPage")
+    .classList.add("hidden");
+
+  const player =
+    document.getElementById(
+      "videoPlayer"
+    );
+
+  player.pause();
+}
+
+
+function showAdmin() {
+
+  document
+    .getElementById("homePage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("watchPage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("adminPage")
+    .classList.remove("hidden");
+}
+
+
+// --------------------
+// Movies
+// --------------------
+
+async function loadMovies() {
+
+  const search =
+    document
+      .getElementById("searchInput")
+      .value
+      .trim();
+
+  const data =
+    await fetch(
+      "/api/movies?search=" +
+      encodeURIComponent(search)
+    ).then(res => res.json());
+
+  const list =
+    document.getElementById(
+      "movieList"
+    );
+
+  list.innerHTML = "";
+
+  if (!data || data.length === 0) {
+
+    list.innerHTML = `
+      <div class="notice">
+        No movies found.
+      </div>
+    `;
+
+    return;
+  }
+
+  data.forEach(movie => {
+
+    const card =
+      document.createElement("div");
+
+    card.className =
+      "movie-card";
+
+    card.innerHTML = `
+
+      <video
+        src="${movie.video_url}"
+        muted
+        preload="metadata"
+      ></video>
+
+      <div class="movie-info">
+
+        <h3>
+          ${escapeHtml(movie.title)}
+        </h3>
+
+        <p>
+          ${escapeHtml(
+            movie.description || ""
+          )}
+        </p>
+
+        <button
+          class="watch-button"
+          onclick="watchMovie(
+            ${movie.id},
+            '${encodeURIComponent(movie.title)}',
+            '${encodeURIComponent(
+              movie.description || ""
+            )}',
+            '${movie.video_url}'
+          )"
+        >
+          ▶ Watch
+        </button>
+
+      </div>
+    `;
+
+    list.appendChild(card);
+  });
+}
+
+
+// --------------------
+// Watch
+// --------------------
+
+function watchMovie(
+  id,
+  title,
+  description,
+  videoUrl
+) {
+
+  document
+    .getElementById("homePage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("adminPage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("watchPage")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("watchTitle")
+    .textContent =
+    decodeURIComponent(title);
+
+  document
+    .getElementById("watchDescription")
+    .textContent =
+    decodeURIComponent(description);
+
+  const player =
+    document.getElementById(
+      "videoPlayer"
+    );
+
+  player.src = videoUrl;
+
+  player.load();
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
+
+
+// --------------------
+// Upload
+// --------------------
+
+async function uploadMovie(event) {
+
+  event.preventDefault();
+
+  const title =
+    document
+      .getElementById("movieTitle")
+      .value
+      .trim();
+
+  const description =
+    document
+      .getElementById("movieDescription")
+      .value
+      .trim();
+
+  const video =
+    document
+      .getElementById("movieVideo")
+      .files[0];
+
+  const message =
+    document.getElementById(
+      "uploadMessage"
+    );
+
+  if (!video) {
+
+    message.textContent =
+      "Select a video first.";
+
+    return;
+  }
+
+  const formData =
+    new FormData();
+
+  formData.append(
+    "title",
+    title
   );
 
-  localStorage.removeItem(
-    "tapRushTotalTaps"
+  formData.append(
+    "description",
+    description
   );
 
+  formData.append(
+    "video",
+    video
+  );
 
-  tapButton.classList.remove("running");
+  message.textContent =
+    "Uploading... Please wait.";
 
-  startButton.textContent =
-    "▶ START GAME";
+  try {
 
-  messageElement.textContent =
-    "Press START GAME";
+    const response =
+      await fetch(
+        "/api/movies",
+        {
+          method: "POST",
+
+          headers: {
+            Authorization:
+              "Bearer " + token
+          },
+
+          body: formData
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+
+      message.textContent =
+        data.message;
+
+      return;
+    }
+
+    message.textContent =
+      "Movie uploaded successfully!";
+
+    document
+      .getElementById(
+        "uploadForm"
+      )
+      .reset();
+
+    loadMovies();
+
+  } catch (error) {
+
+    message.textContent =
+      "Upload failed.";
+  }
+}
 
 
-  scoreElement.textContent = 0;
+// --------------------
+// Security helper
+// --------------------
 
-  timeElement.textContent = 30;
+function escapeHtml(text) {
 
-  comboElement.textContent = 0;
+  const div =
+    document.createElement("div");
 
+  div.textContent = text;
 
-  updateDisplay();
+  return div.innerHTML;
 }
