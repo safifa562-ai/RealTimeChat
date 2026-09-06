@@ -1,16 +1,16 @@
 {
-  "name": "realtime-chat",
+  "name": "moviestream",
   "version": "1.0.0",
-  "description": "Real time chat application",
+  "description": "MovieStream video streaming application",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "socket.io": "^4.8.1",
-    "pg": "^8.13.1",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "pg": "^8.13.1"
   }
 }
