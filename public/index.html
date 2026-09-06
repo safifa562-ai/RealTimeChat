@@ -3,190 +3,256 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tap Rush</title>
 
-  <title>StudyConnect</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-  <link rel="stylesheet" href="/style.css">
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #080808;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .game {
+      width: 100%;
+      max-width: 500px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 38px;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      color: #aaa;
+      margin-bottom: 25px;
+    }
+
+    .stats {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      flex: 1;
+      background: #181818;
+      padding: 15px;
+      border-radius: 14px;
+    }
+
+    .stat small {
+      display: block;
+      color: #999;
+      margin-bottom: 5px;
+    }
+
+    .stat strong {
+      font-size: 24px;
+    }
+
+    #tapButton {
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      border: 8px solid #333;
+      background: #222;
+      color: white;
+      font-size: 38px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.08s;
+      box-shadow: 0 0 30px #111;
+    }
+
+    #tapButton:active {
+      transform: scale(0.93);
+    }
+
+    #tapButton.running {
+      background: #2196f3;
+      border-color: #64b5f6;
+    }
+
+    .start {
+      margin-top: 25px;
+      padding: 14px 30px;
+      border: 0;
+      border-radius: 12px;
+      background: #00c853;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .message {
+      margin-top: 20px;
+      min-height: 25px;
+      color: #aaa;
+    }
+
+    .leaderboard {
+      margin-top: 25px;
+      background: #151515;
+      padding: 18px;
+      border-radius: 15px;
+      text-align: left;
+    }
+
+    .leaderboard h3 {
+      margin-top: 0;
+    }
+
+    @media (max-width: 400px) {
+      #tapButton {
+        width: 220px;
+        height: 220px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="app">
+  <div class="game">
 
-  <!-- TOP HEADER -->
-  <header class="top-header">
-    <h2>StudyConnect</h2>
-    <button onclick="logout()">Logout</button>
-  </header>
+    <h1>⚡ Tap Rush</h1>
+    <div class="subtitle">Tap as fast as you can!</div>
 
-
-  <!-- MAIN CONTENT -->
-  <main id="mainContent">
-
-    <!-- HOME -->
-    <section id="homePage" class="page active">
-
-      <h2>🏠 Home</h2>
-
-      <div class="welcome-card">
-        <h3>Welcome to StudyConnect 👋</h3>
-        <p>Learn, connect and chat with other students.</p>
+    <div class="stats">
+      <div class="stat">
+        <small>Score</small>
+        <strong id="score">0</strong>
       </div>
 
-      <div class="post">
-        <div class="post-user">
-          👤 StudyConnect
-        </div>
-
-        <h3>📚 Study Together</h3>
-
-        <p>
-          Share useful study material and help your friends.
-        </p>
-
-        <button onclick="showPage('searchPage')">
-          🔍 Find Students
-        </button>
+      <div class="stat">
+        <small>Time</small>
+        <strong id="time">30</strong>
       </div>
 
-      <div class="post">
-        <div class="post-user">
-          📝 Study Tips
-        </div>
-
-        <h3>Focus on your goals!</h3>
-
-        <p>
-          Connect with friends and study together.
-        </p>
+      <div class="stat">
+        <small>Best</small>
+        <strong id="best">0</strong>
       </div>
+    </div>
 
-    </section>
-
-
-    <!-- SEARCH -->
-    <section id="searchPage" class="page">
-
-      <h2>🔍 Search People</h2>
-
-      <input
-        id="searchInput"
-        class="search-input"
-        type="text"
-        placeholder="Search username..."
-        oninput="searchUsers()"
-      >
-
-      <div id="searchResults"></div>
-
-    </section>
-
-
-    <!-- MESSAGES -->
-    <section id="messagesPage" class="page">
-
-      <h2>💬 Messages</h2>
-
-      <div id="messageList">
-
-        <div class="empty-box">
-          <h3>No conversations yet</h3>
-          <p>Add a friend and start chatting.</p>
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- FRIENDS -->
-    <section id="friendsPage" class="page">
-
-      <h2>👥 Friends</h2>
-
-      <div id="friends"></div>
-
-    </section>
-
-
-    <!-- PROFILE -->
-    <section id="profilePage" class="page">
-
-      <h2>👤 Profile</h2>
-
-      <div class="profile-card">
-
-        <div class="profile-avatar">
-          👤
-        </div>
-
-        <h3 id="profileUsername">
-          User
-        </h3>
-
-        <p>StudyConnect member</p>
-
-        <button onclick="logout()">
-          Logout
-        </button>
-
-      </div>
-
-    </section>
-
-  </main>
-
-
-  <!-- BOTTOM NAVIGATION -->
-  <nav class="bottom-nav">
-
-    <button
-      class="nav-btn active"
-      onclick="showPage('homePage', this)"
-    >
-      <span>🏠</span>
-      <small>Home</small>
+    <button id="tapButton" onclick="tap()">
+      TAP!
     </button>
 
-    <button
-      class="nav-btn"
-      onclick="showPage('searchPage', this)"
-    >
-      <span>🔍</span>
-      <small>Search</small>
+    <br>
+
+    <button class="start" onclick="startGame()">
+      ▶ Start Game
     </button>
 
-    <button
-      class="nav-btn"
-      onclick="showPage('messagesPage', this)"
-    >
-      <span>💬</span>
-      <small>Messages</small>
-    </button>
+    <div class="message" id="message">
+      Press Start Game
+    </div>
 
-    <button
-      class="nav-btn"
-      onclick="showPage('friendsPage', this)"
-    >
-      <span>👥</span>
-      <small>Friends</small>
-    </button>
+    <div class="leaderboard">
+      <h3>🏆 Your Record</h3>
+      <p>Best Score: <strong id="bestBottom">0</strong></p>
+    </div>
 
-    <button
-      class="nav-btn"
-      onclick="showPage('profilePage', this)"
-    >
-      <span>👤</span>
-      <small>Profile</small>
-    </button>
+  </div>
 
-  </nav>
+  <script>
+    let score = 0;
+    let time = 30;
+    let playing = false;
+    let timer;
 
-</div>
+    let best = Number(localStorage.getItem("tapRushBest")) || 0;
 
+    document.getElementById("best").textContent = best;
+    document.getElementById("bestBottom").textContent = best;
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="/app.js"></script>
+    function startGame() {
+
+      if (playing) return;
+
+      score = 0;
+      time = 30;
+      playing = true;
+
+      document.getElementById("score").textContent = score;
+      document.getElementById("time").textContent = time;
+      document.getElementById("message").textContent = "🔥 GO!";
+
+      const button = document.getElementById("tapButton");
+      button.classList.add("running");
+
+      clearInterval(timer);
+
+      timer = setInterval(() => {
+
+        time--;
+
+        document.getElementById("time").textContent = time;
+
+        if (time <= 0) {
+          endGame();
+        }
+
+      }, 1000);
+    }
+
+    function tap() {
+
+      if (!playing) return;
+
+      score++;
+
+      document.getElementById("score").textContent = score;
+
+      if (score % 10 === 0) {
+        document.getElementById("message").textContent =
+          "🔥 " + score + " TAPS!";
+      }
+    }
+
+    function endGame() {
+
+      playing = false;
+
+      clearInterval(timer);
+
+      document.getElementById("tapButton")
+        .classList.remove("running");
+
+      if (score > best) {
+
+        best = score;
+
+        localStorage.setItem(
+          "tapRushBest",
+          best
+        );
+
+        document.getElementById("best").textContent = best;
+        document.getElementById("bestBottom").textContent = best;
+
+        document.getElementById("message").textContent =
+          "🏆 NEW HIGH SCORE: " + score;
+      } else {
+
+        document.getElementById("message").textContent =
+          "Game Over! Score: " + score;
+      }
+    }
+  </script>
 
 </body>
 </html>
