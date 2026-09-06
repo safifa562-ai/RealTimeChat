@@ -3,256 +3,167 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Tap Rush</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: #080808;
-      color: white;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .game {
-      width: 100%;
-      max-width: 500px;
-      padding: 20px;
-      text-align: center;
-    }
-
-    h1 {
-      font-size: 38px;
-      margin-bottom: 5px;
-    }
-
-    .subtitle {
-      color: #aaa;
-      margin-bottom: 25px;
-    }
-
-    .stats {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .stat {
-      flex: 1;
-      background: #181818;
-      padding: 15px;
-      border-radius: 14px;
-    }
-
-    .stat small {
-      display: block;
-      color: #999;
-      margin-bottom: 5px;
-    }
-
-    .stat strong {
-      font-size: 24px;
-    }
-
-    #tapButton {
-      width: 260px;
-      height: 260px;
-      border-radius: 50%;
-      border: 8px solid #333;
-      background: #222;
-      color: white;
-      font-size: 38px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: transform 0.08s;
-      box-shadow: 0 0 30px #111;
-    }
-
-    #tapButton:active {
-      transform: scale(0.93);
-    }
-
-    #tapButton.running {
-      background: #2196f3;
-      border-color: #64b5f6;
-    }
-
-    .start {
-      margin-top: 25px;
-      padding: 14px 30px;
-      border: 0;
-      border-radius: 12px;
-      background: #00c853;
-      color: white;
-      font-size: 18px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .message {
-      margin-top: 20px;
-      min-height: 25px;
-      color: #aaa;
-    }
-
-    .leaderboard {
-      margin-top: 25px;
-      background: #151515;
-      padding: 18px;
-      border-radius: 15px;
-      text-align: left;
-    }
-
-    .leaderboard h3 {
-      margin-top: 0;
-    }
-
-    @media (max-width: 400px) {
-      #tapButton {
-        width: 220px;
-        height: 220px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
   <div class="game">
 
-    <h1>⚡ Tap Rush</h1>
-    <div class="subtitle">Tap as fast as you can!</div>
+    <header>
+      <div>
+        <h1>⚡ Tap Rush</h1>
+        <p>Tap fast. Beat your record.</p>
+      </div>
 
-    <div class="stats">
+      <button id="soundBtn" onclick="toggleSound()">🔊</button>
+    </header>
+
+
+    <section class="stats">
+
       <div class="stat">
-        <small>Score</small>
-        <strong id="score">0</strong>
+        <span>🪙 Coins</span>
+        <strong id="coins">0</strong>
       </div>
 
       <div class="stat">
-        <small>Time</small>
+        <span>🏆 Best</span>
+        <strong id="best">0</strong>
+      </div>
+
+      <div class="stat">
+        <span>⭐ Level</span>
+        <strong id="level">1</strong>
+      </div>
+
+    </section>
+
+
+    <section class="game-card">
+
+      <div class="timer-box">
+        <span>TIME</span>
         <strong id="time">30</strong>
       </div>
 
-      <div class="stat">
-        <small>Best</small>
-        <strong id="best">0</strong>
+      <div class="combo">
+        🔥 Combo ×<span id="combo">0</span>
       </div>
-    </div>
 
-    <button id="tapButton" onclick="tap()">
-      TAP!
+
+      <button
+        id="tapButton"
+        class="tap-button"
+        onclick="tap()"
+      >
+        TAP!
+      </button>
+
+
+      <div class="score">
+        <span>SCORE</span>
+        <strong id="score">0</strong>
+      </div>
+
+
+      <button
+        id="startButton"
+        class="start-button"
+        onclick="startGame()"
+      >
+        ▶ START GAME
+      </button>
+
+
+      <p id="message">
+        Press START GAME
+      </p>
+
+    </section>
+
+
+    <section class="progress-card">
+
+      <div class="progress-title">
+        <span>Level Progress</span>
+        <span id="progressText">0 / 50</span>
+      </div>
+
+      <div class="progress">
+        <div id="progressBar"></div>
+      </div>
+
+    </section>
+
+
+    <section class="achievement-card">
+
+      <h2>🏅 Achievements</h2>
+
+      <div class="achievement" id="a10">
+        <span>🔥</span>
+        <div>
+          <strong>First Steps</strong>
+          <small>Reach 10 taps</small>
+        </div>
+      </div>
+
+      <div class="achievement" id="a50">
+        <span>⚡</span>
+        <div>
+          <strong>Speed Tapper</strong>
+          <small>Reach 50 taps</small>
+        </div>
+      </div>
+
+      <div class="achievement" id="a100">
+        <span>👑</span>
+        <div>
+          <strong>Tap Master</strong>
+          <small>Reach 100 taps</small>
+        </div>
+      </div>
+
+    </section>
+
+
+    <section class="record-card">
+
+      <h2>🏆 Your Record</h2>
+
+      <div class="record-row">
+        <span>Best Score</span>
+        <strong id="recordScore">0</strong>
+      </div>
+
+      <div class="record-row">
+        <span>Total Taps</span>
+        <strong id="totalTaps">0</strong>
+      </div>
+
+      <div class="record-row">
+        <span>Total Coins</span>
+        <strong id="totalCoins">0</strong>
+      </div>
+
+    </section>
+
+
+    <button
+      class="reset-button"
+      onclick="resetGame()"
+    >
+      Reset Game
     </button>
-
-    <br>
-
-    <button class="start" onclick="startGame()">
-      ▶ Start Game
-    </button>
-
-    <div class="message" id="message">
-      Press Start Game
-    </div>
-
-    <div class="leaderboard">
-      <h3>🏆 Your Record</h3>
-      <p>Best Score: <strong id="bestBottom">0</strong></p>
-    </div>
 
   </div>
 
-  <script>
-    let score = 0;
-    let time = 30;
-    let playing = false;
-    let timer;
 
-    let best = Number(localStorage.getItem("tapRushBest")) || 0;
-
-    document.getElementById("best").textContent = best;
-    document.getElementById("bestBottom").textContent = best;
-
-    function startGame() {
-
-      if (playing) return;
-
-      score = 0;
-      time = 30;
-      playing = true;
-
-      document.getElementById("score").textContent = score;
-      document.getElementById("time").textContent = time;
-      document.getElementById("message").textContent = "🔥 GO!";
-
-      const button = document.getElementById("tapButton");
-      button.classList.add("running");
-
-      clearInterval(timer);
-
-      timer = setInterval(() => {
-
-        time--;
-
-        document.getElementById("time").textContent = time;
-
-        if (time <= 0) {
-          endGame();
-        }
-
-      }, 1000);
-    }
-
-    function tap() {
-
-      if (!playing) return;
-
-      score++;
-
-      document.getElementById("score").textContent = score;
-
-      if (score % 10 === 0) {
-        document.getElementById("message").textContent =
-          "🔥 " + score + " TAPS!";
-      }
-    }
-
-    function endGame() {
-
-      playing = false;
-
-      clearInterval(timer);
-
-      document.getElementById("tapButton")
-        .classList.remove("running");
-
-      if (score > best) {
-
-        best = score;
-
-        localStorage.setItem(
-          "tapRushBest",
-          best
-        );
-
-        document.getElementById("best").textContent = best;
-        document.getElementById("bestBottom").textContent = best;
-
-        document.getElementById("message").textContent =
-          "🏆 NEW HIGH SCORE: " + score;
-      } else {
-
-        document.getElementById("message").textContent =
-          "Game Over! Score: " + score;
-      }
-    }
-  </script>
+  <script src="app.js"></script>
 
 </body>
 </html>
