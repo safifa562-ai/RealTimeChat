@@ -1,169 +1,290 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Tap Rush</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <link rel="stylesheet" href="style.css">
+  <title>MovieStream</title>
+
+  <link
+    rel="stylesheet"
+    href="/style.css"
+  >
 </head>
 
 <body>
 
-  <div class="game">
+  <!-- AUTH -->
 
-    <header>
-      <div>
-        <h1>⚡ Tap Rush</h1>
-        <p>Tap fast. Beat your record.</p>
-      </div>
+  <div id="authScreen">
 
-      <button id="soundBtn" onclick="toggleSound()">🔊</button>
-    </header>
+    <div class="auth-box">
 
+      <div class="logo">🎬</div>
 
-    <section class="stats">
+      <h1>MovieStream</h1>
 
-      <div class="stat">
-        <span>🪙 Coins</span>
-        <strong id="coins">0</strong>
-      </div>
-
-      <div class="stat">
-        <span>🏆 Best</span>
-        <strong id="best">0</strong>
-      </div>
-
-      <div class="stat">
-        <span>⭐ Level</span>
-        <strong id="level">1</strong>
-      </div>
-
-    </section>
-
-
-    <section class="game-card">
-
-      <div class="timer-box">
-        <span>TIME</span>
-        <strong id="time">30</strong>
-      </div>
-
-      <div class="combo">
-        🔥 Combo ×<span id="combo">0</span>
-      </div>
-
-
-      <button
-        id="tapButton"
-        class="tap-button"
-        onclick="tap()"
-      >
-        TAP!
-      </button>
-
-
-      <div class="score">
-        <span>SCORE</span>
-        <strong id="score">0</strong>
-      </div>
-
-
-      <button
-        id="startButton"
-        class="start-button"
-        onclick="startGame()"
-      >
-        ▶ START GAME
-      </button>
-
-
-      <p id="message">
-        Press START GAME
+      <p id="authSubtitle">
+        Watch your favorite videos
       </p>
 
-    </section>
+      <!-- LOGIN -->
 
+      <div id="loginBox">
 
-    <section class="progress-card">
+        <input
+          id="loginUsername"
+          type="text"
+          placeholder="Username"
+        >
 
-      <div class="progress-title">
-        <span>Level Progress</span>
-        <span id="progressText">0 / 50</span>
+        <input
+          id="loginPassword"
+          type="password"
+          placeholder="Password"
+        >
+
+        <button onclick="login()">
+          Login
+        </button>
+
+        <p>
+          Don't have an account?
+          <span
+            class="link"
+            onclick="showSignup()"
+          >
+            Sign up
+          </span>
+        </p>
+
       </div>
 
-      <div class="progress">
-        <div id="progressBar"></div>
+      <!-- SIGNUP -->
+
+      <div
+        id="signupBox"
+        class="hidden"
+      >
+
+        <input
+          id="signupUsername"
+          type="text"
+          placeholder="Choose username"
+        >
+
+        <input
+          id="signupPassword"
+          type="password"
+          placeholder="Create password"
+        >
+
+        <button onclick="signup()">
+          Create Account
+        </button>
+
+        <p>
+          Already have an account?
+          <span
+            class="link"
+            onclick="showLogin()"
+          >
+            Login
+          </span>
+        </p>
+
       </div>
 
-    </section>
+      <p id="authMessage"></p>
 
-
-    <section class="achievement-card">
-
-      <h2>🏅 Achievements</h2>
-
-      <div class="achievement" id="a10">
-        <span>🔥</span>
-        <div>
-          <strong>First Steps</strong>
-          <small>Reach 10 taps</small>
-        </div>
-      </div>
-
-      <div class="achievement" id="a50">
-        <span>⚡</span>
-        <div>
-          <strong>Speed Tapper</strong>
-          <small>Reach 50 taps</small>
-        </div>
-      </div>
-
-      <div class="achievement" id="a100">
-        <span>👑</span>
-        <div>
-          <strong>Tap Master</strong>
-          <small>Reach 100 taps</small>
-        </div>
-      </div>
-
-    </section>
-
-
-    <section class="record-card">
-
-      <h2>🏆 Your Record</h2>
-
-      <div class="record-row">
-        <span>Best Score</span>
-        <strong id="recordScore">0</strong>
-      </div>
-
-      <div class="record-row">
-        <span>Total Taps</span>
-        <strong id="totalTaps">0</strong>
-      </div>
-
-      <div class="record-row">
-        <span>Total Coins</span>
-        <strong id="totalCoins">0</strong>
-      </div>
-
-    </section>
-
-
-    <button
-      class="reset-button"
-      onclick="resetGame()"
-    >
-      Reset Game
-    </button>
+    </div>
 
   </div>
 
 
-  <script src="app.js"></script>
+  <!-- APP -->
+
+  <div
+    id="app"
+    class="hidden"
+  >
+
+    <header>
+
+      <div class="brand">
+        🎬 MovieStream
+      </div>
+
+      <button
+        class="logout"
+        onclick="logout()"
+      >
+        Logout
+      </button>
+
+    </header>
+
+
+    <main>
+
+      <!-- HOME -->
+
+      <section id="homePage">
+
+        <div class="hero">
+
+          <h1>Watch Movies</h1>
+
+          <p>
+            Enjoy videos on your phone,
+            tablet or computer.
+          </p>
+
+        </div>
+
+
+        <div class="search-row">
+
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="Search movies..."
+            oninput="loadMovies()"
+          >
+
+        </div>
+
+
+        <h2>Latest Movies</h2>
+
+        <div
+          id="movieList"
+          class="movie-grid"
+        ></div>
+
+      </section>
+
+
+      <!-- PLAYER -->
+
+      <section
+        id="watchPage"
+        class="hidden"
+      >
+
+        <button
+          class="back-button"
+          onclick="showHome()"
+        >
+          ← Back
+        </button>
+
+        <div class="player-box">
+
+          <video
+            id="videoPlayer"
+            controls
+            playsinline
+            preload="metadata"
+          >
+          </video>
+
+        </div>
+
+        <h1 id="watchTitle">
+          Movie
+        </h1>
+
+        <p id="watchDescription"></p>
+
+      </section>
+
+
+      <!-- ADMIN -->
+
+      <section
+        id="adminPage"
+        class="hidden"
+      >
+
+        <h1>Admin Upload</h1>
+
+        <p class="notice">
+          Upload only videos that you own
+          or have permission to distribute.
+        </p>
+
+        <form
+          id="uploadForm"
+          onsubmit="uploadMovie(event)"
+        >
+
+          <input
+            id="movieTitle"
+            type="text"
+            placeholder="Movie title"
+            required
+          >
+
+          <textarea
+            id="movieDescription"
+            placeholder="Movie description"
+          ></textarea>
+
+          <label class="file-label">
+            Select video
+            <input
+              id="movieVideo"
+              type="file"
+              accept="video/mp4,video/webm,video/ogg,video/quicktime"
+              required
+            >
+          </label>
+
+          <button type="submit">
+            Upload Movie
+          </button>
+
+        </form>
+
+        <p id="uploadMessage"></p>
+
+      </section>
+
+    </main>
+
+
+    <!-- NAVIGATION -->
+
+    <nav>
+
+      <button onclick="showHome()">
+        🏠
+        <small>Home</small>
+      </button>
+
+      <button onclick="showAdmin()">
+        ⬆️
+        <small>Upload</small>
+      </button>
+
+      <button onclick="logout()">
+        👤
+        <small>Logout</small>
+      </button>
+
+    </nav>
+
+  </div>
+
+
+  <script src="/app.js"></script>
 
 </body>
+
 </html>
