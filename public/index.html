@@ -1,290 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MovieStream</title>
-
-  <link
-    rel="stylesheet"
-    href="/style.css"
-  >
+  <link rel="stylesheet" href="/style.css">
 </head>
 
 <body>
 
-  <!-- AUTH -->
+<div class="app">
 
-  <div id="authScreen">
+  <header>
+    <h1>🎬 MovieStream</h1>
+    <button onclick="logout()">Logout</button>
+  </header>
 
-    <div class="auth-box">
+  <section class="upload-box">
+    <h2>Upload Movie</h2>
 
-      <div class="logo">🎬</div>
+    <input id="movieTitle" type="text" placeholder="Movie title">
 
-      <h1>MovieStream</h1>
+    <input id="movieUrl" type="url"
+           placeholder="Video URL (MP4)">
 
-      <p id="authSubtitle">
-        Watch your favorite videos
-      </p>
+    <button onclick="addMovie()">➕ Add Movie</button>
 
-      <!-- LOGIN -->
+    <p id="message"></p>
+  </section>
 
-      <div id="loginBox">
+  <section>
+    <h2>🎥 Movies</h2>
+    <div id="movieList"></div>
+  </section>
 
-        <input
-          id="loginUsername"
-          type="text"
-          placeholder="Username"
-        >
+</div>
 
-        <input
-          id="loginPassword"
-          type="password"
-          placeholder="Password"
-        >
-
-        <button onclick="login()">
-          Login
-        </button>
-
-        <p>
-          Don't have an account?
-          <span
-            class="link"
-            onclick="showSignup()"
-          >
-            Sign up
-          </span>
-        </p>
-
-      </div>
-
-      <!-- SIGNUP -->
-
-      <div
-        id="signupBox"
-        class="hidden"
-      >
-
-        <input
-          id="signupUsername"
-          type="text"
-          placeholder="Choose username"
-        >
-
-        <input
-          id="signupPassword"
-          type="password"
-          placeholder="Create password"
-        >
-
-        <button onclick="signup()">
-          Create Account
-        </button>
-
-        <p>
-          Already have an account?
-          <span
-            class="link"
-            onclick="showLogin()"
-          >
-            Login
-          </span>
-        </p>
-
-      </div>
-
-      <p id="authMessage"></p>
-
-    </div>
-
-  </div>
-
-
-  <!-- APP -->
-
-  <div
-    id="app"
-    class="hidden"
-  >
-
-    <header>
-
-      <div class="brand">
-        🎬 MovieStream
-      </div>
-
-      <button
-        class="logout"
-        onclick="logout()"
-      >
-        Logout
-      </button>
-
-    </header>
-
-
-    <main>
-
-      <!-- HOME -->
-
-      <section id="homePage">
-
-        <div class="hero">
-
-          <h1>Watch Movies</h1>
-
-          <p>
-            Enjoy videos on your phone,
-            tablet or computer.
-          </p>
-
-        </div>
-
-
-        <div class="search-row">
-
-          <input
-            id="searchInput"
-            type="text"
-            placeholder="Search movies..."
-            oninput="loadMovies()"
-          >
-
-        </div>
-
-
-        <h2>Latest Movies</h2>
-
-        <div
-          id="movieList"
-          class="movie-grid"
-        ></div>
-
-      </section>
-
-
-      <!-- PLAYER -->
-
-      <section
-        id="watchPage"
-        class="hidden"
-      >
-
-        <button
-          class="back-button"
-          onclick="showHome()"
-        >
-          ← Back
-        </button>
-
-        <div class="player-box">
-
-          <video
-            id="videoPlayer"
-            controls
-            playsinline
-            preload="metadata"
-          >
-          </video>
-
-        </div>
-
-        <h1 id="watchTitle">
-          Movie
-        </h1>
-
-        <p id="watchDescription"></p>
-
-      </section>
-
-
-      <!-- ADMIN -->
-
-      <section
-        id="adminPage"
-        class="hidden"
-      >
-
-        <h1>Admin Upload</h1>
-
-        <p class="notice">
-          Upload only videos that you own
-          or have permission to distribute.
-        </p>
-
-        <form
-          id="uploadForm"
-          onsubmit="uploadMovie(event)"
-        >
-
-          <input
-            id="movieTitle"
-            type="text"
-            placeholder="Movie title"
-            required
-          >
-
-          <textarea
-            id="movieDescription"
-            placeholder="Movie description"
-          ></textarea>
-
-          <label class="file-label">
-            Select video
-            <input
-              id="movieVideo"
-              type="file"
-              accept="video/mp4,video/webm,video/ogg,video/quicktime"
-              required
-            >
-          </label>
-
-          <button type="submit">
-            Upload Movie
-          </button>
-
-        </form>
-
-        <p id="uploadMessage"></p>
-
-      </section>
-
-    </main>
-
-
-    <!-- NAVIGATION -->
-
-    <nav>
-
-      <button onclick="showHome()">
-        🏠
-        <small>Home</small>
-      </button>
-
-      <button onclick="showAdmin()">
-        ⬆️
-        <small>Upload</small>
-      </button>
-
-      <button onclick="logout()">
-        👤
-        <small>Logout</small>
-      </button>
-
-    </nav>
-
-  </div>
-
-
-  <script src="/app.js"></script>
+<script src="/app.js"></script>
 
 </body>
-
 </html>
