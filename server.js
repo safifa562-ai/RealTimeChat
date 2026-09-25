@@ -1,179 +1,156 @@
 const express = require("express");
+const http = require("http");
 const path = require("path");
-const fs = require("fs");
-const multer = require("multer");
-const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { Pool } = require("pg");
+const helmet = require("helmet");
 
 const app = express();
+const server = http.createServer(app);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET;
+const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!JWT_SECRET) {
   console.error("JWT_SECRET is missing");
   process.exit(1);
 }
 
+if (!DATABASE_URL) {
+  console.error("DATABASE_URL is missing");
+  process.exit(1);
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL
+  connectionString: DATABASE_URL,
+  ssl: process.env.NODE_ENV === "production"
     ? { rejectUnauthorized: false }
     : false
 });
 
-const uploadDir = path.join(__dirname, "uploads");
-
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-
-    const filename =
-      Date.now() +
-      "-" +
-      Math.random().toString(36).substring(2, 10) +
-      ext;
-
-    cb(null, filename);
-  }
-});
-
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 500 * 1024 * 1024
-  },
-  fileFilter: (req, file, cb) => {
-    const allowed = [
-      "video/mp4",
-      "video/webm",
-      "video/ogg",
-      "video/quicktime"
-    ];
-
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only video files are allowed."));
-    }
-  }
-});
-
-app.use(express.json());
+app.use(helmet());
+app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
-
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/uploads", express.static(uploadDir));
 
+app.disable("x-powered-by");
 
-// ================= DATABASE =================
+/* =========================
+   DATABASE
+========================= */
 
 async function createTables() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       username VARCHAR(50) UNIQUE NOT NULL,
-      password TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      is_admin BOOLEAN DEFAULT FALSE,
+      is_premium BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS movies (
       id SERIAL PRIMARY KEY,
       title VARCHAR(200) NOT NULL,
-      description TEXT DEFAULT '',
       video_url TEXT NOT NULL,
-      uploaded_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      description TEXT DEFAULT '',
+      thumbnail_url TEXT DEFAULT '',
+      is_premium BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS site_settings (
+      id INTEGER PRIMARY KEY DEFAULT 1,
+      site_name VARCHAR(100) DEFAULT 'MovieStream',
+      ad_enabled BOOLEAN DEFAULT TRUE,
+      ad_text TEXT DEFAULT 'Support MovieStream',
+      sponsor_url TEXT DEFAULT ''
+    );
+  `);
+
+  await pool.query(`
+    INSERT INTO site_settings
+      (id, site_name, ad_enabled, ad_text, sponsor_url)
+    VALUES
+      (1, 'MovieStream', TRUE, 'Support MovieStream', '')
+    ON CONFLICT (id) DO NOTHING;
   `);
 
   console.log("Database tables ready");
 }
 
-
-// ================= AUTH =================
+/* =========================
+   AUTH
+========================= */
 
 function createToken(user) {
   return jwt.sign(
     {
       id: user.id,
-      username: user.username
+      username: user.username,
+      isAdmin: user.is_admin,
+      isPremium: user.is_premium
     },
     JWT_SECRET,
-    {
-      expiresIn: "7d"
-    }
+    { expiresIn: "7d" }
   );
 }
 
-function authenticate(req, res, next) {
-  try {
-    const auth = req.headers.authorization;
+function auth(req, res, next) {
+  const header = req.headers.authorization;
 
-    if (!auth) {
-      return res.status(401).json({
-        message: "Login required"
-      });
-    }
-
-    const token = auth.split(" ")[1];
-
-    if (!token) {
-      return res.status(401).json({
-        message: "Login required"
-      });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    req.user = decoded;
-
-    next();
-
-  } catch (error) {
+  if (!header || !header.startsWith("Bearer ")) {
     return res.status(401).json({
-      message: "Invalid or expired login"
+      error: "Login required"
+    });
+  }
+
+  const token = header.substring(7);
+
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({
+      error: "Invalid or expired login"
     });
   }
 }
 
+function adminOnly(req, res, next) {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({
+      error: "Admin access required"
+    });
+  }
 
-// ================= SIGNUP =================
+  next();
+}
 
-app.post("/api/signup", async (req, res) => {
+/* =========================
+   REGISTER
+========================= */
+
+app.post("/api/register", async (req, res) => {
   try {
-    const username = String(
-      req.body.username || ""
-    ).trim();
+    const username = String(req.body.username || "")
+      .trim()
+      .toLowerCase();
 
-    const password = String(
-      req.body.password || ""
-    );
+    const password = String(req.body.password || "");
 
-    if (!username || !password) {
+    if (username.length < 3 || username.length > 50) {
       return res.status(400).json({
-        message: "Username and password are required"
-      });
-    }
-
-    if (username.length < 3) {
-      return res.status(400).json({
-        message: "Username must contain at least 3 characters"
+        error: "Username must be 3-50 characters"
       });
     }
 
     if (password.length < 6) {
       return res.status(400).json({
-        message: "Password must contain at least 6 characters"
+        error: "Password must be at least 6 characters"
       });
     }
 
@@ -182,66 +159,63 @@ app.post("/api/signup", async (req, res) => {
       [username]
     );
 
-    if (existing.rows.length > 0) {
+    if (existing.rows.length) {
       return res.status(409).json({
-        message: "Username already exists"
+        error: "Username already exists"
       });
     }
 
-    const hashedPassword = await bcrypt.hash(
-      password,
-      10
-    );
+    const hash = await bcrypt.hash(password, 12);
 
     const result = await pool.query(
       `
-      INSERT INTO users (username, password)
+      INSERT INTO users (username, password_hash)
       VALUES ($1, $2)
-      RETURNING id, username
+      RETURNING id, username, is_admin, is_premium
       `,
-      [username, hashedPassword]
+      [username, hash]
     );
 
     const user = result.rows[0];
 
-    const token = createToken(user);
-
     res.json({
-      message: "Account created",
-      token,
-      user
+      token: createToken(user),
+      user: {
+        id: user.id,
+        username: user.username,
+        isAdmin: user.is_admin,
+        isPremium: user.is_premium
+      }
     });
 
   } catch (error) {
-    console.error("Signup error:", error);
-
+    console.error(error);
     res.status(500).json({
-      message: "Server error"
+      error: "Registration failed"
     });
   }
 });
 
-
-// ================= LOGIN =================
+/* =========================
+   LOGIN
+========================= */
 
 app.post("/api/login", async (req, res) => {
   try {
-    const username = String(
-      req.body.username || ""
-    ).trim();
+    const username = String(req.body.username || "")
+      .trim()
+      .toLowerCase();
 
-    const password = String(
-      req.body.password || ""
-    );
+    const password = String(req.body.password || "");
 
     const result = await pool.query(
       "SELECT * FROM users WHERE username = $1",
       [username]
     );
 
-    if (result.rows.length === 0) {
+    if (!result.rows.length) {
       return res.status(401).json({
-        message: "Invalid username or password"
+        error: "Invalid username or password"
       });
     }
 
@@ -249,292 +223,296 @@ app.post("/api/login", async (req, res) => {
 
     const valid = await bcrypt.compare(
       password,
-      user.password
+      user.password_hash
     );
 
     if (!valid) {
       return res.status(401).json({
-        message: "Invalid username or password"
+        error: "Invalid username or password"
       });
     }
 
-    const token = createToken(user);
-
     res.json({
-      message: "Login successful",
-      token,
+      token: createToken(user),
       user: {
         id: user.id,
-        username: user.username
+        username: user.username,
+        isAdmin: user.is_admin,
+        isPremium: user.is_premium
       }
     });
 
   } catch (error) {
-    console.error("Login error:", error);
-
+    console.error(error);
     res.status(500).json({
-      message: "Server error"
+      error: "Login failed"
     });
   }
 });
 
+/* =========================
+   CURRENT USER
+========================= */
 
-// ================= CURRENT USER =================
+app.get("/api/me", auth, async (req, res) => {
+  const result = await pool.query(
+    `
+    SELECT id, username, is_admin, is_premium
+    FROM users
+    WHERE id = $1
+    `,
+    [req.user.id]
+  );
 
-app.get("/api/me", authenticate, async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT id, username FROM users WHERE id = $1",
-      [req.user.id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "User not found"
-      });
-    }
-
-    res.json({
-      user: result.rows[0]
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      message: "Server error"
+  if (!result.rows.length) {
+    return res.status(404).json({
+      error: "User not found"
     });
   }
+
+  const user = result.rows[0];
+
+  res.json({
+    id: user.id,
+    username: user.username,
+    isAdmin: user.is_admin,
+    isPremium: user.is_premium
+  });
 });
 
-
-// ================= MOVIE LIST =================
+/* =========================
+   MOVIES
+========================= */
 
 app.get("/api/movies", async (req, res) => {
   try {
-    const search = String(
-      req.query.search || ""
-    ).trim();
+    const result = await pool.query(`
+      SELECT
+        id,
+        title,
+        description,
+        thumbnail_url,
+        video_url,
+        is_premium,
+        created_at
+      FROM movies
+      ORDER BY created_at DESC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Could not load movies"
+    });
+  }
+});
+
+/* =========================
+   WATCH MOVIE
+========================= */
+
+app.get("/api/movies/:id/watch", auth, async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM movies WHERE id = $1",
+    [req.params.id]
+  );
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      error: "Movie not found"
+    });
+  }
+
+  const movie = result.rows[0];
+
+  if (movie.is_premium && !req.user.isPremium && !req.user.isAdmin) {
+    return res.status(402).json({
+      premium: true,
+      error: "Premium membership required"
+    });
+  }
+
+  res.json({
+    id: movie.id,
+    title: movie.title,
+    videoUrl: movie.video_url
+  });
+});
+
+/* =========================
+   ADMIN: ADD MOVIE
+========================= */
+
+app.post("/api/admin/movies", auth, adminOnly, async (req, res) => {
+  try {
+    const {
+      title,
+      videoUrl,
+      description = "",
+      thumbnailUrl = "",
+      isPremium = false
+    } = req.body;
+
+    if (!title || !videoUrl) {
+      return res.status(400).json({
+        error: "Title and video URL are required"
+      });
+    }
 
     const result = await pool.query(
       `
-      SELECT
-        movies.id,
-        movies.title,
-        movies.description,
-        movies.video_url,
-        movies.created_at,
-        users.username AS uploader
-      FROM movies
-      LEFT JOIN users
-        ON users.id = movies.uploaded_by
-      WHERE movies.title ILIKE $1
-      ORDER BY movies.created_at DESC
+      INSERT INTO movies
+      (title, video_url, description, thumbnail_url, is_premium)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
       `,
-      [`%${search}%`]
+      [
+        title,
+        videoUrl,
+        description,
+        thumbnailUrl,
+        Boolean(isPremium)
+      ]
     );
 
-    res.json(result.rows);
+    res.json(result.rows[0]);
 
   } catch (error) {
-    console.error("Movie list error:", error);
-
+    console.error(error);
     res.status(500).json({
-      message: "Could not load movies"
+      error: "Could not add movie"
     });
   }
 });
 
+/* =========================
+   ADMIN: DELETE MOVIE
+========================= */
 
-// ================= ADMIN UPLOAD =================
+app.delete("/api/admin/movies/:id", auth, adminOnly, async (req, res) => {
+  await pool.query(
+    "DELETE FROM movies WHERE id = $1",
+    [req.params.id]
+  );
 
-app.post(
-  "/api/movies",
-  authenticate,
-  upload.single("video"),
-  async (req, res) => {
-    try {
-      const adminUsername =
-        process.env.ADMIN_USERNAME || "";
-
-      if (
-        !adminUsername ||
-        req.user.username !== adminUsername
-      ) {
-        if (req.file) {
-          fs.unlinkSync(req.file.path);
-        }
-
-        return res.status(403).json({
-          message: "Only the admin can upload movies"
-        });
-      }
-
-      const title = String(
-        req.body.title || ""
-      ).trim();
-
-      const description = String(
-        req.body.description || ""
-      ).trim();
-
-      if (!title) {
-        if (req.file) {
-          fs.unlinkSync(req.file.path);
-        }
-
-        return res.status(400).json({
-          message: "Movie title is required"
-        });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({
-          message: "Please select a video"
-        });
-      }
-
-      const videoUrl =
-        "/uploads/" + req.file.filename;
-
-      const result = await pool.query(
-        `
-        INSERT INTO movies
-        (title, description, video_url, uploaded_by)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *
-        `,
-        [
-          title,
-          description,
-          videoUrl,
-          req.user.id
-        ]
-      );
-
-      res.json({
-        message: "Movie uploaded successfully",
-        movie: result.rows[0]
-      });
-
-    } catch (error) {
-      console.error("Upload error:", error);
-
-      if (
-        req.file &&
-        fs.existsSync(req.file.path)
-      ) {
-        fs.unlinkSync(req.file.path);
-      }
-
-      res.status(500).json({
-        message: "Movie upload failed"
-      });
-    }
-  }
-);
-
-
-// ================= DELETE MOVIE =================
-
-app.delete(
-  "/api/movies/:id",
-  authenticate,
-  async (req, res) => {
-    try {
-      const adminUsername =
-        process.env.ADMIN_USERNAME || "";
-
-      if (req.user.username !== adminUsername) {
-        return res.status(403).json({
-          message: "Admin only"
-        });
-      }
-
-      const result = await pool.query(
-        "SELECT * FROM movies WHERE id = $1",
-        [req.params.id]
-      );
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          message: "Movie not found"
-        });
-      }
-
-      const movie = result.rows[0];
-
-      if (movie.video_url.startsWith("/uploads/")) {
-        const filename =
-          path.basename(movie.video_url);
-
-        const filePath =
-          path.join(uploadDir, filename);
-
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      }
-
-      await pool.query(
-        "DELETE FROM movies WHERE id = $1",
-        [req.params.id]
-      );
-
-      res.json({
-        message: "Movie deleted"
-      });
-
-    } catch (error) {
-      console.error("Delete error:", error);
-
-      res.status(500).json({
-        message: "Delete failed"
-      });
-    }
-  }
-);
-
-
-// ================= ERROR HANDLER =================
-
-app.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    return res.status(400).json({
-      message: "Upload error: " + error.message
-    });
-  }
-
-  if (error) {
-    return res.status(400).json({
-      message: error.message
-    });
-  }
-
-  next();
+  res.json({
+    success: true
+  });
 });
 
+/* =========================
+   ADMIN: MAKE USER PREMIUM
+========================= */
 
-// ================= START =================
+app.patch("/api/admin/users/:id/premium", auth, adminOnly, async (req, res) => {
+  const enabled = Boolean(req.body.enabled);
+
+  const result = await pool.query(
+    `
+    UPDATE users
+    SET is_premium = $1
+    WHERE id = $2
+    RETURNING id, username, is_premium
+    `,
+    [enabled, req.params.id]
+  );
+
+  if (!result.rows.length) {
+    return res.status(404).json({
+      error: "User not found"
+    });
+  }
+
+  res.json(result.rows[0]);
+});
+
+/* =========================
+   ADS / SPONSOR SETTINGS
+========================= */
+
+app.get("/api/settings", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM site_settings WHERE id = 1"
+  );
+
+  res.json(result.rows[0]);
+});
+
+app.patch("/api/admin/settings", auth, adminOnly, async (req, res) => {
+  const {
+    siteName,
+    adEnabled,
+    adText,
+    sponsorUrl
+  } = req.body;
+
+  const result = await pool.query(
+    `
+    UPDATE site_settings
+    SET
+      site_name = COALESCE($1, site_name),
+      ad_enabled = COALESCE($2, ad_enabled),
+      ad_text = COALESCE($3, ad_text),
+      sponsor_url = COALESCE($4, sponsor_url)
+    WHERE id = 1
+    RETURNING *
+    `,
+    [
+      siteName ?? null,
+      adEnabled ?? null,
+      adText ?? null,
+      sponsorUrl ?? null
+    ]
+  );
+
+  res.json(result.rows[0]);
+});
+
+/* =========================
+   HEALTH CHECK
+========================= */
+
+app.get("/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+
+    res.json({
+      status: "ok",
+      database: "connected"
+    });
+  } catch {
+    res.status(500).json({
+      status: "error",
+      database: "disconnected"
+    });
+  }
+});
+
+/* =========================
+   FRONTEND
+========================= */
+
+app.get("*", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "public", "index.html")
+  );
+});
+
+/* =========================
+   START
+========================= */
 
 async function startServer() {
   try {
     await createTables();
 
-    app.listen(
-      PORT,
-      "0.0.0.0",
-      () => {
-        console.log(
-          `MovieStream running on port ${PORT}`
-        );
-      }
-    );
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`MovieStream running on port ${PORT}`);
+    });
 
   } catch (error) {
-    console.error(
-      "Database startup error:",
-      error
-    );
-
+    console.error("Database startup error:", error);
     process.exit(1);
   }
 }
