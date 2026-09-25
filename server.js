@@ -493,12 +493,11 @@ app.get("/health", async (req, res) => {
    FRONTEND
 ========================= */
 
-app.get("*", (req, res) => {
+app.use((req, res) => {
   res.sendFile(
     path.join(__dirname, "public", "index.html")
   );
 });
-
 /* =========================
    START
 ========================= */
