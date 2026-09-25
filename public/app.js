@@ -1,42 +1,44 @@
-let token = localStorage.getItem("movieToken");
-let currentUser = null;
-let allMovies = [];
+async function login() {
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
 
-/* API */
-
-async function api(url, options = {}) {
-  options.headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {})
-  };
-
-  if (token) {
-    options.headers.Authorization = "Bearer " + token;
+  if (!username || !password) {
+    showAuthMessage("Username and password required", true);
+    return;
   }
-
-  const response = await fetch(url, options);
-
-  const text = await response.text();
-
-  let data;
 
   try {
-    data = JSON.parse(text);
-  } catch {
-    data = {
-      error: text || "Invalid server response"
-    };
-  }
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password
+      })
+    });
 
-  if (!response.ok) {
-    throw new Error(
-      data.error || "Something went wrong"
-    );
-  }
+    const data = await response.json();
 
-  return data;
+    if (!response.ok) {
+      showAuthMessage(data.error || "Login failed", true);
+      return;
+    }
+
+    localStorage.setItem("movieToken", data.token);
+    localStorage.setItem("currentUser", JSON.stringify(data.user));
+
+    currentUser = data.user;
+
+    showAuthMessage("Login successful!", false);
+    showApp();
+
+  } catch (error) {
+    console.error("Login error:", error);
+    showAuthMessage("Server connection failed", true);
+  }
 }
-
 
 /* CREATE ACCOUNT */
 
