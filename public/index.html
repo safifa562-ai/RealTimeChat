@@ -466,32 +466,69 @@ async function api(url, options = {}) {
 /* =========================
    REGISTER
 ========================= */
-
 async function register() {
+  const username = document.getElementById("registerUsername").value.trim();
+  const password = document.getElementById("registerPassword").value;
 
-  const username =
-    document.getElementById(
-      "registerUsername"
-    ).value;
+  if (!username || !password) {
+    showAuthMessage("Please enter username and password.", true);
+    return;
+  }
 
-  const password =
-    document.getElementById(
-      "registerPassword"
-    ).value;
+  if (password.length < 6) {
+    showAuthMessage("Password must be at least 6 characters.", true);
+    return;
+  }
+
+  showAuthMessage("Creating account...", false);
 
   try {
+    const response = await fetch("/api/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password
+      })
+    });
 
-    const data = await api(
-      "/api/register",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          username,
-          password
-        })
-      }
+    const text = await response.text();
+
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { error: text };
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || "Registration failed.");
+    }
+
+    token = data.token;
+
+    localStorage.setItem("movieToken", token);
+
+    currentUser = data.user;
+
+    showAuthMessage("Account created successfully!", false);
+
+    setTimeout(() => {
+      showApp();
+    }, 500);
+
+  } catch (error) {
+    showAuthMessage(
+      error.message || "Could not create account.",
+      true
     );
+  }
+}
 
+  
+  
     token = data.token;
 
     localStorage.setItem(
