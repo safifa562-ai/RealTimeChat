@@ -1,5 +1,4 @@
 const express = require("express");
-const http = require("http");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -7,7 +6,6 @@ const { Pool } = require("pg");
 const helmet = require("helmet");
 
 const app = express();
-const server = http.createServer(app);
 
 const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -31,13 +29,13 @@ const pool = new Pool({
       : false,
 });
 
-// Middleware
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Database setup
+// ==================== DATABASE ====================
+
 async function initDatabase() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -47,7 +45,7 @@ async function initDatabase() {
       is_admin BOOLEAN DEFAULT FALSE,
       is_premium BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+    )
   `);
 
   await pool.query(`
@@ -55,11 +53,11 @@ async function initDatabase() {
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL,
       video_url TEXT NOT NULL,
-      thumbnail_url TEXT,
-      description TEXT,
+      thumbnail_url TEXT DEFAULT '',
+      description TEXT DEFAULT '',
       is_premium BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+    )
   `);
 
   await pool.query(`
@@ -68,13 +66,14 @@ async function initDatabase() {
       site_name TEXT DEFAULT 'MovieStream',
       ad_text TEXT DEFAULT '',
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+    )
   `);
 
   console.log("Database tables ready");
 }
 
-// JWT
+// ==================== AUTH ====================
+
 function createToken(user) {
   return jwt.sign(
     {
@@ -88,29 +87,27 @@ function createToken(user) {
   );
 }
 
-// Authentication middleware
 function auth(req, res, next) {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith("Bearer ")) {
     return res.status(401).json({
-      error: "Authentication required",
+      error: "Please login first",
     });
   }
 
-  const token = header.split(" ")[1];
+  const token = header.substring(7);
 
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
-  } catch (err) {
+  } catch (error) {
     return res.status(401).json({
-      error: "Invalid or expired token",
+      error: "Session expired. Please login again.",
     });
   }
 }
 
-// Admin middleware
 async function adminOnly(req, res, next) {
   try {
     const result = await pool.query(
@@ -125,15 +122,16 @@ async function adminOnly(req, res, next) {
     }
 
     next();
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({
       error: "Server error",
     });
   }
 }
 
-// Register
+// ==================== REGISTER ====================
+
 app.post("/api/register", async (req, res) => {
   try {
     const username = String(req.body.username || "")
@@ -148,6 +146,12 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
+    if (username.length < 3) {
+      return res.status(400).json({
+        error: "Username must be at least 3 characters",
+      });
+    }
+
     if (password.length < 6) {
       return res.status(400).json({
         error: "Password must be at least 6 characters",
@@ -159,7 +163,7 @@ app.post("/api/register", async (req, res) => {
       [username]
     );
 
-    if (existing.rows.length) {
+    if (existing.rows.length > 0) {
       return res.status(409).json({
         error: "Username already exists",
       });
@@ -178,7 +182,7 @@ app.post("/api/register", async (req, res) => {
     const user = result.rows[0];
     const token = createToken(user);
 
-    res.json({
+    res.status(201).json({
       message: "Account created successfully",
       token,
       user: {
@@ -188,15 +192,17 @@ app.post("/api/register", async (req, res) => {
         isPremium: user.is_premium,
       },
     });
-  } catch (err) {
-    console.error("Register error:", err);
+  } catch (error) {
+    console.error("REGISTER ERROR:", error);
+
     res.status(500).json({
       error: "Registration failed",
     });
   }
 });
 
-// Login
+// ==================== LOGIN ====================
+
 app.post("/api/login", async (req, res) => {
   try {
     const username = String(req.body.username || "")
@@ -205,14 +211,25 @@ app.post("/api/login", async (req, res) => {
 
     const password = String(req.body.password || "");
 
+    if (!username || !password) {
+      return res.status(400).json({
+        error: "Username and password are required",
+      });
+    }
+
     const result = await pool.query(
-      `SELECT id, username, password_hash, is_admin, is_premium
+      `SELECT
+        id,
+        username,
+        password_hash,
+        is_admin,
+        is_premium
        FROM users
        WHERE username = $1`,
       [username]
     );
 
-    if (!result.rows.length) {
+    if (result.rows.length === 0) {
       return res.status(401).json({
         error: "Invalid username or password",
       });
@@ -220,12 +237,12 @@ app.post("/api/login", async (req, res) => {
 
     const user = result.rows[0];
 
-    const validPassword = await bcrypt.compare(
+    const passwordCorrect = await bcrypt.compare(
       password,
       user.password_hash
     );
 
-    if (!validPassword) {
+    if (!passwordCorrect) {
       return res.status(401).json({
         error: "Invalid username or password",
       });
@@ -243,15 +260,17 @@ app.post("/api/login", async (req, res) => {
         isPremium: user.is_premium,
       },
     });
-  } catch (err) {
-    console.error("Login error:", err);
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+
     res.status(500).json({
       error: "Login failed",
     });
   }
 });
 
-// Current user
+// ==================== CURRENT USER ====================
+
 app.get("/api/me", auth, async (req, res) => {
   try {
     const result = await pool.query(
@@ -261,7 +280,7 @@ app.get("/api/me", auth, async (req, res) => {
       [req.user.id]
     );
 
-    if (!result.rows.length) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         error: "User not found",
       });
@@ -277,15 +296,17 @@ app.get("/api/me", auth, async (req, res) => {
         isPremium: user.is_premium,
       },
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       error: "Server error",
     });
   }
 });
 
-// Get movies
+// ==================== MOVIES ====================
+
 app.get("/api/movies", auth, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -304,25 +325,32 @@ app.get("/api/movies", auth, async (req, res) => {
     res.json({
       movies: result.rows,
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       error: "Failed to load movies",
     });
   }
 });
 
-// Watch movie
+// ==================== WATCH MOVIE ====================
+
 app.get("/api/movies/:id/watch", auth, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, title, video_url, description, is_premium
+      `SELECT
+        id,
+        title,
+        video_url,
+        description,
+        is_premium
        FROM movies
        WHERE id = $1`,
       [req.params.id]
     );
 
-    if (!result.rows.length) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         error: "Movie not found",
       });
@@ -330,7 +358,11 @@ app.get("/api/movies/:id/watch", auth, async (req, res) => {
 
     const movie = result.rows[0];
 
-    if (movie.is_premium && !req.user.isPremium && !req.user.isAdmin) {
+    if (
+      movie.is_premium &&
+      !req.user.isPremium &&
+      !req.user.isAdmin
+    ) {
       return res.status(403).json({
         error: "Premium membership required",
       });
@@ -344,24 +376,24 @@ app.get("/api/movies/:id/watch", auth, async (req, res) => {
         description: movie.description,
       },
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       error: "Failed to load movie",
     });
   }
 });
 
-// Admin: add movie
+// ==================== ADMIN ADD MOVIE ====================
+
 app.post("/api/admin/movies", auth, adminOnly, async (req, res) => {
   try {
-    const {
-      title,
-      videoUrl,
-      thumbnailUrl,
-      description,
-      isPremium,
-    } = req.body;
+    const title = String(req.body.title || "").trim();
+    const videoUrl = String(req.body.videoUrl || "").trim();
+    const thumbnailUrl = String(req.body.thumbnailUrl || "").trim();
+    const description = String(req.body.description || "").trim();
+    const isPremium = Boolean(req.body.isPremium);
 
     if (!title || !videoUrl) {
       return res.status(400).json({
@@ -377,25 +409,27 @@ app.post("/api/admin/movies", auth, adminOnly, async (req, res) => {
       [
         title,
         videoUrl,
-        thumbnailUrl || "",
-        description || "",
-        Boolean(isPremium),
+        thumbnailUrl,
+        description,
+        isPremium,
       ]
     );
 
-    res.json({
+    res.status(201).json({
       message: "Movie added successfully",
       movie: result.rows[0],
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       error: "Failed to add movie",
     });
   }
 });
 
-// Admin: delete movie
+// ==================== ADMIN DELETE MOVIE ====================
+
 app.delete("/api/admin/movies/:id", auth, adminOnly, async (req, res) => {
   try {
     const result = await pool.query(
@@ -403,7 +437,7 @@ app.delete("/api/admin/movies/:id", auth, adminOnly, async (req, res) => {
       [req.params.id]
     );
 
-    if (!result.rows.length) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         error: "Movie not found",
       });
@@ -412,15 +446,17 @@ app.delete("/api/admin/movies/:id", auth, adminOnly, async (req, res) => {
     res.json({
       message: "Movie deleted successfully",
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       error: "Failed to delete movie",
     });
   }
 });
 
-// Admin: change premium status
+// ==================== ADMIN PREMIUM ====================
+
 app.patch(
   "/api/admin/users/:id/premium",
   auth,
@@ -437,7 +473,7 @@ app.patch(
         [isPremium, req.params.id]
       );
 
-      if (!result.rows.length) {
+      if (result.rows.length === 0) {
         return res.status(404).json({
           error: "User not found",
         });
@@ -447,8 +483,9 @@ app.patch(
         message: "Premium status updated",
         user: result.rows[0],
       });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
+
       res.status(500).json({
         error: "Failed to update premium status",
       });
@@ -456,14 +493,15 @@ app.patch(
   }
 );
 
-// Settings
+// ==================== SETTINGS ====================
+
 app.get("/api/settings", async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT * FROM site_settings ORDER BY id LIMIT 1"
     );
 
-    if (!result.rows.length) {
+    if (result.rows.length === 0) {
       return res.json({
         siteName: "MovieStream",
         adText: "",
@@ -476,15 +514,17 @@ app.get("/api/settings", async (req, res) => {
       siteName: settings.site_name,
       adText: settings.ad_text,
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       error: "Failed to load settings",
     });
   }
 });
 
-// Health check
+// ==================== HEALTH ====================
+
 app.get("/health", async (req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -493,8 +533,8 @@ app.get("/health", async (req, res) => {
       status: "ok",
       database: "connected",
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
 
     res.status(500).json({
       status: "error",
@@ -503,19 +543,21 @@ app.get("/health", async (req, res) => {
   }
 });
 
-// Frontend fallback
+// ==================== FRONTEND ====================
+
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Start server
+// ==================== START ====================
+
 initDatabase()
   .then(() => {
-    server.listen(PORT, "0.0.0.0", () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(`MovieStream running on port ${PORT}`);
     });
   })
-  .catch((err) => {
-    console.error("Database initialization failed:", err);
+  .catch((error) => {
+    console.error("Database initialization failed:", error);
     process.exit(1);
   });
