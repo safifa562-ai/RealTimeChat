@@ -2,41 +2,985 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
   <title>MovieStream</title>
-  <link rel="stylesheet" href="/style.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #080808;
+      color: white;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 25px;
+      background: #111;
+      border-bottom: 1px solid #292929;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 15px;
+      font-weight: bold;
+    }
+
+    .primary {
+      background: #7c3aed;
+      color: white;
+    }
+
+    .danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .gold {
+      background: #f59e0b;
+      color: black;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 25px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .auth-box {
+      max-width: 420px;
+      margin: 70px auto;
+      background: #151515;
+      padding: 25px;
+      border-radius: 15px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 13px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #222;
+      color: white;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      background: #222;
+      color: white;
+    }
+
+    .section {
+      background: #121212;
+      padding: 20px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+    }
+
+    .movies {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fill, minmax(240px, 1fr));
+      gap: 18px;
+    }
+
+    .movie {
+      background: #181818;
+      border: 1px solid #292929;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .movie img {
+      width: 100%;
+      height: 145px;
+      object-fit: cover;
+      background: #222;
+    }
+
+    .movie-content {
+      padding: 15px;
+    }
+
+    .movie h3 {
+      margin-top: 0;
+    }
+
+    .premium {
+      color: #fbbf24;
+      font-weight: bold;
+    }
+
+    .free {
+      color: #4ade80;
+      font-weight: bold;
+    }
+
+    .ad-box {
+      background: #161616;
+      border: 1px dashed #555;
+      padding: 18px;
+      text-align: center;
+      margin: 20px 0;
+      border-radius: 12px;
+    }
+
+    .video-box {
+      background: black;
+      border-radius: 12px;
+      padding: 10px;
+      margin-top: 20px;
+    }
+
+    video {
+      width: 100%;
+      max-height: 600px;
+      border-radius: 8px;
+    }
+
+    .message {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .success {
+      background: #064e3b;
+    }
+
+    .error {
+      background: #7f1d1d;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 22px;
+      }
+
+      .container {
+        padding: 15px;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="app">
+<header>
+  <h1>🎬 MovieStream</h1>
 
-  <header>
-    <h1>🎬 MovieStream</h1>
-    <button onclick="logout()">Logout</button>
-  </header>
+  <div>
+    <span id="userStatus"></span>
+    <button
+      id="logoutBtn"
+      class="danger hidden"
+      onclick="logout()"
+    >
+      Logout
+    </button>
+  </div>
+</header>
 
-  <section class="upload-box">
-    <h2>Upload Movie</h2>
+<!-- LOGIN -->
 
-    <input id="movieTitle" type="text" placeholder="Movie title">
+<div id="authScreen">
 
-    <input id="movieUrl" type="url"
-           placeholder="Video URL (MP4)">
+  <div class="auth-box">
 
-    <button onclick="addMovie()">➕ Add Movie</button>
+    <h2>Login</h2>
 
-    <p id="message"></p>
-  </section>
+    <input
+      id="loginUsername"
+      placeholder="Username"
+    >
 
-  <section>
-    <h2>🎥 Movies</h2>
-    <div id="movieList"></div>
-  </section>
+    <input
+      id="loginPassword"
+      type="password"
+      placeholder="Password"
+    >
+
+    <button
+      class="primary"
+      onclick="login()"
+    >
+      Login
+    </button>
+
+    <hr>
+
+    <h2>Create Account</h2>
+
+    <input
+      id="registerUsername"
+      placeholder="Username"
+    >
+
+    <input
+      id="registerPassword"
+      type="password"
+      placeholder="Password"
+    >
+
+    <button
+      class="gold"
+      onclick="register()"
+    >
+      Create Account
+    </button>
+
+    <div id="authMessage"></div>
+
+  </div>
 
 </div>
 
-<script src="/app.js"></script>
+<!-- APP -->
+
+<div
+  id="appScreen"
+  class="hidden"
+>
+
+  <div class="container">
+
+    <div class="tabs">
+
+      <button
+        class="tab"
+        onclick="showHome()"
+      >
+        🏠 Home
+      </button>
+
+      <button
+        id="adminTab"
+        class="tab hidden"
+        onclick="showAdmin()"
+      >
+        ⚙️ Admin
+      </button>
+
+    </div>
+
+    <!-- HOME -->
+
+    <div id="homeSection">
+
+      <div class="section">
+
+        <h2>🎬 Movies</h2>
+
+        <input
+          id="searchBox"
+          placeholder="Search movies..."
+          oninput="filterMovies()"
+        >
+
+      </div>
+
+      <div
+        id="adArea"
+        class="ad-box"
+      >
+        <strong>📢 Support MovieStream</strong>
+        <p>
+          Free content may contain advertisements or sponsor messages.
+        </p>
+      </div>
+
+      <div
+        id="movies"
+        class="movies"
+      ></div>
+
+      <div
+        id="player"
+        class="section hidden"
+      >
+
+        <h2 id="playerTitle"></h2>
+
+        <div class="video-box">
+          <video
+            id="videoPlayer"
+            controls
+            playsinline
+          ></video>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ADMIN -->
+
+    <div
+      id="adminSection"
+      class="hidden"
+    >
+
+      <div class="section">
+
+        <h2>⚙️ Admin Dashboard</h2>
+
+        <h3>Add Movie</h3>
+
+        <input
+          id="movieTitle"
+          placeholder="Movie title"
+        >
+
+        <input
+          id="movieUrl"
+          placeholder="Legal video URL"
+        >
+
+        <input
+          id="thumbnailUrl"
+          placeholder="Thumbnail URL"
+        >
+
+        <textarea
+          id="movieDescription"
+          placeholder="Description"
+        ></textarea>
+
+        <label>
+          <input
+            type="checkbox"
+            id="moviePremium"
+            style="width:auto"
+          >
+          Premium content
+        </label>
+
+        <br><br>
+
+        <button
+          class="primary"
+          onclick="addMovie()"
+        >
+          ➕ Add Movie
+        </button>
+
+        <div id="adminMessage"></div>
+
+      </div>
+
+      <div class="section">
+
+        <h2>💰 Monetization</h2>
+
+        <p>
+          Free users can see the sponsor/ad area.
+          Premium users can access premium content.
+        </p>
+
+        <p>
+          Connect an approved advertising or subscription
+          provider separately when your publisher/payment
+          account is ready.
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+
+let token = localStorage.getItem("movieToken");
+let currentUser = null;
+let allMovies = [];
+
+/* =========================
+   API
+========================= */
+
+async function api(url, options = {}) {
+
+  options.headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+
+  if (token) {
+    options.headers.Authorization =
+      "Bearer " + token;
+  }
+
+  const response = await fetch(url, options);
+
+  const data = await response.json()
+    .catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Something went wrong"
+    );
+  }
+
+  return data;
+}
+
+/* =========================
+   REGISTER
+========================= */
+
+async function register() {
+
+  const username =
+    document.getElementById(
+      "registerUsername"
+    ).value;
+
+  const password =
+    document.getElementById(
+      "registerPassword"
+    ).value;
+
+  try {
+
+    const data = await api(
+      "/api/register",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
+    );
+
+    token = data.token;
+
+    localStorage.setItem(
+      "movieToken",
+      token
+    );
+
+    currentUser = data.user;
+
+    showApp();
+
+  } catch (error) {
+
+    showAuthMessage(
+      error.message,
+      true
+    );
+
+  }
+}
+
+/* =========================
+   LOGIN
+========================= */
+
+async function login() {
+
+  const username =
+    document.getElementById(
+      "loginUsername"
+    ).value;
+
+  const password =
+    document.getElementById(
+      "loginPassword"
+    ).value;
+
+  try {
+
+    const data = await api(
+      "/api/login",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
+    );
+
+    token = data.token;
+
+    localStorage.setItem(
+      "movieToken",
+      token
+    );
+
+    currentUser = data.user;
+
+    showApp();
+
+  } catch (error) {
+
+    showAuthMessage(
+      error.message,
+      true
+    );
+
+  }
+}
+
+/* =========================
+   SESSION
+========================= */
+
+async function checkSession() {
+
+  if (!token) return;
+
+  try {
+
+    currentUser =
+      await api("/api/me");
+
+    showApp();
+
+  } catch {
+
+    logout();
+
+  }
+}
+
+/* =========================
+   APP
+========================= */
+
+function showApp() {
+
+  document
+    .getElementById("authScreen")
+    .classList.add("hidden");
+
+  document
+    .getElementById("appScreen")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("logoutBtn")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("userStatus")
+    .textContent =
+      `${currentUser.username} ${
+        currentUser.isPremium
+          ? "⭐ Premium"
+          : ""
+      }`;
+
+  if (currentUser.isAdmin) {
+
+    document
+      .getElementById("adminTab")
+      .classList.remove("hidden");
+
+  }
+
+  loadMovies();
+}
+
+/* =========================
+   LOGOUT
+========================= */
+
+function logout() {
+
+  localStorage.removeItem(
+    "movieToken"
+  );
+
+  token = null;
+  currentUser = null;
+
+  location.reload();
+}
+
+/* =========================
+   MOVIES
+========================= */
+
+async function loadMovies() {
+
+  try {
+
+    allMovies =
+      await api("/api/movies");
+
+    renderMovies(allMovies);
+
+  } catch (error) {
+
+    document.getElementById(
+      "movies"
+    ).innerHTML =
+      `<div class="error">
+        ${escapeHtml(error.message)}
+      </div>`;
+
+  }
+}
+
+function renderMovies(movies) {
+
+  const container =
+    document.getElementById(
+      "movies"
+    );
+
+  if (!movies.length) {
+
+    container.innerHTML =
+      `<div class="section">
+        No movies available yet.
+      </div>`;
+
+    return;
+  }
+
+  container.innerHTML =
+    movies.map(movie => {
+
+      const image =
+        movie.thumbnail_url ||
+        "https://via.placeholder.com/600x350?text=Movie";
+
+      const type =
+        movie.is_premium
+          ? `<span class="premium">⭐ PREMIUM</span>`
+          : `<span class="free">FREE</span>`;
+
+      return `
+        <div class="movie">
+
+          <img
+            src="${escapeAttribute(image)}"
+            alt="${escapeAttribute(movie.title)}"
+          >
+
+          <div class="movie-content">
+
+            <h3>
+              ${escapeHtml(movie.title)}
+            </h3>
+
+            <p>
+              ${escapeHtml(
+                movie.description || ""
+              )}
+            </p>
+
+            <p>${type}</p>
+
+            <button
+              class="primary"
+              onclick="watchMovie(${movie.id})"
+            >
+              ▶ Watch
+            </button>
+
+          </div>
+
+        </div>
+      `;
+
+    }).join("");
+}
+
+/* =========================
+   WATCH
+========================= */
+
+async function watchMovie(id) {
+
+  try {
+
+    const movie =
+      await api(
+        `/api/movies/${id}/watch`
+      );
+
+    document
+      .getElementById("player")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("playerTitle")
+      .textContent =
+        movie.title;
+
+    const player =
+      document.getElementById(
+        "videoPlayer"
+      );
+
+    player.src =
+      movie.videoUrl;
+
+    player.play().catch(() => {});
+
+    window.scrollTo({
+      top: document
+        .getElementById("player")
+        .offsetTop,
+      behavior: "smooth"
+    });
+
+  } catch (error) {
+
+    if (error.message ===
+      "Premium membership required") {
+
+      alert(
+        "⭐ This is premium content."
+      );
+
+      return;
+    }
+
+    alert(error.message);
+
+  }
+}
+
+/* =========================
+   SEARCH
+========================= */
+
+function filterMovies() {
+
+  const query =
+    document
+      .getElementById("searchBox")
+      .value
+      .toLowerCase();
+
+  const filtered =
+    allMovies.filter(movie =>
+      movie.title
+        .toLowerCase()
+        .includes(query)
+    );
+
+  renderMovies(filtered);
+}
+
+/* =========================
+   ADMIN
+========================= */
+
+function showAdmin() {
+
+  if (!currentUser?.isAdmin) {
+    return;
+  }
+
+  document
+    .getElementById("homeSection")
+    .classList.add("hidden");
+
+  document
+    .getElementById("adminSection")
+    .classList.remove("hidden");
+}
+
+function showHome() {
+
+  document
+    .getElementById("adminSection")
+    .classList.add("hidden");
+
+  document
+    .getElementById("homeSection")
+    .classList.remove("hidden");
+}
+
+/* =========================
+   ADD MOVIE
+========================= */
+
+async function addMovie() {
+
+  const title =
+    document.getElementById(
+      "movieTitle"
+    ).value;
+
+  const videoUrl =
+    document.getElementById(
+      "movieUrl"
+    ).value;
+
+  const thumbnailUrl =
+    document.getElementById(
+      "thumbnailUrl"
+    ).value;
+
+  const description =
+    document.getElementById(
+      "movieDescription"
+    ).value;
+
+  const isPremium =
+    document.getElementById(
+      "moviePremium"
+    ).checked;
+
+  try {
+
+    await api(
+      "/api/admin/movies",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title,
+          videoUrl,
+          thumbnailUrl,
+          description,
+          isPremium
+        })
+      }
+    );
+
+    showAdminMessage(
+      "Movie added successfully.",
+      false
+    );
+
+    document.getElementById(
+      "movieTitle"
+    ).value = "";
+
+    document.getElementById(
+      "movieUrl"
+    ).value = "";
+
+    document.getElementById(
+      "thumbnailUrl"
+    ).value = "";
+
+    document.getElementById(
+      "movieDescription"
+    ).value = "";
+
+    document.getElementById(
+      "moviePremium"
+    ).checked = false;
+
+    loadMovies();
+
+  } catch (error) {
+
+    showAdminMessage(
+      error.message,
+      true
+    );
+
+  }
+}
+
+/* =========================
+   MESSAGES
+========================= */
+
+function showAuthMessage(
+  message,
+  error
+) {
+
+  document.getElementById(
+    "authMessage"
+  ).innerHTML =
+    `<div class="message ${
+      error ? "error" : "success"
+    }">
+      ${escapeHtml(message)}
+    </div>`;
+}
+
+function showAdminMessage(
+  message,
+  error
+) {
+
+  document.getElementById(
+    "adminMessage"
+  ).innerHTML =
+    `<div class="message ${
+      error ? "error" : "success"
+    }">
+      ${escapeHtml(message)}
+    </div>`;
+}
+
+/* =========================
+   SECURITY HELPERS
+========================= */
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value);
+}
+
+/* =========================
+   START
+========================= */
+
+checkSession();
+
+</script>
 
 </body>
 </html>
