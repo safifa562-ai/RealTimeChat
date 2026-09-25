@@ -1,14 +1,14 @@
 {
-  "name": "moviestream",
+  "name": "moviestream-new",
   "version": "1.0.0",
+  "description": "Simple MovieStream app",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "bcryptjs": "^3.0.2",
+    "bcryptjs": "^2.4.3",
     "express": "^5.1.0",
-    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3"
   }
