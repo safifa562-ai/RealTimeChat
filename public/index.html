@@ -2,134 +2,221 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>MovieStream</title>
 
   <style>
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
     }
 
     body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #080808;
+      background: #0b0b0f;
       color: white;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 18px 25px;
-      background: #111;
-      border-bottom: 1px solid #292929;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 28px;
+      min-height: 100vh;
     }
 
     button {
       cursor: pointer;
       border: none;
-      border-radius: 8px;
-      padding: 10px 15px;
-      font-weight: bold;
-    }
-
-    .primary {
-      background: #7c3aed;
-      color: white;
-    }
-
-    .danger {
-      background: #dc2626;
-      color: white;
-    }
-
-    .gold {
-      background: #f59e0b;
-      color: black;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: auto;
-      padding: 25px;
     }
 
     .hidden {
       display: none !important;
     }
 
-    .auth-box {
-      max-width: 420px;
-      margin: 70px auto;
-      background: #151515;
-      padding: 25px;
-      border-radius: 15px;
+    /* AUTH */
+
+    #authPage {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #080808, #171725);
     }
 
-    input,
-    textarea,
-    select {
+    .auth-box {
+      width: 100%;
+      max-width: 420px;
+      background: #15151d;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    }
+
+    .logo {
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #ff3d3d;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #aaa;
+      margin-bottom: 25px;
+    }
+
+    .auth-box input,
+    .admin-box input,
+    .admin-box textarea {
       width: 100%;
       padding: 13px;
-      margin: 8px 0;
+      margin-bottom: 12px;
       border-radius: 8px;
-      border: 1px solid #444;
-      background: #222;
+      border: 1px solid #333;
+      background: #0e0e13;
       color: white;
+      outline: none;
     }
 
-    textarea {
-      min-height: 90px;
-      resize: vertical;
+    .auth-box input:focus,
+    .admin-box input:focus,
+    .admin-box textarea:focus {
+      border-color: #ff3d3d;
     }
 
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    .tab {
-      background: #222;
-      color: white;
-    }
-
-    .section {
-      background: #121212;
-      padding: 20px;
-      border-radius: 14px;
-      margin-bottom: 20px;
-    }
-
-    .movies {
-      display: grid;
-      grid-template-columns:
-        repeat(auto-fill, minmax(240px, 1fr));
-      gap: 18px;
-    }
-
-    .movie {
-      background: #181818;
-      border: 1px solid #292929;
-      border-radius: 14px;
-      overflow: hidden;
-    }
-
-    .movie img {
+    .primary-btn {
       width: 100%;
-      height: 145px;
+      padding: 13px;
+      background: #ff3d3d;
+      color: white;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .primary-btn:hover {
+      background: #e52d2d;
+    }
+
+    .switch {
+      text-align: center;
+      margin-top: 18px;
+      color: #aaa;
+    }
+
+    .switch span {
+      color: #ff4d4d;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .message {
+      margin-top: 12px;
+      text-align: center;
+      min-height: 20px;
+      color: #ff7777;
+    }
+
+    /* APP */
+
+    #appPage {
+      min-height: 100vh;
+    }
+
+    header {
+      height: 65px;
+      background: #13131a;
+      border-bottom: 1px solid #292934;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 25px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-logo {
+      color: #ff4141;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .user-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-name {
+      color: #ddd;
+    }
+
+    .small-btn {
+      padding: 9px 14px;
+      border-radius: 7px;
+      background: #292936;
+      color: white;
+    }
+
+    .logout-btn {
+      background: #d83232;
+    }
+
+    main {
+      padding: 25px;
+      max-width: 1400px;
+      margin: auto;
+    }
+
+    .welcome {
+      margin-bottom: 25px;
+    }
+
+    .welcome h1 {
+      font-size: 30px;
+      margin-bottom: 7px;
+    }
+
+    .welcome p {
+      color: #aaa;
+    }
+
+    .search-box {
+      margin-bottom: 25px;
+    }
+
+    .search-box input {
+      width: 100%;
+      max-width: 500px;
+      padding: 13px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #15151d;
+      color: white;
+      outline: none;
+    }
+
+    .movies-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .movie-card {
+      background: #15151d;
+      border: 1px solid #282832;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: .2s;
+    }
+
+    .movie-card:hover {
+      transform: translateY(-3px);
+      border-color: #ff4141;
+    }
+
+    .movie-thumb {
+      width: 100%;
+      height: 260px;
       object-fit: cover;
       background: #222;
     }
@@ -138,63 +225,121 @@
       padding: 15px;
     }
 
-    .movie h3 {
-      margin-top: 0;
+    .movie-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .movie-description {
+      color: #999;
+      font-size: 14px;
+      min-height: 40px;
+      margin-bottom: 12px;
     }
 
     .premium {
-      color: #fbbf24;
-      font-weight: bold;
+      display: inline-block;
+      background: #d69b00;
+      color: white;
+      font-size: 11px;
+      padding: 4px 7px;
+      border-radius: 5px;
+      margin-bottom: 10px;
     }
 
-    .free {
-      color: #4ade80;
-      font-weight: bold;
-    }
-
-    .ad-box {
-      background: #161616;
-      border: 1px dashed #555;
-      padding: 18px;
-      text-align: center;
-      margin: 20px 0;
-      border-radius: 12px;
-    }
-
-    .video-box {
-      background: black;
-      border-radius: 12px;
+    .watch-btn {
+      width: 100%;
       padding: 10px;
-      margin-top: 20px;
+      background: #ff3d3d;
+      color: white;
+      border-radius: 7px;
+      font-weight: bold;
+    }
+
+    .empty {
+      text-align: center;
+      color: #888;
+      padding: 40px;
+    }
+
+    /* ADMIN */
+
+    .admin-box {
+      margin-top: 40px;
+      background: #15151d;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #292934;
+    }
+
+    .admin-box h2 {
+      margin-bottom: 18px;
+    }
+
+    .admin-box textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .admin-message {
+      margin-top: 12px;
+      color: #72ff72;
+    }
+
+    /* VIDEO */
+
+    .video-container {
+      margin-top: 30px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
     }
 
     video {
       width: 100%;
-      max-height: 600px;
-      border-radius: 8px;
+      max-height: 650px;
+      display: block;
     }
 
-    .message {
-      margin: 10px 0;
-      padding: 10px;
-      border-radius: 8px;
+    .video-title {
+      padding: 15px;
+      font-size: 20px;
+      font-weight: bold;
     }
 
-    .success {
-      background: #064e3b;
-    }
-
-    .error {
-      background: #7f1d1d;
-    }
-
-    @media (max-width: 600px) {
-      header h1 {
-        font-size: 22px;
+    @media(max-width:600px) {
+      header {
+        padding: 0 12px;
       }
 
-      .container {
+      .header-logo {
+        font-size: 19px;
+      }
+
+      .user-name {
+        display: none;
+      }
+
+      main {
         padding: 15px;
+      }
+
+      .welcome h1 {
+        font-size: 24px;
+      }
+
+      .movies-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .movie-thumb {
+        height: 210px;
+      }
+
+      .movie-content {
+        padding: 10px;
       }
     }
   </style>
@@ -202,258 +347,256 @@
 
 <body>
 
-<header>
-  <h1>🎬 MovieStream</h1>
+  <!-- ================= AUTH PAGE ================= -->
 
-  <div>
-    <span id="userStatus"></span>
-    <button
-      id="logoutBtn"
-      class="danger hidden"
-      onclick="logout()"
-    >
-      Logout
-    </button>
-  </div>
-</header>
+  <section id="authPage">
 
-<!-- LOGIN -->
+    <div class="auth-box">
 
-<div id="authScreen">
+      <div class="logo">MovieStream</div>
 
-  <div class="auth-box">
+      <div class="subtitle">
+        Watch your favourite movies
+      </div>
 
-    <h2>Login</h2>
+      <!-- LOGIN -->
 
-    <input
-      id="loginUsername"
-      placeholder="Username"
-    >
-
-    <input
-      id="loginPassword"
-      type="password"
-      placeholder="Password"
-    >
-
-    <button
-      class="primary"
-      onclick="login()"
-    >
-      Login
-    </button>
-
-    <hr>
-
-    <h2>Create Account</h2>
-
-    <input
-      id="registerUsername"
-      placeholder="Username"
-    >
-
-    <input
-      id="registerPassword"
-      type="password"
-      placeholder="Password"
-    >
-
-  <button
-  class="gold"
-  type="button"
-  onclick="createAccountNow()"
->
-  Create Account
-</button>
-
-    <div id="authMessage"></div>
-
-  </div>
-
-</div>
-
-<!-- APP -->
-
-<div
-  id="appScreen"
-  class="hidden"
->
-
-  <div class="container">
-
-    <div class="tabs">
-
-      <button
-        class="tab"
-        onclick="showHome()"
-      >
-        🏠 Home
-      </button>
-
-      <button
-        id="adminTab"
-        class="tab hidden"
-        onclick="showAdmin()"
-      >
-        ⚙️ Admin
-      </button>
-
-    </div>
-
-    <!-- HOME -->
-
-    <div id="homeSection">
-
-      <div class="section">
-
-        <h2>🎬 Movies</h2>
+      <div id="loginBox">
 
         <input
-          id="searchBox"
-          placeholder="Search movies..."
-          oninput="filterMovies()"
+          type="text"
+          id="loginUsername"
+          placeholder="Username"
+          autocomplete="username"
         >
 
+        <input
+          type="password"
+          id="loginPassword"
+          placeholder="Password"
+          autocomplete="current-password"
+        >
+
+        <button class="primary-btn" onclick="login()">
+          Login
+        </button>
+
+        <div id="loginMessage" class="message"></div>
+
+        <div class="switch">
+          Don't have an account?
+          <span onclick="showRegister()">Create Account</span>
+        </div>
+
       </div>
 
-      <div
-        id="adArea"
-        class="ad-box"
-      >
-        <strong>📢 Support MovieStream</strong>
-        <p>
-          Free content may contain advertisements or sponsor messages.
-        </p>
-      </div>
+      <!-- REGISTER -->
 
-      <div
-        id="movies"
-        class="movies"
-      ></div>
+      <div id="registerBox" class="hidden">
 
-      <div
-        id="player"
-        class="section hidden"
-      >
+        <input
+          type="text"
+          id="registerUsername"
+          placeholder="Choose username"
+          autocomplete="username"
+        >
 
-        <h2 id="playerTitle"></h2>
+        <input
+          type="password"
+          id="registerPassword"
+          placeholder="Choose password"
+          autocomplete="new-password"
+        >
 
-        <div class="video-box">
-          <video
-            id="videoPlayer"
-            controls
-            playsinline
-          ></video>
+        <button class="primary-btn" onclick="registerUser()">
+          Create Account
+        </button>
+
+        <div id="registerMessage" class="message"></div>
+
+        <div class="switch">
+          Already have an account?
+          <span onclick="showLogin()">Login</span>
         </div>
 
       </div>
 
     </div>
 
-    <!-- ADMIN -->
+  </section>
 
-    <div
-      id="adminSection"
-      class="hidden"
-    >
 
-      <div class="section">
+  <!-- ================= APP PAGE ================= -->
 
-        <h2>⚙️ Admin Dashboard</h2>
+  <section id="appPage" class="hidden">
 
-        <h3>Add Movie</h3>
+    <header>
+
+      <div class="header-logo">
+        MovieStream
+      </div>
+
+      <div class="user-area">
+
+        <span id="userName" class="user-name"></span>
+
+        <button
+          id="adminButton"
+          class="small-btn hidden"
+          onclick="showAdmin()"
+        >
+          Admin
+        </button>
+
+        <button
+          class="small-btn logout-btn"
+          onclick="logout()"
+        >
+          Logout
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <main>
+
+      <div class="welcome">
+
+        <h1>Welcome to MovieStream 🎬</h1>
+
+        <p>
+          Watch movies and enjoy your streaming experience.
+        </p>
+
+      </div>
+
+
+      <div class="search-box">
 
         <input
+          type="text"
+          id="searchInput"
+          placeholder="Search movies..."
+          oninput="searchMovies()"
+        >
+
+      </div>
+
+
+      <div id="moviesGrid" class="movies-grid"></div>
+
+
+      <div id="emptyMessage" class="empty hidden">
+        No movies found.
+      </div>
+
+
+      <!-- VIDEO -->
+
+      <div id="videoSection" class="video-container hidden">
+
+        <video id="moviePlayer" controls></video>
+
+        <div id="videoTitle" class="video-title"></div>
+
+      </div>
+
+
+      <!-- ADMIN -->
+
+      <div id="adminSection" class="admin-box hidden">
+
+        <h2>Admin Panel</h2>
+
+        <input
+          type="text"
           id="movieTitle"
           placeholder="Movie title"
         >
 
         <input
-          id="movieUrl"
-          placeholder="Legal video URL"
+          type="text"
+          id="movieVideoUrl"
+          placeholder="Video URL"
         >
 
         <input
-          id="thumbnailUrl"
+          type="text"
+          id="movieThumbnail"
           placeholder="Thumbnail URL"
         >
 
         <textarea
           id="movieDescription"
-          placeholder="Description"
+          placeholder="Movie description"
         ></textarea>
 
-        <label>
+        <label style="display:block;margin-bottom:15px;">
           <input
             type="checkbox"
             id="moviePremium"
-            style="width:auto"
+            style="width:auto;margin-right:7px;"
           >
-          Premium content
+          Premium Movie
         </label>
 
-        <br><br>
-
         <button
-          class="primary"
+          class="primary-btn"
           onclick="addMovie()"
         >
-          ➕ Add Movie
+          Add Movie
         </button>
 
-        <div id="adminMessage"></div>
+        <div
+          id="adminMessage"
+          class="admin-message"
+        ></div>
 
       </div>
 
-      <div class="section">
+    </main>
 
-        <h2>💰 Monetization</h2>
+  </section>
 
-        <p>
-          Free users can see the sponsor/ad area.
-          Premium users can access premium content.
-        </p>
-
-        <p>
-          Connect an approved advertising or subscription
-          provider separately when your publisher/payment
-          account is ready.
-        </p>
-
-      </div>
-
-    </div>
-
-  </div>
-
-</div>
 
 <script>
+
+/* ==================================================
+   MOVIESTREAM FRONTEND
+   ================================================== */
 
 let token = localStorage.getItem("movieToken");
 let currentUser = null;
 let allMovies = [];
 
-/* =========================
-   API
-========================= */
+
+/* ================= API ================= */
 
 async function api(url, options = {}) {
 
-  options.headers = {
+  const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {})
   };
 
   if (token) {
-    options.headers.Authorization =
-      "Bearer " + token;
+    headers.Authorization = "Bearer " + token;
   }
 
-  const response = await fetch(url, options);
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
 
-  const data = await response.json()
-    .catch(() => ({}));
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
 
   if (!response.ok) {
     throw new Error(
@@ -464,72 +607,94 @@ async function api(url, options = {}) {
   return data;
 }
 
-/* =========================
-   REGISTER
-========================= */
-async function register() {
-  const username = document.getElementById("registerUsername").value.trim();
-  const password = document.getElementById("registerPassword").value;
+
+/* ================= AUTH UI ================= */
+
+function showRegister() {
+
+  document
+    .getElementById("loginBox")
+    .classList.add("hidden");
+
+  document
+    .getElementById("registerBox")
+    .classList.remove("hidden");
+
+  clearMessages();
+}
+
+
+function showLogin() {
+
+  document
+    .getElementById("registerBox")
+    .classList.add("hidden");
+
+  document
+    .getElementById("loginBox")
+    .classList.remove("hidden");
+
+  clearMessages();
+}
+
+
+function clearMessages() {
+
+  document.getElementById("loginMessage").textContent = "";
+  document.getElementById("registerMessage").textContent = "";
+
+}
+
+
+/* ================= REGISTER ================= */
+
+async function registerUser() {
+
+  const username =
+    document
+      .getElementById("registerUsername")
+      .value
+      .trim();
+
+  const password =
+    document
+      .getElementById("registerPassword")
+      .value;
+
+  const message =
+    document.getElementById("registerMessage");
+
+  message.textContent = "";
 
   if (!username || !password) {
-    showAuthMessage("Please enter username and password.", true);
+
+    message.textContent =
+      "Please enter username and password.";
+
     return;
   }
 
   if (password.length < 6) {
-    showAuthMessage("Password must be at least 6 characters.", true);
+
+    message.textContent =
+      "Password must be at least 6 characters.";
+
     return;
   }
 
-  showAuthMessage("Creating account...", false);
-
   try {
-    const response = await fetch("/api/register", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        username: username,
-        password: password
-      })
-    });
 
-    const text = await response.text();
-
-    let data = {};
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { error: text };
-    }
-
-    if (!response.ok) {
-      throw new Error(data.error || "Registration failed.");
-    }
-
-    token = data.token;
-
-    localStorage.setItem("movieToken", token);
-
-    currentUser = data.user;
-
-    showAuthMessage("Account created successfully!", false);
-
-    setTimeout(() => {
-      showApp();
-    }, 500);
-
-  } catch (error) {
-    showAuthMessage(
-      error.message || "Could not create account.",
-      true
+    const data = await api(
+      "/api/register",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
     );
-  }
-}
 
-  
-  
     token = data.token;
 
     localStorage.setItem(
@@ -543,29 +708,40 @@ async function register() {
 
   } catch (error) {
 
-    showAuthMessage(
-      error.message,
-      true
-    );
+    message.textContent =
+      error.message;
 
   }
 }
 
-/* =========================
-   LOGIN
-========================= */
+
+/* ================= LOGIN ================= */
 
 async function login() {
 
   const username =
-    document.getElementById(
-      "loginUsername"
-    ).value;
+    document
+      .getElementById("loginUsername")
+      .value
+      .trim();
 
   const password =
-    document.getElementById(
-      "loginPassword"
-    ).value;
+    document
+      .getElementById("loginPassword")
+      .value;
+
+  const message =
+    document.getElementById("loginMessage");
+
+  message.textContent = "";
+
+  if (!username || !password) {
+
+    message.textContent =
+      "Please enter username and password.";
+
+    return;
+  }
 
   try {
 
@@ -593,248 +769,253 @@ async function login() {
 
   } catch (error) {
 
-    showAuthMessage(
-      error.message,
-      true
-    );
+    message.textContent =
+      error.message;
 
   }
 }
 
-/* =========================
-   SESSION
-========================= */
+
+/* ================= SESSION ================= */
 
 async function checkSession() {
 
-  if (!token) return;
+  if (!token) {
+    return;
+  }
 
   try {
 
-    currentUser =
+    const data =
       await api("/api/me");
+
+    currentUser = data.user;
 
     showApp();
 
   } catch {
 
-    logout();
+    localStorage.removeItem("movieToken");
+
+    token = null;
+    currentUser = null;
 
   }
 }
 
-/* =========================
-   APP
-========================= */
+
+/* ================= SHOW APP ================= */
 
 function showApp() {
 
   document
-    .getElementById("authScreen")
+    .getElementById("authPage")
     .classList.add("hidden");
 
   document
-    .getElementById("appScreen")
+    .getElementById("appPage")
     .classList.remove("hidden");
 
-  document
-    .getElementById("logoutBtn")
-    .classList.remove("hidden");
+  document.getElementById("userName").textContent =
+    currentUser?.username || "";
 
-  document
-    .getElementById("userStatus")
-    .textContent =
-      `${currentUser.username} ${
-        currentUser.isPremium
-          ? "⭐ Premium"
-          : ""
-      }`;
-
-  if (currentUser.isAdmin) {
+  if (currentUser?.isAdmin) {
 
     document
-      .getElementById("adminTab")
+      .getElementById("adminButton")
       .classList.remove("hidden");
+
+  } else {
+
+    document
+      .getElementById("adminButton")
+      .classList.add("hidden");
 
   }
 
   loadMovies();
 }
 
-/* =========================
-   LOGOUT
-========================= */
+
+/* ================= LOGOUT ================= */
 
 function logout() {
 
-  localStorage.removeItem(
-    "movieToken"
-  );
+  localStorage.removeItem("movieToken");
 
   token = null;
   currentUser = null;
+  allMovies = [];
 
-  location.reload();
+  document
+    .getElementById("appPage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("authPage")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("adminSection")
+    .classList.add("hidden");
+
+  showLogin();
 }
 
-/* =========================
-   MOVIES
-========================= */
+
+/* ================= MOVIES ================= */
 
 async function loadMovies() {
 
+  const grid =
+    document.getElementById("moviesGrid");
+
+  grid.innerHTML =
+    "<div class='empty'>Loading movies...</div>";
+
   try {
 
-    allMovies =
+    const data =
       await api("/api/movies");
+
+    allMovies = data.movies || [];
 
     renderMovies(allMovies);
 
   } catch (error) {
 
-    document.getElementById(
-      "movies"
-    ).innerHTML =
-      `<div class="error">
-        ${escapeHtml(error.message)}
-      </div>`;
+    grid.innerHTML =
+      `<div class="empty">${escapeHtml(error.message)}</div>`;
 
   }
 }
 
+
+/* ================= RENDER ================= */
+
 function renderMovies(movies) {
 
-  const container =
-    document.getElementById(
-      "movies"
-    );
+  const grid =
+    document.getElementById("moviesGrid");
+
+  const empty =
+    document.getElementById("emptyMessage");
+
+  grid.innerHTML = "";
 
   if (!movies.length) {
 
-    container.innerHTML =
-      `<div class="section">
-        No movies available yet.
-      </div>`;
+    empty.classList.remove("hidden");
 
     return;
   }
 
-  container.innerHTML =
-    movies.map(movie => {
+  empty.classList.add("hidden");
 
-      const image =
-        movie.thumbnail_url ||
-        "https://via.placeholder.com/600x350?text=Movie";
+  movies.forEach(movie => {
 
-      const type =
-        movie.is_premium
-          ? `<span class="premium">⭐ PREMIUM</span>`
-          : `<span class="free">FREE</span>`;
+    const card =
+      document.createElement("div");
 
-      return `
-        <div class="movie">
+    card.className = "movie-card";
 
-          <img
-            src="${escapeAttribute(image)}"
-            alt="${escapeAttribute(movie.title)}"
-          >
+    const thumbnail =
+      movie.thumbnail_url ||
+      "https://via.placeholder.com/500x700?text=Movie";
 
-          <div class="movie-content">
+    card.innerHTML = `
 
-            <h3>
-              ${escapeHtml(movie.title)}
-            </h3>
+      <img
+        class="movie-thumb"
+        src="${escapeAttribute(thumbnail)}"
+        alt="${escapeAttribute(movie.title)}"
+        onerror="this.src='https://via.placeholder.com/500x700?text=Movie'"
+      >
 
-            <p>
-              ${escapeHtml(
-                movie.description || ""
-              )}
-            </p>
+      <div class="movie-content">
 
-            <p>${type}</p>
+        ${
+          movie.is_premium
+            ? `<span class="premium">PREMIUM</span>`
+            : ""
+        }
 
-            <button
-              class="primary"
-              onclick="watchMovie(${movie.id})"
-            >
-              ▶ Watch
-            </button>
-
-          </div>
-
+        <div class="movie-title">
+          ${escapeHtml(movie.title)}
         </div>
-      `;
 
-    }).join("");
+        <div class="movie-description">
+          ${escapeHtml(movie.description || "")}
+        </div>
+
+        <button
+          class="watch-btn"
+          onclick="watchMovie(${movie.id})"
+        >
+          Watch
+        </button>
+
+      </div>
+
+    `;
+
+    grid.appendChild(card);
+
+  });
 }
 
-/* =========================
-   WATCH
-========================= */
+
+/* ================= WATCH ================= */
 
 async function watchMovie(id) {
 
   try {
 
+    const data =
+      await api(`/api/movies/${id}/watch`);
+
     const movie =
-      await api(
-        `/api/movies/${id}/watch`
-      );
+      data.movie;
 
-    document
-      .getElementById("player")
-      .classList.remove("hidden");
-
-    document
-      .getElementById("playerTitle")
-      .textContent =
-        movie.title;
+    const section =
+      document.getElementById("videoSection");
 
     const player =
-      document.getElementById(
-        "videoPlayer"
-      );
+      document.getElementById("moviePlayer");
+
+    const title =
+      document.getElementById("videoTitle");
+
+    title.textContent =
+      movie.title;
 
     player.src =
       movie.videoUrl;
 
-    player.play().catch(() => {});
+    section.classList.remove("hidden");
 
-    window.scrollTo({
-      top: document
-        .getElementById("player")
-        .offsetTop,
+    section.scrollIntoView({
       behavior: "smooth"
     });
 
   } catch (error) {
-
-    if (error.message ===
-      "Premium membership required") {
-
-      alert(
-        "⭐ This is premium content."
-      );
-
-      return;
-    }
 
     alert(error.message);
 
   }
 }
 
-/* =========================
-   SEARCH
-========================= */
 
-function filterMovies() {
+/* ================= SEARCH ================= */
+
+function searchMovies() {
 
   const query =
     document
-      .getElementById("searchBox")
+      .getElementById("searchInput")
       .value
-      .toLowerCase();
+      .toLowerCase()
+      .trim();
 
   const filtered =
     allMovies.filter(movie =>
@@ -846,66 +1027,71 @@ function filterMovies() {
   renderMovies(filtered);
 }
 
-/* =========================
-   ADMIN
-========================= */
+
+/* ================= ADMIN ================= */
 
 function showAdmin() {
 
-  if (!currentUser?.isAdmin) {
-    return;
+  const section =
+    document.getElementById("adminSection");
+
+  section.classList.toggle("hidden");
+
+  if (!section.classList.contains("hidden")) {
+
+    section.scrollIntoView({
+      behavior: "smooth"
+    });
+
   }
-
-  document
-    .getElementById("homeSection")
-    .classList.add("hidden");
-
-  document
-    .getElementById("adminSection")
-    .classList.remove("hidden");
 }
 
-function showHome() {
 
-  document
-    .getElementById("adminSection")
-    .classList.add("hidden");
-
-  document
-    .getElementById("homeSection")
-    .classList.remove("hidden");
-}
-
-/* =========================
-   ADD MOVIE
-========================= */
+/* ================= ADD MOVIE ================= */
 
 async function addMovie() {
 
   const title =
-    document.getElementById(
-      "movieTitle"
-    ).value;
+    document
+      .getElementById("movieTitle")
+      .value
+      .trim();
 
   const videoUrl =
-    document.getElementById(
-      "movieUrl"
-    ).value;
+    document
+      .getElementById("movieVideoUrl")
+      .value
+      .trim();
 
   const thumbnailUrl =
-    document.getElementById(
-      "thumbnailUrl"
-    ).value;
+    document
+      .getElementById("movieThumbnail")
+      .value
+      .trim();
 
   const description =
-    document.getElementById(
-      "movieDescription"
-    ).value;
+    document
+      .getElementById("movieDescription")
+      .value
+      .trim();
 
   const isPremium =
-    document.getElementById(
-      "moviePremium"
-    ).checked;
+    document
+      .getElementById("moviePremium")
+      .checked;
+
+  const message =
+    document.getElementById("adminMessage");
+
+  message.textContent = "";
+
+  if (!title || !videoUrl) {
+
+    message.textContent =
+      "Title and video URL are required.";
+
+    return;
+  }
 
   try {
 
@@ -923,98 +1109,1207 @@ async function addMovie() {
       }
     );
 
-    showAdminMessage(
-      "Movie added successfully.",
-      false
-    );
+    message.textContent =
+      "Movie added successfully.";
 
-    document.getElementById(
-      "movieTitle"
-    ).value = "";
-
-    document.getElementById(
-      "movieUrl"
-    ).value = "";
-
-    document.getElementById(
-      "thumbnailUrl"
-    ).value = "";
-
-    document.getElementById(
-      "movieDescription"
-    ).value = "";
-
-    document.getElementById(
-      "moviePremium"
-    ).checked = false;
+    document.getElementById("movieTitle").value = "";
+    document.getElementById("movieVideoUrl").value = "";
+    document.getElementById("movieThumbnail").value = "";
+    document.getElementById("movieDescription").value = "";
+    document.getElementById("moviePremium").checked = false;
 
     loadMovies();
 
   } catch (error) {
 
-    showAdminMessage(
-      error.message,
-      true
-    );
+    message.textContent =
+      error.message;
 
   }
 }
 
-/* =========================
-   MESSAGES
-========================= */
 
-function showAuthMessage(
-  message,
-  error
-) {
-
-  document.getElementById(
-    "authMessage"
-  ).innerHTML =
-    `<div class="message ${
-      error ? "error" : "success"
-    }">
-      ${escapeHtml(message)}
-    </div>`;
-}
-
-function showAdminMessage(
-  message,
-  error
-) {
-
-  document.getElementById(
-    "adminMessage"
-  ).innerHTML =
-    `<div class="message ${
-      error ? "error" : "success"
-    }">
-      ${escapeHtml(message)}
-    </div>`;
-}
-
-/* =========================
-   SECURITY HELPERS
-========================= */
+/* ================= SECURITY HELPERS ================= */
 
 function escapeHtml(value) {
 
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 }
+
 
 function escapeAttribute(value) {
+
   return escapeHtml(value);
+
 }
 
-/* =========================
-   START
-========================= */
+
+/* ================= START ================= */
+
+checkSession();
+
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>MovieStream</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #0b0b0f;
+      color: white;
+      min-height: 100vh;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* AUTH */
+
+    #authPage {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #080808, #171725);
+    }
+
+    .auth-box {
+      width: 100%;
+      max-width: 420px;
+      background: #15151d;
+      padding: 30px;
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    }
+
+    .logo {
+      text-align: center;
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #ff3d3d;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #aaa;
+      margin-bottom: 25px;
+    }
+
+    .auth-box input,
+    .admin-box input,
+    .admin-box textarea {
+      width: 100%;
+      padding: 13px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #0e0e13;
+      color: white;
+      outline: none;
+    }
+
+    .auth-box input:focus,
+    .admin-box input:focus,
+    .admin-box textarea:focus {
+      border-color: #ff3d3d;
+    }
+
+    .primary-btn {
+      width: 100%;
+      padding: 13px;
+      background: #ff3d3d;
+      color: white;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .primary-btn:hover {
+      background: #e52d2d;
+    }
+
+    .switch {
+      text-align: center;
+      margin-top: 18px;
+      color: #aaa;
+    }
+
+    .switch span {
+      color: #ff4d4d;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .message {
+      margin-top: 12px;
+      text-align: center;
+      min-height: 20px;
+      color: #ff7777;
+    }
+
+    /* APP */
+
+    #appPage {
+      min-height: 100vh;
+    }
+
+    header {
+      height: 65px;
+      background: #13131a;
+      border-bottom: 1px solid #292934;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 25px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-logo {
+      color: #ff4141;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .user-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-name {
+      color: #ddd;
+    }
+
+    .small-btn {
+      padding: 9px 14px;
+      border-radius: 7px;
+      background: #292936;
+      color: white;
+    }
+
+    .logout-btn {
+      background: #d83232;
+    }
+
+    main {
+      padding: 25px;
+      max-width: 1400px;
+      margin: auto;
+    }
+
+    .welcome {
+      margin-bottom: 25px;
+    }
+
+    .welcome h1 {
+      font-size: 30px;
+      margin-bottom: 7px;
+    }
+
+    .welcome p {
+      color: #aaa;
+    }
+
+    .search-box {
+      margin-bottom: 25px;
+    }
+
+    .search-box input {
+      width: 100%;
+      max-width: 500px;
+      padding: 13px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #15151d;
+      color: white;
+      outline: none;
+    }
+
+    .movies-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .movie-card {
+      background: #15151d;
+      border: 1px solid #282832;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: .2s;
+    }
+
+    .movie-card:hover {
+      transform: translateY(-3px);
+      border-color: #ff4141;
+    }
+
+    .movie-thumb {
+      width: 100%;
+      height: 260px;
+      object-fit: cover;
+      background: #222;
+    }
+
+    .movie-content {
+      padding: 15px;
+    }
+
+    .movie-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .movie-description {
+      color: #999;
+      font-size: 14px;
+      min-height: 40px;
+      margin-bottom: 12px;
+    }
+
+    .premium {
+      display: inline-block;
+      background: #d69b00;
+      color: white;
+      font-size: 11px;
+      padding: 4px 7px;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+
+    .watch-btn {
+      width: 100%;
+      padding: 10px;
+      background: #ff3d3d;
+      color: white;
+      border-radius: 7px;
+      font-weight: bold;
+    }
+
+    .empty {
+      text-align: center;
+      color: #888;
+      padding: 40px;
+    }
+
+    /* ADMIN */
+
+    .admin-box {
+      margin-top: 40px;
+      background: #15151d;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #292934;
+    }
+
+    .admin-box h2 {
+      margin-bottom: 18px;
+    }
+
+    .admin-box textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .admin-message {
+      margin-top: 12px;
+      color: #72ff72;
+    }
+
+    /* VIDEO */
+
+    .video-container {
+      margin-top: 30px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    video {
+      width: 100%;
+      max-height: 650px;
+      display: block;
+    }
+
+    .video-title {
+      padding: 15px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    @media(max-width:600px) {
+      header {
+        padding: 0 12px;
+      }
+
+      .header-logo {
+        font-size: 19px;
+      }
+
+      .user-name {
+        display: none;
+      }
+
+      main {
+        padding: 15px;
+      }
+
+      .welcome h1 {
+        font-size: 24px;
+      }
+
+      .movies-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .movie-thumb {
+        height: 210px;
+      }
+
+      .movie-content {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ================= AUTH PAGE ================= -->
+
+  <section id="authPage">
+
+    <div class="auth-box">
+
+      <div class="logo">MovieStream</div>
+
+      <div class="subtitle">
+        Watch your favourite movies
+      </div>
+
+      <!-- LOGIN -->
+
+      <div id="loginBox">
+
+        <input
+          type="text"
+          id="loginUsername"
+          placeholder="Username"
+          autocomplete="username"
+        >
+
+        <input
+          type="password"
+          id="loginPassword"
+          placeholder="Password"
+          autocomplete="current-password"
+        >
+
+        <button class="primary-btn" onclick="login()">
+          Login
+        </button>
+
+        <div id="loginMessage" class="message"></div>
+
+        <div class="switch">
+          Don't have an account?
+          <span onclick="showRegister()">Create Account</span>
+        </div>
+
+      </div>
+
+      <!-- REGISTER -->
+
+      <div id="registerBox" class="hidden">
+
+        <input
+          type="text"
+          id="registerUsername"
+          placeholder="Choose username"
+          autocomplete="username"
+        >
+
+        <input
+          type="password"
+          id="registerPassword"
+          placeholder="Choose password"
+          autocomplete="new-password"
+        >
+
+        <button class="primary-btn" onclick="registerUser()">
+          Create Account
+        </button>
+
+        <div id="registerMessage" class="message"></div>
+
+        <div class="switch">
+          Already have an account?
+          <span onclick="showLogin()">Login</span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- ================= APP PAGE ================= -->
+
+  <section id="appPage" class="hidden">
+
+    <header>
+
+      <div class="header-logo">
+        MovieStream
+      </div>
+
+      <div class="user-area">
+
+        <span id="userName" class="user-name"></span>
+
+        <button
+          id="adminButton"
+          class="small-btn hidden"
+          onclick="showAdmin()"
+        >
+          Admin
+        </button>
+
+        <button
+          class="small-btn logout-btn"
+          onclick="logout()"
+        >
+          Logout
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <main>
+
+      <div class="welcome">
+
+        <h1>Welcome to MovieStream 🎬</h1>
+
+        <p>
+          Watch movies and enjoy your streaming experience.
+        </p>
+
+      </div>
+
+
+      <div class="search-box">
+
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search movies..."
+          oninput="searchMovies()"
+        >
+
+      </div>
+
+
+      <div id="moviesGrid" class="movies-grid"></div>
+
+
+      <div id="emptyMessage" class="empty hidden">
+        No movies found.
+      </div>
+
+
+      <!-- VIDEO -->
+
+      <div id="videoSection" class="video-container hidden">
+
+        <video id="moviePlayer" controls></video>
+
+        <div id="videoTitle" class="video-title"></div>
+
+      </div>
+
+
+      <!-- ADMIN -->
+
+      <div id="adminSection" class="admin-box hidden">
+
+        <h2>Admin Panel</h2>
+
+        <input
+          type="text"
+          id="movieTitle"
+          placeholder="Movie title"
+        >
+
+        <input
+          type="text"
+          id="movieVideoUrl"
+          placeholder="Video URL"
+        >
+
+        <input
+          type="text"
+          id="movieThumbnail"
+          placeholder="Thumbnail URL"
+        >
+
+        <textarea
+          id="movieDescription"
+          placeholder="Movie description"
+        ></textarea>
+
+        <label style="display:block;margin-bottom:15px;">
+          <input
+            type="checkbox"
+            id="moviePremium"
+            style="width:auto;margin-right:7px;"
+          >
+          Premium Movie
+        </label>
+
+        <button
+          class="primary-btn"
+          onclick="addMovie()"
+        >
+          Add Movie
+        </button>
+
+        <div
+          id="adminMessage"
+          class="admin-message"
+        ></div>
+
+      </div>
+
+    </main>
+
+  </section>
+
+
+<script>
+
+/* ==================================================
+   MOVIESTREAM FRONTEND
+   ================================================== */
+
+let token = localStorage.getItem("movieToken");
+let currentUser = null;
+let allMovies = [];
+
+
+/* ================= API ================= */
+
+async function api(url, options = {}) {
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {})
+  };
+
+  if (token) {
+    headers.Authorization = "Bearer " + token;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Something went wrong"
+    );
+  }
+
+  return data;
+}
+
+
+/* ================= AUTH UI ================= */
+
+function showRegister() {
+
+  document
+    .getElementById("loginBox")
+    .classList.add("hidden");
+
+  document
+    .getElementById("registerBox")
+    .classList.remove("hidden");
+
+  clearMessages();
+}
+
+
+function showLogin() {
+
+  document
+    .getElementById("registerBox")
+    .classList.add("hidden");
+
+  document
+    .getElementById("loginBox")
+    .classList.remove("hidden");
+
+  clearMessages();
+}
+
+
+function clearMessages() {
+
+  document.getElementById("loginMessage").textContent = "";
+  document.getElementById("registerMessage").textContent = "";
+
+}
+
+
+/* ================= REGISTER ================= */
+
+async function registerUser() {
+
+  const username =
+    document
+      .getElementById("registerUsername")
+      .value
+      .trim();
+
+  const password =
+    document
+      .getElementById("registerPassword")
+      .value;
+
+  const message =
+    document.getElementById("registerMessage");
+
+  message.textContent = "";
+
+  if (!username || !password) {
+
+    message.textContent =
+      "Please enter username and password.";
+
+    return;
+  }
+
+  if (password.length < 6) {
+
+    message.textContent =
+      "Password must be at least 6 characters.";
+
+    return;
+  }
+
+  try {
+
+    const data = await api(
+      "/api/register",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
+    );
+
+    token = data.token;
+
+    localStorage.setItem(
+      "movieToken",
+      token
+    );
+
+    currentUser = data.user;
+
+    showApp();
+
+  } catch (error) {
+
+    message.textContent =
+      error.message;
+
+  }
+}
+
+
+/* ================= LOGIN ================= */
+
+async function login() {
+
+  const username =
+    document
+      .getElementById("loginUsername")
+      .value
+      .trim();
+
+  const password =
+    document
+      .getElementById("loginPassword")
+      .value;
+
+  const message =
+    document.getElementById("loginMessage");
+
+  message.textContent = "";
+
+  if (!username || !password) {
+
+    message.textContent =
+      "Please enter username and password.";
+
+    return;
+  }
+
+  try {
+
+    const data = await api(
+      "/api/login",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          username,
+          password
+        })
+      }
+    );
+
+    token = data.token;
+
+    localStorage.setItem(
+      "movieToken",
+      token
+    );
+
+    currentUser = data.user;
+
+    showApp();
+
+  } catch (error) {
+
+    message.textContent =
+      error.message;
+
+  }
+}
+
+
+/* ================= SESSION ================= */
+
+async function checkSession() {
+
+  if (!token) {
+    return;
+  }
+
+  try {
+
+    const data =
+      await api("/api/me");
+
+    currentUser = data.user;
+
+    showApp();
+
+  } catch {
+
+    localStorage.removeItem("movieToken");
+
+    token = null;
+    currentUser = null;
+
+  }
+}
+
+
+/* ================= SHOW APP ================= */
+
+function showApp() {
+
+  document
+    .getElementById("authPage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("appPage")
+    .classList.remove("hidden");
+
+  document.getElementById("userName").textContent =
+    currentUser?.username || "";
+
+  if (currentUser?.isAdmin) {
+
+    document
+      .getElementById("adminButton")
+      .classList.remove("hidden");
+
+  } else {
+
+    document
+      .getElementById("adminButton")
+      .classList.add("hidden");
+
+  }
+
+  loadMovies();
+}
+
+
+/* ================= LOGOUT ================= */
+
+function logout() {
+
+  localStorage.removeItem("movieToken");
+
+  token = null;
+  currentUser = null;
+  allMovies = [];
+
+  document
+    .getElementById("appPage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("authPage")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("adminSection")
+    .classList.add("hidden");
+
+  showLogin();
+}
+
+
+/* ================= MOVIES ================= */
+
+async function loadMovies() {
+
+  const grid =
+    document.getElementById("moviesGrid");
+
+  grid.innerHTML =
+    "<div class='empty'>Loading movies...</div>";
+
+  try {
+
+    const data =
+      await api("/api/movies");
+
+    allMovies = data.movies || [];
+
+    renderMovies(allMovies);
+
+  } catch (error) {
+
+    grid.innerHTML =
+      `<div class="empty">${escapeHtml(error.message)}</div>`;
+
+  }
+}
+
+
+/* ================= RENDER ================= */
+
+function renderMovies(movies) {
+
+  const grid =
+    document.getElementById("moviesGrid");
+
+  const empty =
+    document.getElementById("emptyMessage");
+
+  grid.innerHTML = "";
+
+  if (!movies.length) {
+
+    empty.classList.remove("hidden");
+
+    return;
+  }
+
+  empty.classList.add("hidden");
+
+  movies.forEach(movie => {
+
+    const card =
+      document.createElement("div");
+
+    card.className = "movie-card";
+
+    const thumbnail =
+      movie.thumbnail_url ||
+      "https://via.placeholder.com/500x700?text=Movie";
+
+    card.innerHTML = `
+
+      <img
+        class="movie-thumb"
+        src="${escapeAttribute(thumbnail)}"
+        alt="${escapeAttribute(movie.title)}"
+        onerror="this.src='https://via.placeholder.com/500x700?text=Movie'"
+      >
+
+      <div class="movie-content">
+
+        ${
+          movie.is_premium
+            ? `<span class="premium">PREMIUM</span>`
+            : ""
+        }
+
+        <div class="movie-title">
+          ${escapeHtml(movie.title)}
+        </div>
+
+        <div class="movie-description">
+          ${escapeHtml(movie.description || "")}
+        </div>
+
+        <button
+          class="watch-btn"
+          onclick="watchMovie(${movie.id})"
+        >
+          Watch
+        </button>
+
+      </div>
+
+    `;
+
+    grid.appendChild(card);
+
+  });
+}
+
+
+/* ================= WATCH ================= */
+
+async function watchMovie(id) {
+
+  try {
+
+    const data =
+      await api(`/api/movies/${id}/watch`);
+
+    const movie =
+      data.movie;
+
+    const section =
+      document.getElementById("videoSection");
+
+    const player =
+      document.getElementById("moviePlayer");
+
+    const title =
+      document.getElementById("videoTitle");
+
+    title.textContent =
+      movie.title;
+
+    player.src =
+      movie.videoUrl;
+
+    section.classList.remove("hidden");
+
+    section.scrollIntoView({
+      behavior: "smooth"
+    });
+
+  } catch (error) {
+
+    alert(error.message);
+
+  }
+}
+
+
+/* ================= SEARCH ================= */
+
+function searchMovies() {
+
+  const query =
+    document
+      .getElementById("searchInput")
+      .value
+      .toLowerCase()
+      .trim();
+
+  const filtered =
+    allMovies.filter(movie =>
+      movie.title
+        .toLowerCase()
+        .includes(query)
+    );
+
+  renderMovies(filtered);
+}
+
+
+/* ================= ADMIN ================= */
+
+function showAdmin() {
+
+  const section =
+    document.getElementById("adminSection");
+
+  section.classList.toggle("hidden");
+
+  if (!section.classList.contains("hidden")) {
+
+    section.scrollIntoView({
+      behavior: "smooth"
+    });
+
+  }
+}
+
+
+/* ================= ADD MOVIE ================= */
+
+async function addMovie() {
+
+  const title =
+    document
+      .getElementById("movieTitle")
+      .value
+      .trim();
+
+  const videoUrl =
+    document
+      .getElementById("movieVideoUrl")
+      .value
+      .trim();
+
+  const thumbnailUrl =
+    document
+      .getElementById("movieThumbnail")
+      .value
+      .trim();
+
+  const description =
+    document
+      .getElementById("movieDescription")
+      .value
+      .trim();
+
+  const isPremium =
+    document
+      .getElementById("moviePremium")
+      .checked;
+
+  const message =
+    document.getElementById("adminMessage");
+
+  message.textContent = "";
+
+  if (!title || !videoUrl) {
+
+    message.textContent =
+      "Title and video URL are required.";
+
+    return;
+  }
+
+  try {
+
+    await api(
+      "/api/admin/movies",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title,
+          videoUrl,
+          thumbnailUrl,
+          description,
+          isPremium
+        })
+      }
+    );
+
+    message.textContent =
+      "Movie added successfully.";
+
+    document.getElementById("movieTitle").value = "";
+    document.getElementById("movieVideoUrl").value = "";
+    document.getElementById("movieThumbnail").value = "";
+    document.getElementById("movieDescription").value = "";
+    document.getElementById("moviePremium").checked = false;
+
+    loadMovies();
+
+  } catch (error) {
+
+    message.textContent =
+      error.message;
+
+  }
+}
+
+
+/* ================= SECURITY HELPERS ================= */
+
+function escapeHtml(value) {
+
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+}
+
+
+function escapeAttribute(value) {
+
+  return escapeHtml(value);
+
+}
+
+
+/* ================= START ================= */
 
 checkSession();
 
