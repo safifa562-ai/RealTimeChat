@@ -1,643 +1,521 @@
-let token = localStorage.getItem("movieToken");
-let currentUser = null;
-let allMovies = [];
+const express = require("express");
+const http = require("http");
+const path = require("path");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { Pool } = require("pg");
+const helmet = require("helmet");
 
-/* =========================
-   API
-========================= */
+const app = express();
+const server = http.createServer(app);
 
-async function api(url, options = {}) {
-  options.headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {})
-  };
+const PORT = process.env.PORT || 10000;
+const JWT_SECRET = process.env.JWT_SECRET;
+const DATABASE_URL = process.env.DATABASE_URL;
 
-  if (token) {
-    options.headers.Authorization = "Bearer " + token;
-  }
-
-  const response = await fetch(url, options);
-
-  const text = await response.text();
-
-  let data = {};
-
-  try {
-    data = JSON.parse(text);
-  } catch {
-    data = {
-      error: text || "Server returned an invalid response."
-    };
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      data.error || "Something went wrong."
-    );
-  }
-
-  return data;
+if (!JWT_SECRET) {
+  console.error("JWT_SECRET is missing");
+  process.exit(1);
 }
 
+if (!DATABASE_URL) {
+  console.error("DATABASE_URL is missing");
+  process.exit(1);
+}
 
-/* =========================
-   CREATE ACCOUNT
-========================= */
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
+});
 
-async function register() {
+// Middleware
+app.use(helmet());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
 
-  const username =
-    document.getElementById("registerUsername").value.trim();
-
-  const password =
-    document.getElementById("registerPassword").value;
-
-  if (!username) {
-    showAuthMessage(
-      "Please enter a username.",
-      true
+// Database setup
+async function initDatabase() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(100) UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      is_admin BOOLEAN DEFAULT FALSE,
+      is_premium BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    return;
-  }
+  `);
 
-  if (!password) {
-    showAuthMessage(
-      "Please enter a password.",
-      true
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS movies (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      video_url TEXT NOT NULL,
+      thumbnail_url TEXT,
+      description TEXT,
+      is_premium BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    return;
-  }
+  `);
 
-  if (password.length < 6) {
-    showAuthMessage(
-      "Password must be at least 6 characters.",
-      true
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS site_settings (
+      id SERIAL PRIMARY KEY,
+      site_name TEXT DEFAULT 'MovieStream',
+      ad_text TEXT DEFAULT '',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-    return;
-  }
+  `);
 
-  showAuthMessage(
-    "Creating account...",
-    false
+  console.log("Database tables ready");
+}
+
+// JWT
+function createToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      username: user.username,
+      isAdmin: user.is_admin,
+      isPremium: user.is_premium,
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
   );
-
-  try {
-
-    const data = await api(
-      "/api/register",
-      {
-        method: "POST",
-
-        body: JSON.stringify({
-          username: username,
-          password: password
-        })
-      }
-    );
-
-    token = data.token;
-
-    localStorage.setItem(
-      "movieToken",
-      token
-    );
-
-    currentUser = data.user;
-
-    showAuthMessage(
-      "Account created successfully!",
-      false
-    );
-
-    setTimeout(
-      () => {
-        showApp();
-      },
-      500
-    );
-
-  } catch (error) {
-
-    showAuthMessage(
-      error.message || "Account creation failed.",
-      true
-    );
-  }
 }
 
-
-/* =========================
-   LOGIN
-========================= */
-
-async function login() {
-
-  const username =
-    document.getElementById("loginUsername").value.trim();
-
-  const password =
-    document.getElementById("loginPassword").value;
-
-  if (!username || !password) {
-
-    showAuthMessage(
-      "Please enter username and password.",
-      true
-    );
-
-    return;
-  }
-
-  showAuthMessage(
-    "Logging in...",
-    false
-  );
-
-  try {
-
-    const data = await api(
-      "/api/login",
-      {
-        method: "POST",
-
-        body: JSON.stringify({
-          username: username,
-          password: password
-        })
-      }
-    );
-
-    token = data.token;
-
-    localStorage.setItem(
-      "movieToken",
-      token
-    );
-
-    currentUser = data.user;
-
-    showApp();
-
-  } catch (error) {
-
-    showAuthMessage(
-      error.message || "Login failed.",
-      true
-    );
-  }
-}
-
-
-/* =========================
-   SESSION
-========================= */
-
-async function checkSession() {
-
-  if (!token) {
-    return;
-  }
-
-  try {
-
-    currentUser =
-      await api("/api/me");
-
-    showApp();
-
-  } catch (error) {
-
-    logout();
-  }
-}
-
-
-/* =========================
-   SHOW APP
-========================= */
-
-function showApp() {
-
-  document
-    .getElementById("authScreen")
-    .classList.add("hidden");
-
-  document
-    .getElementById("appScreen")
-    .classList.remove("hidden");
-
-  document
-    .getElementById("logoutBtn")
-    .classList.remove("hidden");
-
-  document
-    .getElementById("userStatus")
-    .textContent =
-      `${currentUser.username} ${
-        currentUser.isPremium
-          ? "⭐ Premium"
-          : ""
-      }`;
-
-  if (currentUser.isAdmin) {
-
-    document
-      .getElementById("adminTab")
-      .classList.remove("hidden");
-  }
-
-  loadMovies();
-}
-
-
-/* =========================
-   LOGOUT
-========================= */
-
-function logout() {
-
-  localStorage.removeItem(
-    "movieToken"
-  );
-
-  token = null;
-
-  currentUser = null;
-
-  location.reload();
-}
-
-
-/* =========================
-   MOVIES
-========================= */
-
-async function loadMovies() {
-
-  try {
-
-    allMovies =
-      await api("/api/movies");
-
-    renderMovies(allMovies);
-
-  } catch (error) {
-
-    document.getElementById(
-      "movies"
-    ).innerHTML =
-      `<div class="message error">
-        ${escapeHtml(error.message)}
-      </div>`;
-  }
-}
-
-
-/* =========================
-   RENDER MOVIES
-========================= */
-
-function renderMovies(movies) {
-
-  const container =
-    document.getElementById("movies");
-
-  if (!movies.length) {
-
-    container.innerHTML =
-      `<div class="section">
-        No movies available yet.
-      </div>`;
-
-    return;
-  }
-
-  container.innerHTML =
-    movies.map(movie => {
-
-      const image =
-        movie.thumbnail_url ||
-        "https://via.placeholder.com/600x350?text=Movie";
-
-      const type =
-        movie.is_premium
-          ? `<span class="premium">
-              ⭐ PREMIUM
-             </span>`
-          : `<span class="free">
-              FREE
-             </span>`;
-
-      return `
-        <div class="movie">
-
-          <img
-            src="${escapeAttribute(image)}"
-            alt="${escapeAttribute(movie.title)}"
-          >
-
-          <div class="movie-content">
-
-            <h3>
-              ${escapeHtml(movie.title)}
-            </h3>
-
-            <p>
-              ${escapeHtml(
-                movie.description || ""
-              )}
-            </p>
-
-            <p>
-              ${type}
-            </p>
-
-            <button
-              class="primary"
-              onclick="watchMovie(${movie.id})"
-            >
-              ▶ Watch
-            </button>
-
-          </div>
-
-        </div>
-      `;
-
-    }).join("");
-}
-
-
-/* =========================
-   WATCH MOVIE
-========================= */
-
-async function watchMovie(id) {
-
-  try {
-
-    const movie =
-      await api(
-        `/api/movies/${id}/watch`
-      );
-
-    document
-      .getElementById("player")
-      .classList.remove("hidden");
-
-    document
-      .getElementById("playerTitle")
-      .textContent =
-        movie.title;
-
-    const player =
-      document.getElementById(
-        "videoPlayer"
-      );
-
-    player.src =
-      movie.videoUrl;
-
-    player.play().catch(
-      () => {}
-    );
-
-    window.scrollTo({
-      top:
-        document.getElementById(
-          "player"
-        ).offsetTop,
-
-      behavior: "smooth"
+// Authentication middleware
+function auth(req, res, next) {
+  const header = req.headers.authorization;
+
+  if (!header || !header.startsWith("Bearer ")) {
+    return res.status(401).json({
+      error: "Authentication required",
     });
+  }
 
-  } catch (error) {
+  const token = header.split(" ")[1];
 
-    alert(
-      error.message
-    );
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch (err) {
+    return res.status(401).json({
+      error: "Invalid or expired token",
+    });
   }
 }
 
+// Admin middleware
+async function adminOnly(req, res, next) {
+  try {
+    const result = await pool.query(
+      "SELECT is_admin FROM users WHERE id = $1",
+      [req.user.id]
+    );
 
-/* =========================
-   SEARCH
-========================= */
+    if (!result.rows.length || !result.rows[0].is_admin) {
+      return res.status(403).json({
+        error: "Admin access required",
+      });
+    }
 
-function filterMovies() {
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Server error",
+    });
+  }
+}
 
-  const query =
-    document
-      .getElementById("searchBox")
-      .value
+// Register
+app.post("/api/register", async (req, res) => {
+  try {
+    const username = String(req.body.username || "")
+      .trim()
       .toLowerCase();
 
-  const filtered =
-    allMovies.filter(
-      movie =>
-        movie.title
-          .toLowerCase()
-          .includes(query)
+    const password = String(req.body.password || "");
+
+    if (!username || !password) {
+      return res.status(400).json({
+        error: "Username and password are required",
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: "Password must be at least 6 characters",
+      });
+    }
+
+    const existing = await pool.query(
+      "SELECT id FROM users WHERE username = $1",
+      [username]
     );
 
-  renderMovies(filtered);
-}
+    if (existing.rows.length) {
+      return res.status(409).json({
+        error: "Username already exists",
+      });
+    }
 
+    const passwordHash = await bcrypt.hash(password, 10);
 
-/* =========================
-   ADMIN
-========================= */
+    const result = await pool.query(
+      `INSERT INTO users
+       (username, password_hash)
+       VALUES ($1, $2)
+       RETURNING id, username, is_admin, is_premium`,
+      [username, passwordHash]
+    );
 
-function showAdmin() {
+    const user = result.rows[0];
+    const token = createToken(user);
 
-  if (!currentUser?.isAdmin) {
-    return;
+    res.json({
+      message: "Account created successfully",
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        isAdmin: user.is_admin,
+        isPremium: user.is_premium,
+      },
+    });
+  } catch (err) {
+    console.error("Register error:", err);
+    res.status(500).json({
+      error: "Registration failed",
+    });
   }
+});
 
-  document
-    .getElementById("homeSection")
-    .classList.add("hidden");
-
-  document
-    .getElementById("adminSection")
-    .classList.remove("hidden");
-}
-
-
-function showHome() {
-
-  document
-    .getElementById("adminSection")
-    .classList.add("hidden");
-
-  document
-    .getElementById("homeSection")
-    .classList.remove("hidden");
-}
-
-
-/* =========================
-   ADD MOVIE
-========================= */
-
-async function addMovie() {
-
-  const title =
-    document
-      .getElementById("movieTitle")
-      .value;
-
-  const videoUrl =
-    document
-      .getElementById("movieUrl")
-      .value;
-
-  const thumbnailUrl =
-    document
-      .getElementById("thumbnailUrl")
-      .value;
-
-  const description =
-    document
-      .getElementById("movieDescription")
-      .value;
-
-  const isPremium =
-    document
-      .getElementById("moviePremium")
-      .checked;
-
+// Login
+app.post("/api/login", async (req, res) => {
   try {
+    const username = String(req.body.username || "")
+      .trim()
+      .toLowerCase();
 
-    await api(
-      "/api/admin/movies",
-      {
-        method: "POST",
+    const password = String(req.body.password || "");
 
-        body: JSON.stringify({
-          title,
-          videoUrl,
-          thumbnailUrl,
-          description,
-          isPremium
-        })
-      }
+    const result = await pool.query(
+      `SELECT id, username, password_hash, is_admin, is_premium
+       FROM users
+       WHERE username = $1`,
+      [username]
     );
 
-    showAdminMessage(
-      "Movie added successfully.",
-      false
+    if (!result.rows.length) {
+      return res.status(401).json({
+        error: "Invalid username or password",
+      });
+    }
+
+    const user = result.rows[0];
+
+    const validPassword = await bcrypt.compare(
+      password,
+      user.password_hash
     );
 
-    document.getElementById(
-      "movieTitle"
-    ).value = "";
+    if (!validPassword) {
+      return res.status(401).json({
+        error: "Invalid username or password",
+      });
+    }
 
-    document.getElementById(
-      "movieUrl"
-    ).value = "";
+    const token = createToken(user);
 
-    document.getElementById(
-      "thumbnailUrl"
-    ).value = "";
-
-    document.getElementById(
-      "movieDescription"
-    ).value = "";
-
-    document.getElementById(
-      "moviePremium"
-    ).checked = false;
-
-    loadMovies();
-
-  } catch (error) {
-
-    showAdminMessage(
-      error.message,
-      true
-    );
+    res.json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        isAdmin: user.is_admin,
+        isPremium: user.is_premium,
+      },
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({
+      error: "Login failed",
+    });
   }
-}
+});
 
-
-/* =========================
-   MESSAGES
-========================= */
-
-function showAuthMessage(
-  message,
-  error
-) {
-
-  document.getElementById(
-    "authMessage"
-  ).innerHTML =
-    `<div class="message ${
-      error
-        ? "error"
-        : "success"
-    }">
-      ${escapeHtml(message)}
-    </div>`;
-}
-
-
-function showAdminMessage(
-  message,
-  error
-) {
-
-  document.getElementById(
-    "adminMessage"
-  ).innerHTML =
-    `<div class="message ${
-      error
-        ? "error"
-        : "success"
-    }">
-      ${escapeHtml(message)}
-    </div>`;
-}
-
-
-/* =========================
-   SECURITY
-========================= */
-
-function escapeHtml(value) {
-
-  return String(value)
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "'",
-      "&#039;"
+// Current user
+app.get("/api/me", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, username, is_admin, is_premium
+       FROM users
+       WHERE id = $1`,
+      [req.user.id]
     );
-}
 
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
 
-function escapeAttribute(value) {
-  return escapeHtml(value);
-}
+    const user = result.rows[0];
 
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        isAdmin: user.is_admin,
+        isPremium: user.is_premium,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Server error",
+    });
+  }
+});
 
-/* =========================
-   START
-========================= */
+// Get movies
+app.get("/api/movies", auth, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        title,
+        video_url,
+        thumbnail_url,
+        description,
+        is_premium,
+        created_at
+      FROM movies
+      ORDER BY created_at DESC
+    `);
 
-checkSession();
+    res.json({
+      movies: result.rows,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to load movies",
+    });
+  }
+});
+
+// Watch movie
+app.get("/api/movies/:id/watch", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, title, video_url, description, is_premium
+       FROM movies
+       WHERE id = $1`,
+      [req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Movie not found",
+      });
+    }
+
+    const movie = result.rows[0];
+
+    if (movie.is_premium && !req.user.isPremium && !req.user.isAdmin) {
+      return res.status(403).json({
+        error: "Premium membership required",
+      });
+    }
+
+    res.json({
+      movie: {
+        id: movie.id,
+        title: movie.title,
+        videoUrl: movie.video_url,
+        description: movie.description,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to load movie",
+    });
+  }
+});
+
+// Admin: add movie
+app.post("/api/admin/movies", auth, adminOnly, async (req, res) => {
+  try {
+    const {
+      title,
+      videoUrl,
+      thumbnailUrl,
+      description,
+      isPremium,
+    } = req.body;
+
+    if (!title || !videoUrl) {
+      return res.status(400).json({
+        error: "Title and video URL are required",
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO movies
+       (title, video_url, thumbnail_url, description, is_premium)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [
+        title,
+        videoUrl,
+        thumbnailUrl || "",
+        description || "",
+        Boolean(isPremium),
+      ]
+    );
+
+    res.json({
+      message: "Movie added successfully",
+      movie: result.rows[0],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to add movie",
+    });
+  }
+});
+
+// Admin: delete movie
+app.delete("/api/admin/movies/:id", auth, adminOnly, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "DELETE FROM movies WHERE id = $1 RETURNING id",
+      [req.params.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Movie not found",
+      });
+    }
+
+    res.json({
+      message: "Movie deleted successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to delete movie",
+    });
+  }
+});
+
+// Admin: change premium status
+app.patch(
+  "/api/admin/users/:id/premium",
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const isPremium = Boolean(req.body.isPremium);
+
+      const result = await pool.query(
+        `UPDATE users
+         SET is_premium = $1
+         WHERE id = $2
+         RETURNING id, username, is_premium`,
+        [isPremium, req.params.id]
+      );
+
+      if (!result.rows.length) {
+        return res.status(404).json({
+          error: "User not found",
+        });
+      }
+
+      res.json({
+        message: "Premium status updated",
+        user: result.rows[0],
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({
+        error: "Failed to update premium status",
+      });
+    }
+  }
+);
+
+// Settings
+app.get("/api/settings", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM site_settings ORDER BY id LIMIT 1"
+    );
+
+    if (!result.rows.length) {
+      return res.json({
+        siteName: "MovieStream",
+        adText: "",
+      });
+    }
+
+    const settings = result.rows[0];
+
+    res.json({
+      siteName: settings.site_name,
+      adText: settings.ad_text,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      error: "Failed to load settings",
+    });
+  }
+});
+
+// Health check
+app.get("/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+
+    res.json({
+      status: "ok",
+      database: "connected",
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      status: "error",
+      database: "disconnected",
+    });
+  }
+});
+
+// Frontend fallback
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Start server
+initDatabase()
+  .then(() => {
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`MovieStream running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Database initialization failed:", err);
+    process.exit(1);
+  });
