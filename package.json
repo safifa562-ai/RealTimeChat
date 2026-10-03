@@ -1,7 +1,7 @@
 {
-  "name": "moviestream-new",
+  "name": "realtime-communication-app",
   "version": "1.0.0",
-  "description": "Simple MovieStream app",
+  "description": "Real-time communication app with chat, audio, video and file sharing",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,6 +10,8 @@
     "bcryptjs": "^2.4.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1",
+    "multer": "^2.0.2"
   }
 }
