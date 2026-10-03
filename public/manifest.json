@@ -1,0 +1,10 @@
+{
+  "name": "RealTime Communication",
+  "short_name": "RealTimeChat",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "description": "Real-time chat, audio and video communication app",
+  "icons": []
+}
