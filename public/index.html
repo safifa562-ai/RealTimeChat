@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>MovieStream</title>
+  <title>RealTime Communication</title>
+
+  <script src="/socket.io/socket.io.js"></script>
 
   <style>
     * {
@@ -15,259 +17,455 @@
     }
 
     body {
-      min-height: 100vh;
-      background: #09090d;
+      background: #0b0910;
       color: white;
+      min-height: 100vh;
     }
 
     button {
       cursor: pointer;
-    }
-
-    .hidden {
-      display: none !important;
+      border: none;
     }
 
     /* AUTH */
 
-    .auth-page {
+    #authPage {
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 20px;
-      background: linear-gradient(135deg, #09090d, #1b1020);
     }
 
     .auth-box {
       width: 100%;
       max-width: 400px;
-      background: #15151c;
+      background: #17151d;
       padding: 30px;
-      border-radius: 16px;
+      border-radius: 18px;
       box-shadow: 0 10px 40px #000;
     }
 
     .logo {
       text-align: center;
-      font-size: 32px;
+      color: #ff3b3b;
+      font-size: 30px;
       font-weight: bold;
-      color: #ff3d3d;
       margin-bottom: 8px;
     }
 
-    .tagline {
+    .subtitle {
       text-align: center;
-      color: #999;
+      color: #aaa;
       margin-bottom: 25px;
     }
 
     input {
       width: 100%;
-      padding: 13px;
+      padding: 14px;
       margin-bottom: 12px;
-      border-radius: 8px;
+      border-radius: 9px;
       border: 1px solid #333;
-      background: #0c0c11;
+      background: #0d0c10;
       color: white;
       outline: none;
     }
 
     input:focus {
-      border-color: #ff3d3d;
+      border-color: #ff3b3b;
     }
 
     .main-btn {
       width: 100%;
-      padding: 13px;
-      border: none;
-      border-radius: 8px;
-      background: #ff3d3d;
+      padding: 14px;
+      border-radius: 9px;
+      background: #ff3b3b;
       color: white;
-      font-size: 15px;
       font-weight: bold;
+      margin-bottom: 10px;
     }
 
     .main-btn:hover {
-      background: #e52d2d;
-    }
-
-    .switch {
-      text-align: center;
-      color: #999;
-      margin-top: 18px;
-    }
-
-    .switch span {
-      color: #ff4b4b;
-      cursor: pointer;
-      font-weight: bold;
+      background: #ff5555;
     }
 
     .message {
       min-height: 22px;
-      margin-top: 12px;
       text-align: center;
       color: #ff7777;
+      margin: 8px;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #333;
+      margin: 25px 0;
     }
 
     /* APP */
 
-    header {
-      height: 65px;
-      padding: 0 25px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #15151c;
-      border-bottom: 1px solid #292933;
+    #appPage {
+      display: none;
+      min-height: 100vh;
     }
 
-    .header-logo {
-      color: #ff3d3d;
+    .topbar {
+      height: 65px;
+      background: #15131b;
+      border-bottom: 1px solid #292631;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+
+    .top-logo {
+      color: #ff3b3b;
       font-size: 23px;
       font-weight: bold;
     }
 
-    .user-area {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .username {
-      color: #ddd;
-    }
-
-    .logout {
-      padding: 9px 14px;
-      border: none;
-      border-radius: 7px;
-      background: #d83232;
+    .logout-btn {
+      background: #292630;
       color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
     }
 
-    main {
-      max-width: 1300px;
-      margin: auto;
-      padding: 25px;
+    .layout {
+      display: flex;
+      height: calc(100vh - 65px);
     }
 
-    .welcome {
-      margin-bottom: 25px;
+    /* SIDEBAR */
+
+    .sidebar {
+      width: 280px;
+      background: #111016;
+      border-right: 1px solid #292631;
+      padding: 20px;
     }
 
-    .welcome h1 {
-      margin-bottom: 8px;
-    }
-
-    .welcome p {
-      color: #999;
-    }
-
-    .search {
-      max-width: 500px;
-      margin-bottom: 25px;
-    }
-
-    .movies {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 20px;
-    }
-
-    .movie {
-      overflow: hidden;
-      background: #15151c;
-      border: 1px solid #292933;
+    .profile {
+      background: #1b1921;
+      padding: 15px;
       border-radius: 12px;
+      margin-bottom: 20px;
     }
 
-    .movie img {
-      width: 100%;
-      height: 270px;
-      object-fit: cover;
-      background: #222;
+    .profile-title {
+      color: #aaa;
+      font-size: 13px;
+      margin-bottom: 5px;
     }
 
-    .movie-info {
-      padding: 14px;
-    }
-
-    .movie-title {
+    .profile-name {
       font-size: 18px;
       font-weight: bold;
-      margin-bottom: 8px;
     }
 
-    .movie-description {
-      color: #999;
-      font-size: 14px;
-      min-height: 38px;
-      margin-bottom: 12px;
+    .online-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      background: #2ecc71;
+      border-radius: 50%;
+      margin-right: 5px;
     }
 
-    .watch {
+    .friend-input {
+      margin-top: 10px;
+    }
+
+    .connect-btn {
       width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 7px;
-      background: #ff3d3d;
+      padding: 12px;
+      background: #33303b;
       color: white;
+      border-radius: 8px;
+    }
+
+    .connect-btn:hover {
+      background: #403c49;
+    }
+
+    /* CHAT */
+
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .chat-header {
+      padding: 15px 20px;
+      background: #15131b;
+      border-bottom: 1px solid #292631;
+    }
+
+    .chat-person {
       font-weight: bold;
+      font-size: 18px;
+    }
+
+    #connectionStatus {
+      font-size: 12px;
+      color: #2ecc71;
+      margin-top: 4px;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
     }
 
     .empty {
       text-align: center;
-      color: #888;
-      padding: 40px;
+      color: #777;
+      margin-top: 80px;
+    }
+
+    .message-row {
+      margin-bottom: 12px;
+      display: flex;
+    }
+
+    .message-row.mine {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      max-width: 70%;
+      padding: 11px 14px;
+      border-radius: 14px;
+      background: #282530;
+      word-wrap: break-word;
+    }
+
+    .mine .bubble {
+      background: #ff3b3b;
+    }
+
+    .message-time {
+      display: block;
+      font-size: 10px;
+      opacity: .7;
+      margin-top: 4px;
+    }
+
+    .composer {
+      background: #15131b;
+      padding: 12px;
+      display: flex;
+      gap: 8px;
+      border-top: 1px solid #292631;
+    }
+
+    .composer input {
+      margin: 0;
+      flex: 1;
+    }
+
+    .send-btn {
+      width: 90px;
+      background: #ff3b3b;
+      color: white;
+      border-radius: 8px;
+    }
+
+    /* CALL BUTTONS */
+
+    .call-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .call-btn {
+      flex: 1;
+      padding: 11px;
+      border-radius: 8px;
+      color: white;
+      background: #33303b;
+    }
+
+    .call-btn:hover {
+      background: #44404e;
+    }
+
+    .call-btn.video {
+      background: #b52d72;
+    }
+
+    .call-btn.audio {
+      background: #2764b8;
+    }
+
+    .share-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 11px;
+      border-radius: 8px;
+      background: #493b80;
+      color: white;
+    }
+
+    .file-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 11px;
+      border-radius: 8px;
+      background: #2d704f;
+      color: white;
+    }
+
+    #fileInput {
+      display: none;
     }
 
     /* VIDEO */
 
-    .player-box {
-      margin-top: 30px;
-      background: #000;
-      border-radius: 12px;
-      overflow: hidden;
+    #callPanel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #050505;
+      z-index: 1000;
     }
 
-    .player-box video {
-      display: block;
+    #remoteVideo {
       width: 100%;
-      max-height: 600px;
+      height: 100%;
+      object-fit: cover;
+      background: #111;
     }
 
-    .player-title {
-      padding: 15px;
-      font-size: 20px;
-      font-weight: bold;
+    #localVideo {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      width: 220px;
+      max-width: 35%;
+      border-radius: 12px;
+      background: #222;
+      border: 2px solid white;
     }
 
-    @media (max-width: 600px) {
-      header {
-        padding: 0 12px;
+    .call-controls {
+      position: absolute;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+    }
+
+    .call-control {
+      padding: 13px 20px;
+      border-radius: 30px;
+      color: white;
+      background: #333;
+    }
+
+    .end-call {
+      background: #d62828;
+    }
+
+    #incomingCall {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 320px;
+      background: #1c1a22;
+      padding: 25px;
+      border-radius: 16px;
+      z-index: 2000;
+      text-align: center;
+      box-shadow: 0 10px 50px #000;
+    }
+
+    #incomingCall h3 {
+      margin-bottom: 15px;
+    }
+
+    .incoming-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .accept-btn,
+    .reject-btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      color: white;
+    }
+
+    .accept-btn {
+      background: #27ae60;
+    }
+
+    .reject-btn {
+      background: #c0392b;
+    }
+
+    @media (max-width: 700px) {
+
+      .sidebar {
+        width: 210px;
+        padding: 12px;
       }
 
-      .username {
-        display: none;
+      .bubble {
+        max-width: 85%;
       }
 
-      main {
-        padding: 15px;
+      #localVideo {
+        width: 130px;
       }
 
-      .movies {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+      .call-buttons {
+        flex-direction: column;
+      }
+    }
+
+    @media (max-width: 550px) {
+
+      .layout {
+        flex-direction: column;
       }
 
-      .movie img {
-        height: 210px;
+      .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #292631;
       }
 
-      .movie-info {
-        padding: 10px;
+      .profile {
+        margin-bottom: 10px;
+      }
+
+      .chat-area {
+        min-height: 0;
+        flex: 1;
+      }
+
+      .friend-input {
+        display: flex;
+        gap: 5px;
+      }
+
+      .friend-input input {
+        margin: 0;
+      }
+
+      .connect-btn {
+        width: 100px;
       }
     }
   </style>
@@ -275,407 +473,467 @@
 
 <body>
 
-  <!-- ================= LOGIN / REGISTER ================= -->
+<!-- AUTH PAGE -->
 
-  <section id="authPage" class="auth-page">
+<section id="authPage">
 
-    <div class="auth-box">
+  <div class="auth-box">
 
-      <div class="logo">MovieStream</div>
-
-      <div class="tagline">
-        Watch your favourite movies
-      </div>
-
-
-      <!-- LOGIN -->
-
-      <div id="loginBox">
-
-        <input
-          id="loginUsername"
-          type="text"
-          placeholder="Username"
-          autocomplete="username"
-        >
-
-        <input
-          id="loginPassword"
-          type="password"
-          placeholder="Password"
-          autocomplete="current-password"
-        >
-
-        <button
-          class="main-btn"
-          onclick="login()"
-        >
-          Login
-        </button>
-
-        <div
-          id="loginMessage"
-          class="message"
-        ></div>
-
-        <div class="switch">
-          Don't have an account?
-          <span onclick="showRegister()">
-            Create Account
-          </span>
-        </div>
-
-      </div>
-
-
-      <!-- REGISTER -->
-
-      <div id="registerBox" class="hidden">
-
-        <input
-          id="registerUsername"
-          type="text"
-          placeholder="Choose username"
-          autocomplete="username"
-        >
-
-        <input
-          id="registerPassword"
-          type="password"
-          placeholder="Choose password"
-          autocomplete="new-password"
-        >
-
-        <button
-          class="main-btn"
-          onclick="registerUser()"
-        >
-          Create Account
-        </button>
-
-        <div
-          id="registerMessage"
-          class="message"
-        ></div>
-
-        <div class="switch">
-          Already have an account?
-          <span onclick="showLogin()">
-            Login
-          </span>
-        </div>
-
-      </div>
-
+    <div class="logo">
+      RealTime
     </div>
 
-  </section>
+    <div class="subtitle">
+      Communication App
+    </div>
+
+    <h2>Login</h2>
+
+    <br>
+
+    <input
+      id="loginUsername"
+      type="text"
+      placeholder="Username"
+    >
+
+    <input
+      id="loginPassword"
+      type="password"
+      placeholder="Password"
+    >
+
+    <button
+      class="main-btn"
+      onclick="login()"
+    >
+      Login
+    </button>
+
+    <div
+      id="loginMessage"
+      class="message"
+    ></div>
 
 
-  <!-- ================= MAIN APP ================= -->
+    <hr>
 
-  <section id="appPage" class="hidden">
 
-    <header>
+    <h2>Create Account</h2>
 
-      <div class="header-logo">
-        MovieStream
+    <br>
+
+    <input
+      id="registerUsername"
+      type="text"
+      placeholder="New Username"
+    >
+
+    <input
+      id="registerPassword"
+      type="password"
+      placeholder="New Password"
+    >
+
+    <button
+      class="main-btn"
+      onclick="registerUser()"
+    >
+      Register
+    </button>
+
+    <div
+      id="registerMessage"
+      class="message"
+    ></div>
+
+  </div>
+
+</section>
+
+
+<!-- APP PAGE -->
+
+<section id="appPage">
+
+  <header class="topbar">
+
+    <div class="top-logo">
+      RealTime
+    </div>
+
+    <button
+      class="logout-btn"
+      onclick="logout()"
+    >
+      Logout
+    </button>
+
+  </header>
+
+
+  <div class="layout">
+
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+      <div class="profile">
+
+        <div class="profile-title">
+          Logged in as
+        </div>
+
+        <div
+          id="myUsername"
+          class="profile-name"
+        >
+          -
+        </div>
+
+        <br>
+
+        <div>
+          <span class="online-dot"></span>
+          Online
+        </div>
+
       </div>
 
-      <div class="user-area">
 
-        <span
-          id="username"
-          class="username"
-        ></span>
+      <h3>Connect User</h3>
+
+      <div class="friend-input">
+
+        <input
+          id="receiverId"
+          type="number"
+          placeholder="Enter User ID"
+        >
 
         <button
-          class="logout"
-          onclick="logout()"
+          class="connect-btn"
+          onclick="connectUser()"
         >
-          Logout
+          Connect
         </button>
 
       </div>
 
-    </header>
 
+      <div class="call-buttons">
 
-    <main>
+        <button
+          class="call-btn audio"
+          onclick="startAudioCall()"
+        >
+          🎤 Audio
+        </button>
 
-      <div class="welcome">
-
-        <h1>
-          Welcome to MovieStream 🎬
-        </h1>
-
-        <p>
-          Enjoy your movies.
-        </p>
+        <button
+          class="call-btn video"
+          onclick="startVideoCall()"
+        >
+          📹 Video
+        </button>
 
       </div>
 
 
-      <div class="search">
+      <button
+        class="share-btn"
+        onclick="startScreenShare()"
+      >
+        🖥️ Share Screen
+      </button>
+
+
+      <label
+        class="file-btn"
+        style="display:block;text-align:center"
+      >
+        📁 Send File
 
         <input
-          id="searchInput"
-          type="text"
-          placeholder="Search movies..."
-          oninput="searchMovies()"
+          id="fileInput"
+          type="file"
+          onchange="uploadFile()"
         >
 
-      </div>
+      </label>
+
+    </aside>
 
 
-      <div
-        id="movies"
-        class="movies"
-      ></div>
+    <!-- CHAT -->
 
+    <main class="chat-area">
 
-      <div
-        id="empty"
-        class="empty hidden"
-      >
-        No movies found.
-      </div>
-
-
-      <!-- VIDEO PLAYER -->
-
-      <div
-        id="playerBox"
-        class="player-box hidden"
-      >
-
-        <video
-          id="player"
-          controls
-        ></video>
+      <div class="chat-header">
 
         <div
-          id="playerTitle"
-          class="player-title"
-        ></div>
+          id="chatPerson"
+          class="chat-person"
+        >
+          Select a user
+        </div>
+
+        <div
+          id="connectionStatus"
+        >
+          Not connected
+        </div>
+
+      </div>
+
+
+      <div
+        id="messages"
+        class="messages"
+      >
+
+        <div class="empty">
+          Connect with a user to start chatting
+        </div>
+
+      </div>
+
+
+      <div class="composer">
+
+        <input
+          id="messageInput"
+          type="text"
+          placeholder="Type a message..."
+          onkeydown="handleEnter(event)"
+        >
+
+        <button
+          class="send-btn"
+          onclick="sendMessage()"
+        >
+          Send
+        </button>
 
       </div>
 
     </main>
 
-  </section>
+  </div>
+
+</section>
+
+
+<!-- CALL PANEL -->
+
+<div id="callPanel">
+
+  <video
+    id="remoteVideo"
+    autoplay
+    playsinline
+  ></video>
+
+  <video
+    id="localVideo"
+    autoplay
+    muted
+    playsinline
+  ></video>
+
+  <div class="call-controls">
+
+    <button
+      class="call-control"
+      onclick="toggleMute()"
+    >
+      🎤 Mute
+    </button>
+
+    <button
+      class="call-control"
+      onclick="toggleCamera()"
+    >
+      📹 Camera
+    </button>
+
+    <button
+      class="call-control end-call"
+      onclick="endCall()"
+    >
+      ☎ End
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- INCOMING CALL -->
+
+<div id="incomingCall">
+
+  <h3 id="incomingTitle">
+    Incoming Call
+  </h3>
+
+  <div class="incoming-buttons">
+
+    <button
+      class="accept-btn"
+      onclick="acceptCall()"
+    >
+      Accept
+    </button>
+
+    <button
+      class="reject-btn"
+      onclick="rejectCall()"
+    >
+      Reject
+    </button>
+
+  </div>
+
+</div>
 
 
 <script>
 
-/* =====================================================
-   MOVIESTREAM APP
-   ===================================================== */
+let socket;
 
-let token = localStorage.getItem("movieToken");
 let currentUser = null;
-let moviesList = [];
+
+let currentReceiverId = null;
+
+let peerConnection = null;
+
+let localStream = null;
+
+let incomingCallData = null;
+
+let currentCallType = "video";
+
+let iceServers = {
+  iceServers: [
+    {
+      urls: "stun:stun.l.google.com:19302"
+    }
+  ]
+};
 
 
-/* ================= API ================= */
-
-async function api(url, options = {}) {
-
-  const headers = {
-    "Content-Type": "application/json"
-  };
-
-  if (token) {
-    headers.Authorization =
-      "Bearer " + token;
-  }
-
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
-
-  let data = {};
-
-  try {
-    data = await response.json();
-  } catch {
-    data = {};
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      data.error || "Request failed"
-    );
-  }
-
-  return data;
-}
-
-
-/* ================= SHOW LOGIN ================= */
-
-function showLogin() {
-
-  document
-    .getElementById("loginBox")
-    .classList.remove("hidden");
-
-  document
-    .getElementById("registerBox")
-    .classList.add("hidden");
-
-  document
-    .getElementById("loginMessage")
-    .textContent = "";
-
-  document
-    .getElementById("registerMessage")
-    .textContent = "";
-}
-
-
-/* ================= SHOW REGISTER ================= */
-
-function showRegister() {
-
-  document
-    .getElementById("loginBox")
-    .classList.add("hidden");
-
-  document
-    .getElementById("registerBox")
-    .classList.remove("hidden");
-
-  document
-    .getElementById("loginMessage")
-    .textContent = "";
-
-  document
-    .getElementById("registerMessage")
-    .textContent = "";
-}
-
-
-/* ================= REGISTER ================= */
-
-async function registerUser() {
-
-  const username =
-    document
-      .getElementById("registerUsername")
-      .value
-      .trim();
-
-  const password =
-    document
-      .getElementById("registerPassword")
-      .value;
-
-  const message =
-    document.getElementById(
-      "registerMessage"
-    );
-
-  message.textContent = "";
-
-  if (!username || !password) {
-
-    message.textContent =
-      "Enter username and password.";
-
-    return;
-  }
-
-  if (password.length < 6) {
-
-    message.textContent =
-      "Password must be at least 6 characters.";
-
-    return;
-  }
-
-  try {
-
-    const data = await api(
-      "/api/register",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          username: username,
-          password: password
-        })
-      }
-    );
-
-    token = data.token;
-
-    localStorage.setItem(
-      "movieToken",
-      token
-    );
-
-    currentUser = data.user;
-
-    openApp();
-
-  } catch (error) {
-
-    message.textContent =
-      error.message;
-
-  }
-}
-
-
-/* ================= LOGIN ================= */
+/* =========================
+   LOGIN
+========================= */
 
 async function login() {
 
   const username =
-    document
-      .getElementById("loginUsername")
-      .value
-      .trim();
+    document.getElementById("loginUsername").value.trim();
 
   const password =
-    document
-      .getElementById("loginPassword")
-      .value;
+    document.getElementById("loginPassword").value;
 
   const message =
-    document.getElementById(
-      "loginMessage"
-    );
+    document.getElementById("loginMessage");
 
   message.textContent = "";
 
-  if (!username || !password) {
+  try {
+
+    const response = await fetch("/api/login", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        username,
+        password
+      })
+
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      message.textContent =
+        data.error || "Login failed";
+      return;
+    }
+
+    localStorage.setItem(
+      "token",
+      data.token
+    );
+
+    currentUser = data.user;
+
+    openApp();
+
+  } catch (error) {
 
     message.textContent =
-      "Enter username and password.";
+      "Server connection failed";
 
-    return;
   }
+}
+
+
+/* =========================
+   REGISTER
+========================= */
+
+async function registerUser() {
+
+  const username =
+    document.getElementById("registerUsername").value.trim();
+
+  const password =
+    document.getElementById("registerPassword").value;
+
+  const message =
+    document.getElementById("registerMessage");
+
+  message.textContent = "";
 
   try {
 
-    const data = await api(
-      "/api/login",
+    const response = await fetch(
+      "/api/register",
       {
+
         method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
         body: JSON.stringify({
-          username: username,
-          password: password
+          username,
+          password
         })
+
       }
     );
 
-    token = data.token;
+    const data = await response.json();
+
+    if (!response.ok) {
+
+      message.textContent =
+        data.error || "Registration failed";
+
+      return;
+    }
 
     localStorage.setItem(
-      "movieToken",
-      token
+      "token",
+      data.token
     );
 
     currentUser = data.user;
@@ -685,274 +943,999 @@ async function login() {
   } catch (error) {
 
     message.textContent =
-      error.message;
+      "Server connection failed";
 
   }
 }
 
 
-/* ================= SESSION ================= */
-
-async function checkSession() {
-
-  if (!token) {
-    return;
-  }
-
-  try {
-
-    const data =
-      await api("/api/me");
-
-    currentUser = data.user;
-
-    openApp();
-
-  } catch {
-
-    localStorage.removeItem(
-      "movieToken"
-    );
-
-    token = null;
-
-  }
-}
-
-
-/* ================= OPEN APP ================= */
+/* =========================
+   OPEN APP
+========================= */
 
 function openApp() {
 
-  document
-    .getElementById("authPage")
-    .classList.add("hidden");
+  document.getElementById(
+    "authPage"
+  ).style.display = "none";
 
-  document
-    .getElementById("appPage")
-    .classList.remove("hidden");
+  document.getElementById(
+    "appPage"
+  ).style.display = "block";
 
-  document
-    .getElementById("username")
-    .textContent =
-      currentUser?.username || "";
+  document.getElementById(
+    "myUsername"
+  ).textContent =
+    currentUser.username +
+    " (ID: " +
+    currentUser.id +
+    ")";
 
-  loadMovies();
+  connectSocket();
 }
 
 
-/* ================= LOGOUT ================= */
+/* =========================
+   SOCKET
+========================= */
 
-function logout() {
+function connectSocket() {
 
-  localStorage.removeItem(
-    "movieToken"
+  socket = io();
+
+  socket.on("connect", () => {
+
+    socket.emit(
+      "user-online",
+      currentUser
+    );
+
+  });
+
+
+  socket.on(
+    "online-users",
+    users => {
+
+      if (
+        currentReceiverId &&
+        users.includes(
+          String(currentReceiverId)
+        )
+      ) {
+
+        document.getElementById(
+          "connectionStatus"
+        ).textContent =
+          "● User is online";
+
+      }
+
+    }
   );
 
-  token = null;
-  currentUser = null;
 
-  document
-    .getElementById("appPage")
-    .classList.add("hidden");
+  socket.on(
+    "private-message",
+    message => {
 
-  document
-    .getElementById("authPage")
-    .classList.remove("hidden");
+      displayMessage(message);
 
-  showLogin();
+    }
+  );
+
+
+  socket.on(
+    "incoming-call",
+    data => {
+
+      incomingCallData = data;
+
+      document.getElementById(
+        "incomingTitle"
+      ).textContent =
+        "Incoming " +
+        (data.callType === "audio"
+          ? "Audio"
+          : "Video") +
+        " Call";
+
+      document.getElementById(
+        "incomingCall"
+      ).style.display = "block";
+
+    }
+  );
+
+
+  socket.on(
+    "call-offer",
+    async data => {
+
+      incomingCallData = data;
+
+      await preparePeerConnection();
+
+      await peerConnection.setRemoteDescription(
+        new RTCSessionDescription(
+          data.offer
+        )
+      );
+
+    }
+  );
+
+
+  socket.on(
+    "call-answer",
+    async data => {
+
+      if (!peerConnection) return;
+
+      await peerConnection.setRemoteDescription(
+        new RTCSessionDescription(
+          data.answer
+        )
+      );
+
+    }
+  );
+
+
+  socket.on(
+    "ice-candidate",
+    async data => {
+
+      if (!peerConnection) return;
+
+      try {
+
+        await peerConnection.addIceCandidate(
+          new RTCIceCandidate(
+            data.candidate
+          )
+        );
+
+      } catch (error) {
+
+        console.log(
+          "ICE candidate error",
+          error
+        );
+
+      }
+
+    }
+  );
+
+
+  socket.on(
+    "end-call",
+    () => {
+
+      closeCall();
+
+    }
+  );
+
 }
 
 
-/* ================= LOAD MOVIES ================= */
+/* =========================
+   CONNECT USER
+========================= */
 
-async function loadMovies() {
+function connectUser() {
+
+  const id =
+    document.getElementById(
+      "receiverId"
+    ).value;
+
+  if (!id) {
+
+    alert("Enter User ID");
+
+    return;
+
+  }
+
+  if (
+    currentUser &&
+    String(id) === String(currentUser.id)
+  ) {
+
+    alert("You cannot call yourself");
+
+    return;
+
+  }
+
+  currentReceiverId = Number(id);
+
+  document.getElementById(
+    "chatPerson"
+  ).textContent =
+    "User ID: " +
+    currentReceiverId;
+
+  document.getElementById(
+    "connectionStatus"
+  ).textContent =
+    "Connected to chat";
+
+  document.getElementById(
+    "messages"
+  ).innerHTML = "";
+
+}
+
+
+/* =========================
+   CHAT
+========================= */
+
+function sendMessage() {
+
+  const input =
+    document.getElementById(
+      "messageInput"
+    );
+
+  const message =
+    input.value.trim();
+
+  if (!message) return;
+
+  if (!currentReceiverId) {
+
+    alert("Connect to a user first");
+
+    return;
+
+  }
+
+  socket.emit(
+    "private-message",
+    {
+
+      senderId:
+        currentUser.id,
+
+      receiverId:
+        currentReceiverId,
+
+      message
+
+    }
+  );
+
+  input.value = "";
+
+}
+
+
+function handleEnter(event) {
+
+  if (event.key === "Enter") {
+
+    sendMessage();
+
+  }
+
+}
+
+
+function displayMessage(message) {
 
   const container =
-    document.getElementById("movies");
+    document.getElementById(
+      "messages"
+    );
 
-  container.innerHTML =
-    "<div class='empty'>Loading...</div>";
+  const row =
+    document.createElement(
+      "div"
+    );
+
+  const mine =
+    String(message.sender_id) ===
+    String(currentUser.id);
+
+  row.className =
+    "message-row " +
+    (mine ? "mine" : "");
+
+  const bubble =
+    document.createElement(
+      "div"
+    );
+
+  bubble.className =
+    "bubble";
+
+  bubble.textContent =
+    message.message;
+
+  const time =
+    document.createElement(
+      "span"
+    );
+
+  time.className =
+    "message-time";
+
+  time.textContent =
+    new Date(
+      message.created_at
+    ).toLocaleTimeString();
+
+  bubble.appendChild(time);
+
+  row.appendChild(bubble);
+
+  container.appendChild(row);
+
+  container.scrollTop =
+    container.scrollHeight;
+
+}
+
+
+/* =========================
+   WEBRTC
+========================= */
+
+async function preparePeerConnection() {
+
+  peerConnection =
+    new RTCPeerConnection(
+      iceServers
+    );
+
+
+  peerConnection.onicecandidate =
+    event => {
+
+      if (
+        event.candidate &&
+        currentReceiverId
+      ) {
+
+        socket.emit(
+          "ice-candidate",
+          {
+
+            receiverId:
+              currentReceiverId,
+
+            candidate:
+              event.candidate
+
+          }
+        );
+
+      }
+
+    };
+
+
+  peerConnection.ontrack =
+    event => {
+
+      document.getElementById(
+        "remoteVideo"
+      ).srcObject =
+        event.streams[0];
+
+    };
+
+
+  if (localStream) {
+
+    localStream
+      .getTracks()
+      .forEach(
+        track => {
+
+          peerConnection.addTrack(
+            track,
+            localStream
+          );
+
+        }
+      );
+
+  }
+
+}
+
+
+/* =========================
+   AUDIO CALL
+========================= */
+
+async function startAudioCall() {
+
+  if (!currentReceiverId) {
+
+    alert("Connect to a user first");
+
+    return;
+
+  }
+
+  currentCallType = "audio";
+
+  await startCall();
+
+}
+
+
+/* =========================
+   VIDEO CALL
+========================= */
+
+async function startVideoCall() {
+
+  if (!currentReceiverId) {
+
+    alert("Connect to a user first");
+
+    return;
+
+  }
+
+  currentCallType = "video";
+
+  await startCall();
+
+}
+
+
+/* =========================
+   START CALL
+========================= */
+
+async function startCall() {
 
   try {
 
-    /*
-      Current server returns
-      { movies: [...] }
-    */
+    localStream =
+      await navigator.mediaDevices.getUserMedia(
+        {
+          audio: true,
+          video:
+            currentCallType === "video"
+        }
+      );
 
-    const data =
-      await api("/api/movies");
 
-    moviesList =
-      data.movies || [];
+    document.getElementById(
+      "localVideo"
+    ).srcObject =
+      localStream;
 
-    renderMovies(moviesList);
+
+    if (
+      currentCallType === "audio"
+    ) {
+
+      document.getElementById(
+        "localVideo"
+      ).style.display =
+        "none";
+
+      document.getElementById(
+        "remoteVideo"
+      ).style.background =
+        "#111";
+
+    } else {
+
+      document.getElementById(
+        "localVideo"
+      ).style.display =
+        "block";
+
+    }
+
+
+    document.getElementById(
+      "callPanel"
+    ).style.display =
+      "block";
+
+
+    await preparePeerConnection();
+
+
+    const offer =
+      await peerConnection.createOffer();
+
+    await peerConnection.setLocalDescription(
+      offer
+    );
+
+
+    socket.emit(
+      "call-offer",
+      {
+
+        senderId:
+          currentUser.id,
+
+        receiverId:
+          currentReceiverId,
+
+        callType:
+          currentCallType,
+
+        offer
+
+      }
+    );
+
+
+    socket.emit(
+      "start-call",
+      {
+
+        senderId:
+          currentUser.id,
+
+        receiverId:
+          currentReceiverId,
+
+        callType:
+          currentCallType
+
+      }
+    );
 
   } catch (error) {
 
-    container.innerHTML =
-      `<div class="empty">
-        ${escapeHtml(error.message)}
-      </div>`;
+    console.error(error);
+
+    alert(
+      "Camera/microphone permission required"
+    );
 
   }
+
 }
 
 
-/* ================= RENDER MOVIES ================= */
+/* =========================
+   ACCEPT CALL
+========================= */
 
-function renderMovies(list) {
+async function acceptCall() {
 
-  const container =
-    document.getElementById("movies");
+  document.getElementById(
+    "incomingCall"
+  ).style.display =
+    "none";
 
-  const empty =
-    document.getElementById("empty");
 
-  container.innerHTML = "";
+  if (!incomingCallData) return;
 
-  if (!list.length) {
 
-    empty.classList.remove(
-      "hidden"
+  currentReceiverId =
+    Number(
+      incomingCallData.senderId
+    );
+
+
+  currentCallType =
+    incomingCallData.callType ||
+    "video";
+
+
+  try {
+
+    localStream =
+      await navigator.mediaDevices.getUserMedia(
+        {
+          audio: true,
+          video:
+            currentCallType === "video"
+        }
+      );
+
+
+    document.getElementById(
+      "localVideo"
+    ).srcObject =
+      localStream;
+
+
+    document.getElementById(
+      "localVideo"
+    ).style.display =
+      currentCallType === "video"
+        ? "block"
+        : "none";
+
+
+    document.getElementById(
+      "callPanel"
+    ).style.display =
+      "block";
+
+
+    if (!peerConnection) {
+
+      await preparePeerConnection();
+
+    }
+
+
+    const answer =
+      await peerConnection.createAnswer();
+
+
+    await peerConnection.setLocalDescription(
+      answer
+    );
+
+
+    socket.emit(
+      "call-answer",
+      {
+
+        senderId:
+          currentUser.id,
+
+        receiverId:
+          currentReceiverId,
+
+        answer
+
+      }
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Camera/microphone permission required"
+    );
+
+  }
+
+}
+
+
+/* =========================
+   REJECT
+========================= */
+
+function rejectCall() {
+
+  document.getElementById(
+    "incomingCall"
+  ).style.display =
+    "none";
+
+  incomingCallData = null;
+
+}
+
+
+/* =========================
+   MUTE
+========================= */
+
+function toggleMute() {
+
+  if (!localStream) return;
+
+  const audioTracks =
+    localStream.getAudioTracks();
+
+  audioTracks.forEach(
+    track => {
+
+      track.enabled =
+        !track.enabled;
+
+    }
+  );
+
+}
+
+
+/* =========================
+   CAMERA
+========================= */
+
+function toggleCamera() {
+
+  if (!localStream) return;
+
+  const videoTracks =
+    localStream.getVideoTracks();
+
+  videoTracks.forEach(
+    track => {
+
+      track.enabled =
+        !track.enabled;
+
+    }
+  );
+
+}
+
+
+/* =========================
+   SCREEN SHARE
+========================= */
+
+async function startScreenShare() {
+
+  if (!peerConnection) {
+
+    alert(
+      "Start a video call first"
     );
 
     return;
+
   }
-
-  empty.classList.add("hidden");
-
-  list.forEach(movie => {
-
-    const card =
-      document.createElement("div");
-
-    card.className = "movie";
-
-    const image =
-      movie.thumbnail_url ||
-      "https://via.placeholder.com/500x700?text=Movie";
-
-    card.innerHTML = `
-
-      <img
-        src="${escapeAttribute(image)}"
-        alt="${escapeAttribute(movie.title)}"
-        onerror="this.src='https://via.placeholder.com/500x700?text=Movie'"
-      >
-
-      <div class="movie-info">
-
-        <div class="movie-title">
-          ${escapeHtml(movie.title)}
-        </div>
-
-        <div class="movie-description">
-          ${escapeHtml(movie.description || "")}
-        </div>
-
-        <button
-          class="watch"
-          onclick="watchMovie(${movie.id})"
-        >
-          ▶ Watch
-        </button>
-
-      </div>
-
-    `;
-
-    container.appendChild(card);
-
-  });
-}
-
-
-/* ================= WATCH ================= */
-
-async function watchMovie(id) {
 
   try {
 
-    const data =
-      await api(
-        `/api/movies/${id}/watch`
+    const screenStream =
+      await navigator.mediaDevices.getDisplayMedia(
+        {
+          video: true
+        }
       );
 
-    const movie =
-      data.movie;
 
-    document
-      .getElementById("player")
-      .src = movie.videoUrl;
+    const screenTrack =
+      screenStream.getVideoTracks()[0];
 
-    document
-      .getElementById("playerTitle")
-      .textContent = movie.title;
 
-    document
-      .getElementById("playerBox")
-      .classList.remove("hidden");
+    const sender =
+      peerConnection
+        .getSenders()
+        .find(
+          s =>
+            s.track &&
+            s.track.kind === "video"
+        );
 
-    document
-      .getElementById("playerBox")
-      .scrollIntoView({
-        behavior: "smooth"
-      });
+
+    if (sender) {
+
+      await sender.replaceTrack(
+        screenTrack
+      );
+
+    }
+
+
+    screenTrack.onended =
+      async () => {
+
+        if (localStream) {
+
+          const cameraTrack =
+            localStream.getVideoTracks()[0];
+
+          if (cameraTrack) {
+
+            await sender.replaceTrack(
+              cameraTrack
+            );
+
+          }
+
+        }
+
+      };
 
   } catch (error) {
 
-    alert(error.message);
-
-  }
-}
-
-
-/* ================= SEARCH ================= */
-
-function searchMovies() {
-
-  const query =
-    document
-      .getElementById("searchInput")
-      .value
-      .toLowerCase()
-      .trim();
-
-  const filtered =
-    moviesList.filter(movie =>
-      movie.title
-        .toLowerCase()
-        .includes(query)
+    console.error(
+      "Screen share error",
+      error
     );
 
-  renderMovies(filtered);
+  }
+
 }
 
 
-/* ================= SECURITY ================= */
+/* =========================
+   FILE UPLOAD
+========================= */
 
-function escapeHtml(value) {
+async function uploadFile() {
 
-  return String(value ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  const input =
+    document.getElementById(
+      "fileInput"
+    );
+
+  const file =
+    input.files[0];
+
+  if (!file) return;
+
+  if (!currentReceiverId) {
+
+    alert("Connect to a user first");
+
+    input.value = "";
+
+    return;
+
+  }
+
+
+  const formData =
+    new FormData();
+
+  formData.append(
+    "file",
+    file
+  );
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/upload",
+        {
+          method: "POST",
+          body: formData
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      alert(
+        data.error ||
+        "Upload failed"
+      );
+
+      return;
+
+    }
+
+
+    socket.emit(
+      "private-message",
+      {
+
+        senderId:
+          currentUser.id,
+
+        receiverId:
+          currentReceiverId,
+
+        message:
+          "📁 File: " +
+          data.file.originalName +
+          "\n" +
+          window.location.origin +
+          data.file.url
+
+      }
+    );
+
+
+    alert("File sent");
+
+  } catch (error) {
+
+    alert(
+      "File upload failed"
+    );
+
+  }
+
+  input.value = "";
+
 }
 
 
-function escapeAttribute(value) {
+/* =========================
+   END CALL
+========================= */
 
-  return escapeHtml(value);
+function endCall() {
+
+  if (currentReceiverId) {
+
+    socket.emit(
+      "end-call",
+      {
+        receiverId:
+          currentReceiverId
+      }
+    );
+
+  }
+
+  closeCall();
+
 }
 
 
-/* ================= START ================= */
+function closeCall() {
 
-checkSession();
+  if (localStream) {
+
+    localStream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+  }
+
+
+  if (peerConnection) {
+
+    peerConnection.close();
+
+  }
+
+
+  peerConnection = null;
+
+  localStream = null;
+
+  document.getElementById(
+    "localVideo"
+  ).srcObject = null;
+
+  document.getElementById(
+    "remoteVideo"
+  ).srcObject = null;
+
+  document.getElementById(
+    "callPanel"
+  ).style.display =
+    "none";
+
+}
+
+
+/* =========================
+   LOGOUT
+========================= */
+
+function logout() {
+
+  if (socket) {
+
+    socket.disconnect();
+
+  }
+
+  closeCall();
+
+  localStorage.removeItem(
+    "token"
+  );
+
+  location.reload();
+
+}
 
 </script>
 
