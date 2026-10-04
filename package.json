@@ -1,7 +1,6 @@
 {
   "name": "realtime-communication-app",
   "version": "1.0.0",
-  "description": "Real-time communication app",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +8,7 @@
   "dependencies": {
     "express": "^5.1.0",
     "multer": "^2.0.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "better-sqlite3": "^12.4.1"
   }
 }
