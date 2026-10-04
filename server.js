@@ -3,28 +3,137 @@ const http = require("http");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const Database = require("better-sqlite3");
 const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*"
+  }
 });
 
 const PORT = process.env.PORT || 10000;
 
-/* ---------------- BASIC SETUP ---------------- */
+// =========================
+// MIDDLEWARE
+// =========================
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
 
-/* ---------------- FILE UPLOAD ---------------- */
+app.use(
+  express.static(
+    path.join(__dirname, "public")
+  )
+);
 
-const uploadDir = path.join(__dirname, "uploads");
+// =========================
+// DATABASE
+// =========================
+
+const db = new Database(
+  path.join(__dirname, "realtimechat.db")
+);
+
+db.pragma("journal_mode = WAL");
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+`);
+
+// =========================
+// USERS
+// =========================
+
+const createUser = db.prepare(`
+  INSERT INTO users
+  (username, password, created_at)
+  VALUES (?, ?, ?)
+`);
+
+const findUser = db.prepare(`
+  SELECT *
+  FROM users
+  WHERE username = ?
+`);
+
+const findUserById = db.prepare(`
+  SELECT id, username
+  FROM users
+  WHERE id = ?
+`);
+
+const getAllUsers = db.prepare(`
+  SELECT id, username
+  FROM users
+  ORDER BY username ASC
+`);
+
+// =========================
+// MESSAGES
+// =========================
+
+const saveMessage = db.prepare(`
+  INSERT INTO messages
+  (
+    sender_id,
+    receiver_id,
+    message,
+    created_at
+  )
+  VALUES (?, ?, ?, ?)
+`);
+
+const getChatMessages = db.prepare(`
+  SELECT
+    id,
+    sender_id,
+    receiver_id,
+    message,
+    created_at
+  FROM messages
+  WHERE
+    (
+      sender_id = ?
+      AND receiver_id = ?
+    )
+    OR
+    (
+      sender_id = ?
+      AND receiver_id = ?
+    )
+  ORDER BY id ASC
+`);
+
+// =========================
+// FILE UPLOAD
+// =========================
+
+const uploadDir = path.join(
+  __dirname,
+  "uploads"
+);
 
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(uploadDir, {
+    recursive: true
+  });
 }
 
 const upload = multer({
@@ -34,18 +143,14 @@ const upload = multer({
   }
 });
 
-app.use("/uploads", express.static(uploadDir));
+app.use(
+  "/uploads",
+  express.static(uploadDir)
+);
 
-/* ---------------- IN-MEMORY DATABASE ---------------- */
-
-let nextUserId = 1;
-
-const users = new Map();
-const messages = [];
-
-const onlineUsers = new Map();
-
-/* ---------------- TOKEN ---------------- */
+// =========================
+// TOKEN
+// =========================
 
 function createToken(user) {
   return Buffer.from(
@@ -53,409 +158,731 @@ function createToken(user) {
   ).toString("base64");
 }
 
-/* ---------------- REGISTER ---------------- */
+// =========================
+// REGISTER
+// =========================
 
-app.post("/api/register", (req, res) => {
-  try {
-    const username = String(req.body.username || "")
-      .trim()
-      .toLowerCase();
+app.post(
+  "/api/register",
+  (req, res) => {
+    try {
+      const username = String(
+        req.body.username || ""
+      )
+        .trim()
+        .toLowerCase();
 
-    const password = String(req.body.password || "");
+      const password = String(
+        req.body.password || ""
+      );
 
-    if (!username || !password) {
-      return res.status(400).json({
-        error: "Username and password are required"
-      });
-    }
-
-    if (username.length < 3) {
-      return res.status(400).json({
-        error: "Username must be at least 3 characters"
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        error: "Password must be at least 6 characters"
-      });
-    }
-
-    for (const user of users.values()) {
-      if (user.username === username) {
-        return res.status(409).json({
-          error: "Username already exists"
+      if (!username || !password) {
+        return res.status(400).json({
+          error:
+            "Username and password are required"
         });
       }
-    }
 
-    const user = {
-      id: nextUserId++,
-      username,
-      password
-    };
-
-    users.set(user.id, user);
-
-    console.log("REGISTER:", username);
-
-    res.status(201).json({
-      message: "Account created",
-      token: createToken(user),
-      user: {
-        id: user.id,
-        username: user.username
-      }
-    });
-
-  } catch (error) {
-    console.error("REGISTER ERROR:", error);
-
-    res.status(500).json({
-      error: "Registration failed"
-    });
-  }
-});
-
-/* ---------------- LOGIN ---------------- */
-
-app.post("/api/login", (req, res) => {
-  try {
-    const username = String(req.body.username || "")
-      .trim()
-      .toLowerCase();
-
-    const password = String(req.body.password || "");
-
-    let foundUser = null;
-
-    for (const user of users.values()) {
-      if (
-        user.username === username &&
-        user.password === password
-      ) {
-        foundUser = user;
-        break;
-      }
-    }
-
-    if (!foundUser) {
-      return res.status(401).json({
-        error: "Invalid username or password"
-      });
-    }
-
-    console.log("LOGIN:", username);
-
-    res.json({
-      message: "Login successful",
-      token: createToken(foundUser),
-      user: {
-        id: foundUser.id,
-        username: foundUser.username
-      }
-    });
-
-  } catch (error) {
-    console.error("LOGIN ERROR:", error);
-
-    res.status(500).json({
-      error: "Login failed"
-    });
-  }
-});
-
-/* ---------------- USERS ---------------- */
-
-app.get("/api/users", (req, res) => {
-  const list = [];
-
-  for (const user of users.values()) {
-    list.push({
-      id: user.id,
-      username: user.username,
-      online: onlineUsers.has(String(user.id))
-    });
-  }
-
-  res.json(list);
-});
-
-/* ---------------- HEALTH ---------------- */
-
-app.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
-    database: "not-required",
-    socket: "enabled",
-    webrtc: "enabled"
-  });
-});
-
-/* ---------------- FILE UPLOAD ---------------- */
-
-app.post("/api/upload", upload.single("file"), (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        error: "No file selected"
-      });
-    }
-
-    res.json({
-      message: "File uploaded",
-      file: {
-        originalName: req.file.originalname,
-        filename: req.file.filename,
-        size: req.file.size,
-        url: `/uploads/${req.file.filename}`
-      }
-    });
-
-  } catch (error) {
-    console.error("UPLOAD ERROR:", error);
-
-    res.status(500).json({
-      error: "File upload failed"
-    });
-  }
-});
-
-/* ---------------- SOCKET.IO ---------------- */
-
-io.on("connection", (socket) => {
-
-  console.log("Socket connected:", socket.id);
-
-  /* USER ONLINE */
-
-  socket.on("user-online", (user) => {
-
-    if (!user || !user.id) return;
-
-    const userId = String(user.id);
-
-    onlineUsers.set(userId, {
-      socketId: socket.id,
-      username: user.username
-    });
-
-    socket.userId = userId;
-    socket.username = user.username;
-
-    io.emit(
-      "online-users",
-      Array.from(onlineUsers.keys())
-    );
-
-    console.log(
-      "USER ONLINE:",
-      user.username
-    );
-  });
-
-  /* PRIVATE MESSAGE */
-
-  socket.on("private-message", (data) => {
-
-    try {
-      const {
-        senderId,
-        receiverId,
-        message
-      } = data;
-
-      if (!senderId || !receiverId || !message) {
-        return;
+      if (username.length < 3) {
+        return res.status(400).json({
+          error:
+            "Username must be at least 3 characters"
+        });
       }
 
-      const savedMessage = {
-        id: messages.length + 1,
-        sender_id: Number(senderId),
-        receiver_id: Number(receiverId),
-        message: String(message),
-        created_at: new Date().toISOString()
+      if (password.length < 6) {
+        return res.status(400).json({
+          error:
+            "Password must be at least 6 characters"
+        });
+      }
+
+      const existingUser =
+        findUser.get(username);
+
+      if (existingUser) {
+        return res.status(409).json({
+          error:
+            "Username already exists"
+        });
+      }
+
+      const createdAt =
+        new Date().toISOString();
+
+      const result =
+        createUser.run(
+          username,
+          password,
+          createdAt
+        );
+
+      const user = {
+        id: Number(result.lastInsertRowid),
+        username
       };
 
-      messages.push(savedMessage);
-
-      const receiver = onlineUsers.get(
-        String(receiverId)
+      console.log(
+        "REGISTER:",
+        username
       );
 
-      if (receiver) {
-        io.to(receiver.socketId).emit(
-          "private-message",
-          savedMessage
-        );
-      }
-
-      socket.emit(
-        "private-message",
-        savedMessage
-      );
+      res.status(201).json({
+        message:
+          "Account created",
+        token: createToken(user),
+        user
+      });
 
     } catch (error) {
       console.error(
-        "MESSAGE ERROR:",
+        "REGISTER ERROR:",
         error
       );
+
+      res.status(500).json({
+        error:
+          "Registration failed"
+      });
     }
-  });
+  }
+);
 
-  /* WEBRTC OFFER */
+// =========================
+// LOGIN
+// =========================
 
-  socket.on("call-offer", (data) => {
+app.post(
+  "/api/login",
+  (req, res) => {
+    try {
+      const username = String(
+        req.body.username || ""
+      )
+        .trim()
+        .toLowerCase();
 
-    const receiver = onlineUsers.get(
-      String(data.receiverId)
-    );
+      const password = String(
+        req.body.password || ""
+      );
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
-        "call-offer",
-        {
-          ...data,
-          callerSocketId: socket.id
+      const user =
+        findUser.get(username);
+
+      if (
+        !user ||
+        user.password !== password
+      ) {
+        return res.status(401).json({
+          error:
+            "Invalid username or password"
+        });
+      }
+
+      const publicUser = {
+        id: user.id,
+        username: user.username
+      };
+
+      console.log(
+        "LOGIN:",
+        username
+      );
+
+      res.json({
+        message:
+          "Login successful",
+        token:
+          createToken(publicUser),
+        user: publicUser
+      });
+
+    } catch (error) {
+      console.error(
+        "LOGIN ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Login failed"
+      });
+    }
+  }
+);
+
+// =========================
+// ALL USERS
+// =========================
+
+app.get(
+  "/api/users",
+  (req, res) => {
+    try {
+      const users =
+        getAllUsers.all();
+
+      const list =
+        users.map(user => ({
+          id: user.id,
+          username: user.username,
+          online:
+            onlineUsers.has(
+              String(user.id)
+            )
+        }));
+
+      res.json(list);
+
+    } catch (error) {
+      console.error(
+        "USERS ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Could not load users"
+      });
+    }
+  }
+);
+
+// =========================
+// CHAT HISTORY
+// =========================
+
+app.get(
+  "/api/messages/:userId/:otherUserId",
+  (req, res) => {
+    try {
+      const userId =
+        Number(req.params.userId);
+
+      const otherUserId =
+        Number(req.params.otherUserId);
+
+      if (
+        !userId ||
+        !otherUserId
+      ) {
+        return res.status(400).json({
+          error:
+            "Invalid user IDs"
+        });
+      }
+
+      const messages =
+        getChatMessages.all(
+          userId,
+          otherUserId,
+          otherUserId,
+          userId
+        );
+
+      res.json(messages);
+
+    } catch (error) {
+      console.error(
+        "CHAT HISTORY ERROR:",
+        error
+      );
+
+      res.status(500).json({
+        error:
+          "Could not load chat history"
+      });
+    }
+  }
+);
+
+// =========================
+// FILE UPLOAD
+// =========================
+
+app.post(
+  "/api/upload",
+  upload.single("file"),
+  (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error:
+            "No file selected"
+        });
+      }
+
+      res.json({
+        message:
+          "File uploaded",
+
+        file: {
+          originalName:
+            req.file.originalname,
+
+          filename:
+            req.file.filename,
+
+          size:
+            req.file.size,
+
+          url:
+            `/uploads/${req.file.filename}`
         }
+      });
+
+    } catch (error) {
+      console.error(
+        "UPLOAD ERROR:",
+        error
       );
+
+      res.status(500).json({
+        error:
+          "File upload failed"
+      });
     }
-  });
+  }
+);
 
-  /* WEBRTC ANSWER */
+// =========================
+// HEALTH
+// =========================
 
-  socket.on("call-answer", (data) => {
+app.get(
+  "/health",
+  (req, res) => {
+    res.json({
+      status: "ok",
+      database: "sqlite",
+      socket: "enabled",
+      webrtc: "enabled",
+      chat: "enabled"
+    });
+  }
+);
 
-    const receiver = onlineUsers.get(
-      String(data.receiverId)
-    );
+// =========================
+// ONLINE USERS
+// =========================
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
-        "call-answer",
-        data
-      );
-    }
-  });
+const onlineUsers = new Map();
 
-  /* ICE CANDIDATE */
+// =========================
+// SOCKET.IO
+// =========================
 
-  socket.on("ice-candidate", (data) => {
-
-    const receiver = onlineUsers.get(
-      String(data.receiverId)
-    );
-
-    if (receiver) {
-      io.to(receiver.socketId).emit(
-        "ice-candidate",
-        data
-      );
-    }
-  });
-
-  /* START CALL */
-
-  socket.on("start-call", (data) => {
-
-    const receiver = onlineUsers.get(
-      String(data.receiverId)
-    );
-
-    if (receiver) {
-      io.to(receiver.socketId).emit(
-        "incoming-call",
-        {
-          ...data,
-          callerSocketId: socket.id
-        }
-      );
-    }
-  });
-
-  /* END CALL */
-
-  socket.on("end-call", (data) => {
-
-    const receiver = onlineUsers.get(
-      String(data.receiverId)
-    );
-
-    if (receiver) {
-      io.to(receiver.socketId).emit(
-        "end-call",
-        data
-      );
-    }
-  });
-
-  /* SCREEN SHARE */
-
-  socket.on("screen-share", (data) => {
-
-    const receiver = onlineUsers.get(
-      String(data.receiverId)
-    );
-
-    if (receiver) {
-      io.to(receiver.socketId).emit(
-        "screen-share",
-        data
-      );
-    }
-  });
-
-  /* CALL TRANSFER */
-
-  socket.on("call-transfer", (data) => {
-
-    const receiver = onlineUsers.get(
-      String(data.newReceiverId)
-    );
-
-    if (receiver) {
-      io.to(receiver.socketId).emit(
-        "call-transfer",
-        data
-      );
-    }
-  });
-
-  /* DISCONNECT */
-
-  socket.on("disconnect", () => {
-
-    if (socket.userId) {
-      onlineUsers.delete(socket.userId);
-    }
-
-    io.emit(
-      "online-users",
-      Array.from(onlineUsers.keys())
-    );
+io.on(
+  "connection",
+  socket => {
 
     console.log(
-      "Socket disconnected:",
+      "Socket connected:",
       socket.id
     );
-  });
 
-});
+    // =====================
+    // USER ONLINE
+    // =====================
 
-/* ---------------- FRONTEND FALLBACK ---------------- */
+    socket.on(
+      "user-online",
+      user => {
 
-app.use((req, res) => {
-  res.sendFile(
-    path.join(__dirname, "public", "index.html")
-  );
-});
+        if (
+          !user ||
+          !user.id
+        ) {
+          return;
+        }
 
-/* ---------------- START SERVER ---------------- */
+        const userId =
+          String(user.id);
 
-server.listen(PORT, "0.0.0.0", () => {
+        onlineUsers.set(
+          userId,
+          {
+            socketId:
+              socket.id,
 
-  console.log(
-    `Real-time communication app running on port ${PORT}`
-  );
+            username:
+              user.username
+          }
+        );
 
-});
+        socket.userId =
+          userId;
+
+        socket.username =
+          user.username;
+
+        io.emit(
+          "online-users",
+          Array.from(
+            onlineUsers.keys()
+          )
+        );
+
+        console.log(
+          "USER ONLINE:",
+          user.username
+        );
+      }
+    );
+
+    // =====================
+    // PRIVATE MESSAGE
+    // =====================
+
+    socket.on(
+      "private-message",
+      data => {
+
+        try {
+
+          const senderId =
+            Number(
+              data.senderId
+            );
+
+          const receiverId =
+            Number(
+              data.receiverId
+            );
+
+          const message =
+            String(
+              data.message || ""
+            ).trim();
+
+          if (
+            !senderId ||
+            !receiverId ||
+            !message
+          ) {
+            return;
+          }
+
+          const createdAt =
+            new Date().toISOString();
+
+          const result =
+            saveMessage.run(
+              senderId,
+              receiverId,
+              message,
+              createdAt
+            );
+
+          const savedMessage = {
+            id:
+              Number(
+                result.lastInsertRowid
+              ),
+
+            sender_id:
+              senderId,
+
+            receiver_id:
+              receiverId,
+
+            message,
+
+            created_at:
+              createdAt
+          };
+
+          // Send to receiver
+          const receiver =
+            onlineUsers.get(
+              String(receiverId)
+            );
+
+          if (receiver) {
+
+            io.to(
+              receiver.socketId
+            ).emit(
+              "private-message",
+              savedMessage
+            );
+          }
+
+          // Send back to sender
+          socket.emit(
+            "private-message",
+            savedMessage
+          );
+
+        } catch (error) {
+
+          console.error(
+            "MESSAGE ERROR:",
+            error
+          );
+        }
+      }
+    );
+
+    // =====================
+    // START CALL
+    // =====================
+
+    socket.on(
+      "start-call",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (receiver) {
+
+          io.to(
+            receiver.socketId
+          ).emit(
+            "incoming-call",
+            {
+              ...data,
+              callerSocketId:
+                socket.id
+            }
+          );
+        }
+      }
+    );
+
+    // =====================
+    // CALL OFFER
+    // =====================
+
+    socket.on(
+      "call-offer",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (receiver) {
+
+          io.to(
+            receiver.socketId
+          ).emit(
+            "call-offer",
+            {
+              ...data,
+              callerSocketId:
+                socket.id
+            }
+          );
+        }
+      }
+    );
+
+    // =====================
+    // CALL ANSWER
+    // =====================
+
+    socket.on(
+      "call-answer",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (receiver) {
+
+          io.to(
+            receiver.socketId
+          ).emit(
+            "call-answer",
+            data
+          );
+        }
+      }
+    );
+
+    // =====================
+    // ICE CANDIDATE
+    // =====================
+
+    socket.on(
+      "ice-candidate",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (receiver) {
+
+          io.to(
+            receiver.socketId
+          ).emit(
+            "ice-candidate",
+            data
+          );
+        }
+      }
+    );
+
+    // =====================
+    // END CALL
+    // =====================
+
+    socket.on(
+      "end-call",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (receiver) {
+
+          io.to(
+            receiver.socketId
+          ).emit(
+            "end-call",
+            data
+          );
+        }
+      }
+    );
+
+    // =====================
+    // SCREEN SHARE
+    // =====================
+
+    socket.on(
+      "screen-share",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (receiver) {
+
+          io.to(
+            receiver.socketId
+          ).emit(
+            "screen-share",
+            data
+          );
+        }
+      }
+    );
+
+    // =====================
+    // CALL TRANSFER
+    // =====================
+
+    socket.on(
+      "call-transfer",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.newReceiverId
+            )
+          );
+
+        if (receiver) {
+
+          io.to(
+            receiver.socketId
+          ).emit(
+            "call-transfer",
+            data
+          );
+        }
+      }
+    );
+
+    // =====================
+    // DISCONNECT
+    // =====================
+
+    socket.on(
+      "disconnect",
+      () => {
+
+        if (
+          socket.userId
+        ) {
+
+          onlineUsers.delete(
+            socket.userId
+          );
+        }
+
+        io.emit(
+          "online-users",
+          Array.from(
+            onlineUsers.keys()
+          )
+        );
+
+        console.log(
+          "Socket disconnected:",
+          socket.id
+        );
+      }
+    );
+  }
+);
+
+// =========================
+// FRONTEND FALLBACK
+// =========================
+
+app.use(
+  (req, res) => {
+
+    res.sendFile(
+      path.join(
+        __dirname,
+        "public",
+        "index.html"
+      )
+    );
+  }
+);
+
+// =========================
+// START SERVER
+// =========================
+
+server.listen(
+  PORT,
+  "0.0.0.0",
+  () => {
+
+    console.log(
+      `RealTimeChat running on port ${PORT}`
+    );
+
+  }
+);
