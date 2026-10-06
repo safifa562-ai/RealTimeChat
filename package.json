@@ -1,7 +1,6 @@
 {
   "name": "realtime-communication-app",
-  "version": "2.0.0",
-  "description": "Real-time chat and communication app with Supabase permanent storage",
+  "version": "3.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
