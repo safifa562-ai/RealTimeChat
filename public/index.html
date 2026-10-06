@@ -1,2304 +1,3687 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>RealTimeChat</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="/manifest.json">
-
-  <meta name="theme-color" content="#111111">
-
-  <meta
-    name="mobile-web-app-capable"
-    content="yes"
-  >
-
-  <meta
-    name="apple-mobile-web-app-capable"
-    content="yes"
-  >
-
-  <meta
-    name="apple-mobile-web-app-status-bar-style"
-    content="black"
-  >
-
-  <meta
-    name="apple-mobile-web-app-title"
-    content="RealTimeChat"
-  >
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-    }
-
-    button,
-    input {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* AUTH */
-
-    #authScreen {
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      background: #111;
-    }
-
-    .authBox {
-      width: 100%;
-      max-width: 420px;
-      background: #1d1d1d;
-      padding: 30px;
-      border-radius: 18px;
-      box-shadow: 0 10px 40px rgba(0,0,0,.4);
-    }
-
-    .authBox h1 {
-      text-align: center;
-      margin-top: 0;
-    }
-
-    .authBox h2 {
-      margin-bottom: 10px;
-    }
-
-    .authBox input {
-      width: 100%;
-      padding: 13px;
-      margin: 7px 0;
-      border: 1px solid #444;
-      border-radius: 9px;
-      background: #292929;
-      color: white;
-      outline: none;
-    }
-
-    .authButtons {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .primaryBtn {
-      background: #2563eb;
-      color: white;
-      border: 0;
-      padding: 13px;
-      border-radius: 9px;
-    }
-
-    .secondaryBtn {
-      background: #333;
-      color: white;
-      border: 0;
-      padding: 13px;
-      border-radius: 9px;
-    }
-
-    #authMessage {
-      text-align: center;
-      margin-top: 15px;
-      min-height: 20px;
-    }
-
-    /* APP */
-
-    #appScreen {
-      height: 100vh;
-      display: flex;
-      overflow: hidden;
-    }
-
-    .sidebar {
-      width: 300px;
-      background: #181818;
-      border-right: 1px solid #333;
-      padding: 18px;
-      overflow-y: auto;
-    }
-
-    .logo {
-      font-size: 24px;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
-
-    .profile {
-      background: #242424;
-      padding: 15px;
-      border-radius: 12px;
-      margin-bottom: 15px;
-    }
-
-    .profileName {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    .userId {
-      color: #aaa;
-      font-size: 13px;
-      margin-top: 5px;
-    }
-
-    .connectBox {
-      margin-bottom: 15px;
-    }
-
-    .connectBox input {
-      width: 100%;
-      padding: 11px;
-      border: 1px solid #444;
-      background: #292929;
-      color: white;
-      border-radius: 8px;
-      margin-bottom: 8px;
-    }
-
-    .connectBtn {
-      width: 100%;
-      padding: 11px;
-      border: 0;
-      border-radius: 8px;
-      background: #2563eb;
-      color: white;
-    }
-
-    .usersTitle {
-      font-weight: bold;
-      margin: 20px 0 10px;
-    }
-
-    #usersList {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .userItem {
-      padding: 12px;
-      background: #242424;
-      border-radius: 9px;
-      cursor: pointer;
-    }
-
-    .userItem:hover {
-      background: #303030;
-    }
-
-    .onlineDot {
-      display: inline-block;
-      width: 9px;
-      height: 9px;
-      background: #22c55e;
-      border-radius: 50%;
-      margin-right: 7px;
-    }
-
-    .offlineDot {
-      display: inline-block;
-      width: 9px;
-      height: 9px;
-      background: #777;
-      border-radius: 50%;
-      margin-right: 7px;
-    }
-
-    .logoutBtn {
-      width: 100%;
-      margin-top: 20px;
-      padding: 11px;
-      background: #7f1d1d;
-      color: white;
-      border: 0;
-      border-radius: 8px;
-    }
-
-    /* CHAT */
-
-    .chatArea {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-    }
-
-    .chatHeader {
-      min-height: 70px;
-      padding: 12px 18px;
-      background: #181818;
-      border-bottom: 1px solid #333;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .chatUserName {
-      font-size: 18px;
-      font-weight: bold;
-    }
-
-    .callButtons {
-      display: flex;
-      gap: 7px;
-      flex-wrap: wrap;
-    }
-
-    .callBtn {
-      border: 0;
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: white;
-    }
-
-    .audioBtn {
-      background: #16a34a;
-    }
-
-    .videoBtn {
-      background: #2563eb;
-    }
-
-    .screenBtn {
-      background: #7c3aed;
-    }
-
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-      background: #101010;
-    }
-
-    .message {
-      max-width: 75%;
-      padding: 10px 13px;
-      border-radius: 13px;
-      word-break: break-word;
-    }
-
-    .mine {
-      align-self: flex-end;
-      background: #2563eb;
-    }
-
-    .theirs {
-      align-self: flex-start;
-      background: #292929;
-    }
-
-    .messageTime {
-      font-size: 10px;
-      opacity: .7;
-      margin-top: 4px;
-    }
-
-    .emptyChat {
-      margin: auto;
-      color: #777;
-      text-align: center;
-    }
-
-    .messageBar {
-      padding: 12px;
-      background: #181818;
-      border-top: 1px solid #333;
-      display: flex;
-      gap: 8px;
-    }
-
-    .messageBar input {
-      flex: 1;
-      min-width: 0;
-      padding: 12px;
-      background: #292929;
-      color: white;
-      border: 1px solid #444;
-      border-radius: 9px;
-    }
-
-    .sendBtn,
-    .fileBtn {
-      border: 0;
-      border-radius: 9px;
-      padding: 10px 14px;
-      color: white;
-    }
-
-    .sendBtn {
-      background: #2563eb;
-    }
-
-    .fileBtn {
-      background: #444;
-    }
-
-    #fileInput {
-      display: none;
-    }
-
-    /* CALL POPUP */
-
-    #incomingCall {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.75);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .callPopup {
-      width: min(90%, 360px);
-      background: #222;
-      padding: 25px;
-      border-radius: 18px;
-      text-align: center;
-    }
-
-    .callPopup h2 {
-      margin-top: 0;
-    }
-
-    .callPopup button {
-      border: 0;
-      border-radius: 9px;
-      padding: 12px 18px;
-      margin: 5px;
-      color: white;
-    }
-
-    .acceptCall {
-      background: #16a34a;
-    }
-
-    .rejectCall {
-      background: #dc2626;
-    }
-
-    /* VIDEO */
-
-    #videoPanel {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      width: min(420px, 90vw);
-      background: #000;
-      border-radius: 15px;
-      padding: 10px;
-      z-index: 900;
-      box-shadow: 0 10px 40px rgba(0,0,0,.5);
-    }
-
-    .videos {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    video {
-      width: 100%;
-      aspect-ratio: 16/9;
-      object-fit: cover;
-      background: #050505;
-      border-radius: 10px;
-    }
-
-    .videoControls {
-      display: flex;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .videoControls button {
-      padding: 9px 12px;
-      border: 0;
-      border-radius: 8px;
-      background: #333;
-      color: white;
-    }
-
-    .endCall {
-      background: #dc2626 !important;
-    }
-
-    /* MOBILE */
-
-    @media (max-width: 700px) {
-
-      #appScreen {
-        flex-direction: column;
-      }
-
-      .sidebar {
-        width: 100%;
-        height: auto;
-        max-height: 42vh;
-        border-right: 0;
-        border-bottom: 1px solid #333;
-      }
-
-      .logo {
-        margin-bottom: 10px;
-      }
-
-      .usersTitle {
-        margin-top: 12px;
-      }
-
-      .chatHeader {
-        min-height: auto;
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .callButtons {
-        width: 100%;
-      }
-
-      .callBtn {
-        flex: 1;
-      }
-
-      .message {
-        max-width: 88%;
-      }
-
-      .messageBar {
-        padding: 8px;
-      }
-
-      .sendBtn,
-      .fileBtn {
-        padding: 10px;
-      }
-
-      .videos {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>RealTimeChat</title>
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#111111">
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#0f0f0f;
+  color:white;
+}
+
+button,input{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.hidden{
+  display:none!important;
+}
+
+/* ================= AUTH ================= */
+
+#authScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#101010;
+}
+
+.authBox{
+  width:100%;
+  max-width:420px;
+  background:#1d1d1d;
+  padding:30px;
+  border-radius:18px;
+  box-shadow:0 15px 50px rgba(0,0,0,.5);
+}
+
+.authBox h1{
+  text-align:center;
+  margin-top:0;
+}
+
+.authBox h2{
+  margin-bottom:8px;
+}
+
+.authBox input{
+  width:100%;
+  padding:13px;
+  margin:7px 0;
+  border:1px solid #444;
+  border-radius:9px;
+  background:#292929;
+  color:white;
+  outline:none;
+}
+
+.authBox button{
+  border:0;
+  border-radius:9px;
+  padding:13px;
+}
+
+.primaryBtn{
+  background:#2563eb;
+  color:white;
+}
+
+.secondaryBtn{
+  background:#333;
+  color:white;
+}
+
+.authButtons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+
+#authMessage{
+  text-align:center;
+  min-height:20px;
+  margin-top:15px;
+}
+
+/* ================= APP ================= */
+
+#appScreen{
+  height:100vh;
+  display:flex;
+  overflow:hidden;
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar{
+  width:320px;
+  background:#181818;
+  border-right:1px solid #333;
+  padding:16px;
+  overflow-y:auto;
+}
+
+.logo{
+  font-size:24px;
+  font-weight:bold;
+  margin-bottom:18px;
+}
+
+.profile{
+  background:#242424;
+  padding:14px;
+  border-radius:12px;
+  margin-bottom:12px;
+}
+
+.profileName{
+  font-size:18px;
+  font-weight:bold;
+}
+
+.userId{
+  color:#999;
+  font-size:13px;
+  margin-top:4px;
+}
+
+.searchBox input,
+.connectBox input{
+  width:100%;
+  padding:11px;
+  margin-bottom:7px;
+  border:1px solid #444;
+  border-radius:8px;
+  background:#292929;
+  color:white;
+  outline:none;
+}
+
+.connectBtn,
+.searchBtn{
+  width:100%;
+  padding:11px;
+  border:0;
+  border-radius:8px;
+  background:#2563eb;
+  color:white;
+}
+
+.sectionTitle{
+  font-weight:bold;
+  margin:18px 0 9px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.badge{
+  background:#ef4444;
+  color:white;
+  min-width:22px;
+  height:22px;
+  padding:2px 6px;
+  border-radius:20px;
+  font-size:12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.userItem,
+.friendItem,
+.requestItem{
+  background:#242424;
+  padding:11px;
+  border-radius:9px;
+  margin-bottom:7px;
+}
+
+.userItem{
+  cursor:pointer;
+}
+
+.userItem:hover,
+.friendItem:hover{
+  background:#303030;
+}
+
+.onlineDot,
+.offlineDot{
+  display:inline-block;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  margin-right:7px;
+}
+
+.onlineDot{
+  background:#22c55e;
+}
+
+.offlineDot{
+  background:#777;
+}
+
+.itemButtons{
+  display:flex;
+  gap:5px;
+  margin-top:8px;
+}
+
+.smallBtn{
+  border:0;
+  border-radius:7px;
+  padding:7px 9px;
+  color:white;
+  font-size:12px;
+}
+
+.addBtn{
+  background:#2563eb;
+}
+
+.acceptBtn{
+  background:#16a34a;
+}
+
+.rejectBtn{
+  background:#dc2626;
+}
+
+.chatFriendBtn{
+  background:#7c3aed;
+}
+
+.emptySide{
+  color:#777;
+  font-size:13px;
+  padding:8px 2px;
+}
+
+.logoutBtn{
+  width:100%;
+  margin-top:20px;
+  padding:11px;
+  border:0;
+  border-radius:8px;
+  background:#7f1d1d;
+  color:white;
+}
+
+/* ================= CHAT ================= */
+
+.chatArea{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+
+.chatHeader{
+  min-height:70px;
+  padding:12px 18px;
+  background:#181818;
+  border-bottom:1px solid #333;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.chatUserName{
+  font-size:19px;
+  font-weight:bold;
+}
+
+.callButtons{
+  display:flex;
+  gap:7px;
+}
+
+.callBtn{
+  border:0;
+  border-radius:8px;
+  padding:10px 13px;
+  color:white;
+}
+
+.audioBtn{
+  background:#16a34a;
+}
+
+.videoBtn{
+  background:#2563eb;
+}
+
+.screenBtn{
+  background:#7c3aed;
+}
+
+#messages{
+  flex:1;
+  overflow-y:auto;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  background:#101010;
+}
+
+.message{
+  max-width:75%;
+  padding:10px 13px;
+  border-radius:13px;
+  word-break:break-word;
+}
+
+.mine{
+  align-self:flex-end;
+  background:#2563eb;
+}
+
+.theirs{
+  align-self:flex-start;
+  background:#292929;
+}
+
+.messageTime{
+  font-size:10px;
+  opacity:.7;
+  margin-top:5px;
+}
+
+.readMark{
+  margin-left:3px;
+}
+
+.messageActions{
+  margin-top:5px;
+}
+
+.deleteMessage{
+  border:0;
+  background:transparent;
+  color:#ffb4b4;
+  font-size:11px;
+}
+
+.emptyChat{
+  margin:auto;
+  text-align:center;
+  color:#777;
+}
+
+.messageBar{
+  padding:10px;
+  background:#181818;
+  border-top:1px solid #333;
+  display:flex;
+  gap:7px;
+}
+
+.messageBar input{
+  flex:1;
+  min-width:0;
+  padding:12px;
+  background:#292929;
+  border:1px solid #444;
+  border-radius:9px;
+  color:white;
+}
+
+.fileBtn,
+.sendBtn{
+  border:0;
+  border-radius:9px;
+  padding:10px 14px;
+  color:white;
+}
+
+.fileBtn{
+  background:#444;
+}
+
+.sendBtn{
+  background:#2563eb;
+}
+
+#fileInput{
+  display:none;
+}
+
+.typing{
+  color:#777;
+  font-size:12px;
+  padding:0 20px 5px;
+}
+
+/* ================= CALL ================= */
+
+#incomingCall{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.78);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+}
+
+.callPopup{
+  width:min(90%,360px);
+  background:#222;
+  padding:25px;
+  border-radius:18px;
+  text-align:center;
+}
+
+.callPopup button{
+  border:0;
+  border-radius:9px;
+  padding:12px 18px;
+  margin:5px;
+  color:white;
+}
+
+.acceptCall{
+  background:#16a34a;
+}
+
+.rejectCall{
+  background:#dc2626;
+}
+
+/* ================= VIDEO ================= */
+
+#videoPanel{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  width:min(450px,90vw);
+  background:#000;
+  border-radius:15px;
+  padding:10px;
+  z-index:1500;
+  box-shadow:0 10px 40px rgba(0,0,0,.6);
+}
+
+.videos{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+video{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+  background:#050505;
+  border-radius:10px;
+}
+
+.videoControls{
+  display:flex;
+  justify-content:center;
+  gap:7px;
+  margin-top:8px;
+}
+
+.videoControls button{
+  border:0;
+  border-radius:8px;
+  padding:9px 12px;
+  background:#333;
+  color:white;
+}
+
+.endCall{
+  background:#dc2626!important;
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:700px){
+
+  #appScreen{
+    flex-direction:column;
+  }
+
+  .sidebar{
+    width:100%;
+    max-height:44vh;
+    border-right:0;
+    border-bottom:1px solid #333;
+  }
+
+  .chatHeader{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .callButtons{
+    width:100%;
+  }
+
+  .callBtn{
+    flex:1;
+  }
+
+  .message{
+    max-width:88%;
+  }
+
+  .videos{
+    grid-template-columns:1fr;
+  }
+}
+</style>
 </head>
 
 <body>
 
-  <!-- ================= AUTH SCREEN ================= -->
+<!-- =====================================================
+     AUTH
+===================================================== -->
 
-  <section id="authScreen">
+<section id="authScreen">
 
-    <div class="authBox">
+  <div class="authBox">
 
-      <h1>💬 RealTimeChat</h1>
+    <h1>💬 RealTimeChat</h1>
 
-      <h2>Login</h2>
+    <h2>Login</h2>
 
-      <input
-        id="loginUsername"
-        type="text"
-        placeholder="Username"
-        autocomplete="username"
-      >
+    <input
+      id="loginUsername"
+      placeholder="Username"
+      autocomplete="username"
+    >
 
-      <input
-        id="loginPassword"
-        type="password"
-        placeholder="Password"
-        autocomplete="current-password"
-      >
+    <input
+      id="loginPassword"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password"
+    >
+
+    <button
+      class="primaryBtn"
+      style="width:100%;"
+      onclick="login()"
+    >
+      Login
+    </button>
+
+    <hr style="border-color:#333;margin:25px 0;">
+
+    <h2>Create Account</h2>
+
+    <input
+      id="registerUsername"
+      placeholder="Choose username"
+      autocomplete="username"
+    >
+
+    <input
+      id="registerPassword"
+      type="password"
+      placeholder="Create password"
+      autocomplete="new-password"
+    >
+
+    <div class="authButtons">
 
       <button
         class="primaryBtn"
-        style="width:100%;"
-        onclick="login()"
+        onclick="register()"
       >
-        Login
+        Register
       </button>
 
-      <hr style="border-color:#333; margin:25px 0;">
-
-      <h2>Create Account</h2>
-
-      <input
-        id="registerUsername"
-        type="text"
-        placeholder="Choose username"
-        autocomplete="username"
+      <button
+        class="secondaryBtn"
+        onclick="clearAuth()"
       >
-
-      <input
-        id="registerPassword"
-        type="password"
-        placeholder="Create password"
-        autocomplete="new-password"
-      >
-
-      <div class="authButtons">
-
-        <button
-          class="primaryBtn"
-          onclick="register()"
-        >
-          Register
-        </button>
-
-        <button
-          class="secondaryBtn"
-          onclick="clearAuth()"
-        >
-          Clear
-        </button>
-
-      </div>
-
-      <div id="authMessage"></div>
+        Clear
+      </button>
 
     </div>
 
-  </section>
-
-
-  <!-- ================= MAIN APP ================= -->
-
-  <section
-    id="appScreen"
-    class="hidden"
-  >
-
-    <!-- SIDEBAR -->
-
-    <aside class="sidebar">
-
-      <div class="logo">
-        💬 RealTimeChat
-      </div>
-
-      <div class="profile">
-
-        <div
-          id="profileName"
-          class="profileName"
-        >
-          User
-        </div>
-
-        <div
-          id="profileId"
-          class="userId"
-        >
-          ID: -
-        </div>
-
-      </div>
-
-      <div class="connectBox">
-
-        <input
-          id="connectUserId"
-          type="number"
-          placeholder="Enter User ID"
-        >
-
-        <button
-          class="connectBtn"
-          onclick="connectUser()"
-        >
-          Connect User
-        </button>
-
-      </div>
-
-      <div class="usersTitle">
-        Users
-      </div>
-
-      <div id="usersList"></div>
-
-      <button
-        class="logoutBtn"
-        onclick="logout()"
-      >
-        Logout
-      </button>
-
-    </aside>
-
-
-    <!-- CHAT AREA -->
-
-    <main class="chatArea">
-
-      <header class="chatHeader">
-
-        <div>
-
-          <div
-            id="chatUserName"
-            class="chatUserName"
-          >
-            Select a user
-          </div>
-
-          <small
-            id="chatUserStatus"
-            style="color:#888;"
-          >
-            No conversation selected
-          </small>
-
-        </div>
-
-        <div class="callButtons">
-
-          <button
-            class="callBtn audioBtn"
-            onclick="startAudioCall()"
-          >
-            📞 Audio
-          </button>
-
-          <button
-            class="callBtn videoBtn"
-            onclick="startVideoCall()"
-          >
-            📹 Video
-          </button>
-
-          <button
-            class="callBtn screenBtn"
-            onclick="shareScreen()"
-          >
-            🖥️ Screen
-          </button>
-
-        </div>
-
-      </header>
-
-
-      <div id="messages">
-
-        <div class="emptyChat">
-          Connect with a user to start chatting.
-        </div>
-
-      </div>
-
-
-      <div class="messageBar">
-
-        <label
-          class="fileBtn"
-          for="fileInput"
-        >
-          📎
-        </label>
-
-        <input
-          id="fileInput"
-          type="file"
-          onchange="uploadFile()"
-        >
-
-        <input
-          id="messageInput"
-          type="text"
-          placeholder="Type a message..."
-          onkeydown="handleMessageKey(event)"
-        >
-
-        <button
-          class="sendBtn"
-          onclick="sendMessage()"
-        >
-          Send
-        </button>
-
-      </div>
-
-    </main>
-
-  </section>
-
-
-  <!-- ================= INCOMING CALL ================= -->
-
-  <div
-    id="incomingCall"
-    class="hidden"
-  >
-
-    <div class="callPopup">
-
-      <h2>📞 Incoming Call</h2>
-
-      <p id="callerText">
-        Someone is calling...
-      </p>
-
-      <button
-        class="acceptCall"
-        onclick="acceptCall()"
-      >
-        Accept
-      </button>
-
-      <button
-        class="rejectCall"
-        onclick="rejectCall()"
-      >
-        Reject
-      </button>
-
-    </div>
+    <div id="authMessage"></div>
 
   </div>
 
+</section>
 
-  <!-- ================= VIDEO PANEL ================= -->
 
-  <div
-    id="videoPanel"
-    class="hidden"
-  >
+<!-- =====================================================
+     APP
+===================================================== -->
 
-    <div class="videos">
+<section id="appScreen" class="hidden">
 
-      <video
-        id="localVideo"
-        autoplay
-        muted
-        playsinline
-      ></video>
+  <!-- SIDEBAR -->
 
-      <video
-        id="remoteVideo"
-        autoplay
-        playsinline
-      ></video>
+  <aside class="sidebar">
+
+    <div class="logo">
+      💬 RealTimeChat
+    </div>
+
+    <div class="profile">
+
+      <div
+        id="profileName"
+        class="profileName"
+      >
+        User
+      </div>
+
+      <div
+        id="profileId"
+        class="userId"
+      >
+        ID: -
+      </div>
 
     </div>
 
-    <div class="videoControls">
 
-      <button onclick="toggleMute()">
-        🎤 Mute
-      </button>
+    <!-- SEARCH -->
 
-      <button onclick="toggleCamera()">
-        📷 Camera
-      </button>
+    <div class="searchBox">
+
+      <input
+        id="searchInput"
+        placeholder="🔍 Search username..."
+        oninput="searchUsers()"
+      >
+
+    </div>
+
+
+    <!-- CONNECT -->
+
+    <div class="connectBox">
+
+      <input
+        id="connectUserId"
+        type="number"
+        placeholder="Enter User ID"
+      >
 
       <button
-        class="endCall"
-        onclick="endCall()"
+        class="connectBtn"
+        onclick="connectUser()"
       >
-        ❌ End
+        Connect User
       </button>
 
     </div>
+
+
+    <!-- FRIEND REQUESTS -->
+
+    <div class="sectionTitle">
+
+      <span>📩 Requests</span>
+
+      <span
+        id="requestBadge"
+        class="badge hidden"
+      >
+        0
+      </span>
+
+    </div>
+
+    <div id="requestsList"></div>
+
+
+    <!-- FRIENDS -->
+
+    <div class="sectionTitle">
+      🤝 Friends
+    </div>
+
+    <div id="friendsList"></div>
+
+
+    <!-- USERS -->
+
+    <div class="sectionTitle">
+      👥 Users
+    </div>
+
+    <div id="usersList"></div>
+
+
+    <button
+      class="logoutBtn"
+      onclick="logout()"
+    >
+      Logout
+    </button>
+
+  </aside>
+
+
+  <!-- CHAT -->
+
+  <main class="chatArea">
+
+    <header class="chatHeader">
+
+      <div>
+
+        <div
+          id="chatUserName"
+          class="chatUserName"
+        >
+          Select a user
+        </div>
+
+        <small
+          id="chatUserStatus"
+          style="color:#888;"
+        >
+          No conversation selected
+        </small>
+
+      </div>
+
+
+      <div class="callButtons">
+
+        <button
+          class="callBtn audioBtn"
+          onclick="startAudioCall()"
+        >
+          📞 Audio
+        </button>
+
+        <button
+          class="callBtn videoBtn"
+          onclick="startVideoCall()"
+        >
+          📹 Video
+        </button>
+
+        <button
+          class="callBtn screenBtn"
+          onclick="shareScreen()"
+        >
+          🖥️ Screen
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <div
+      id="typingIndicator"
+      class="typing hidden"
+    >
+      typing...
+    </div>
+
+
+    <div id="messages">
+
+      <div class="emptyChat">
+        Connect with a user to start chatting.
+      </div>
+
+    </div>
+
+
+    <div class="messageBar">
+
+      <label
+        class="fileBtn"
+        for="fileInput"
+      >
+        📎
+      </label>
+
+      <input
+        id="fileInput"
+        type="file"
+        onchange="uploadFile()"
+      >
+
+      <input
+        id="messageInput"
+        placeholder="Type a message..."
+        oninput="typingStart()"
+        onkeydown="handleMessageKey(event)"
+      >
+
+      <button
+        class="sendBtn"
+        onclick="sendMessage()"
+      >
+        Send
+      </button>
+
+    </div>
+
+  </main>
+
+</section>
+
+
+<!-- =====================================================
+     INCOMING CALL
+===================================================== -->
+
+<div
+  id="incomingCall"
+  class="hidden"
+>
+
+  <div class="callPopup">
+
+    <h2>📞 Incoming Call</h2>
+
+    <p id="callerText">
+      Someone is calling...
+    </p>
+
+    <button
+      class="acceptCall"
+      onclick="acceptCall()"
+    >
+      Accept
+    </button>
+
+    <button
+      class="rejectCall"
+      onclick="rejectCall()"
+    >
+      Reject
+    </button>
 
   </div>
 
+</div>
 
-  <!-- SOCKET.IO -->
 
-  <script src="/socket.io/socket.io.js"></script>
+<!-- =====================================================
+     VIDEO PANEL
+===================================================== -->
 
-  <script>
+<div
+  id="videoPanel"
+  class="hidden"
+>
 
-    /* =====================================================
-       GLOBAL VARIABLES
-    ===================================================== */
+  <div class="videos">
 
-    let socket = null;
+    <video
+      id="localVideo"
+      autoplay
+      muted
+      playsinline
+    ></video>
 
-    let currentUser = null;
-    let selectedUser = null;
+    <video
+      id="remoteVideo"
+      autoplay
+      playsinline
+    ></video>
 
-    let localStream = null;
-    let peerConnection = null;
+  </div>
 
-    let incomingCallData = null;
+  <div class="videoControls">
 
-    let pendingCallType = "audio";
+    <button onclick="toggleMute()">
+      🎤 Mute
+    </button>
 
-    const peers = {};
+    <button onclick="toggleCamera()">
+      📷 Camera
+    </button>
 
-    const rtcConfig = {
-      iceServers: [
+    <button
+      class="endCall"
+      onclick="endCall()"
+    >
+      ❌ End
+    </button>
+
+  </div>
+
+</div>
+
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+/* =====================================================
+   GLOBALS
+===================================================== */
+
+let socket = null;
+
+let currentUser = null;
+let selectedUser = null;
+
+let allUsers = [];
+let friends = [];
+let requests = [];
+
+let localStream = null;
+let peerConnection = null;
+
+let incomingCallData = null;
+let pendingOffer = null;
+
+let iceQueue = [];
+
+let typingTimer = null;
+let currentlyTyping = false;
+
+const rtcConfig = {
+
+  iceServers: [
+    {
+      urls:
+        "stun:stun.l.google.com:19302"
+    }
+  ]
+
+};
+
+
+/* =====================================================
+   TOKEN
+===================================================== */
+
+function getToken(){
+
+  return localStorage.getItem(
+    "rtc_token"
+  );
+
+}
+
+
+function authHeaders(){
+
+  const token =
+    getToken();
+
+  return token
+    ? {
+        Authorization:
+          "Bearer " + token
+      }
+    : {};
+
+}
+
+
+/* =====================================================
+   AUTH MESSAGE
+===================================================== */
+
+function showAuthMessage(
+  message,
+  success=false
+){
+
+  const box =
+    document.getElementById(
+      "authMessage"
+    );
+
+  box.textContent =
+    message;
+
+  box.style.color =
+    success
+      ? "#22c55e"
+      : "#ef4444";
+
+}
+
+
+function clearAuth(){
+
+  document.getElementById(
+    "loginUsername"
+  ).value="";
+
+  document.getElementById(
+    "loginPassword"
+  ).value="";
+
+  document.getElementById(
+    "registerUsername"
+  ).value="";
+
+  document.getElementById(
+    "registerPassword"
+  ).value="";
+
+  showAuthMessage("");
+
+}
+
+
+/* =====================================================
+   REGISTER
+===================================================== */
+
+async function register(){
+
+  const username =
+    document.getElementById(
+      "registerUsername"
+    ).value.trim();
+
+  const password =
+    document.getElementById(
+      "registerPassword"
+    ).value;
+
+  if(
+    username.length < 3 ||
+    password.length < 6
+  ){
+
+    showAuthMessage(
+      "Username: 3+ characters, Password: 6+ characters"
+    );
+
+    return;
+  }
+
+  try{
+
+    showAuthMessage(
+      "Creating account..."
+    );
+
+    const response =
+      await fetch(
+        "/api/register",
         {
-          urls: "stun:stun.l.google.com:19302"
+          method:"POST",
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            username,
+            password
+          })
         }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      showAuthMessage(
+        data.error ||
+        "Registration failed"
+      );
+
+      return;
+    }
+
+    showAuthMessage(
+      "Account created. Please login.",
+      true
+    );
+
+    document.getElementById(
+      "loginUsername"
+    ).value=username;
+
+    document.getElementById(
+      "loginPassword"
+    ).value=password;
+
+  }catch(error){
+
+    console.error(error);
+
+    showAuthMessage(
+      "Server connection failed"
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+async function login(){
+
+  const username =
+    document.getElementById(
+      "loginUsername"
+    ).value.trim();
+
+  const password =
+    document.getElementById(
+      "loginPassword"
+    ).value;
+
+  if(!username || !password){
+
+    showAuthMessage(
+      "Enter username and password"
+    );
+
+    return;
+  }
+
+  try{
+
+    showAuthMessage(
+      "Logging in..."
+    );
+
+    const response =
+      await fetch(
+        "/api/login",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            username,
+            password
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      showAuthMessage(
+        data.error ||
+        "Login failed"
+      );
+
+      return;
+    }
+
+    localStorage.setItem(
+      "rtc_token",
+      data.token
+    );
+
+    localStorage.setItem(
+      "rtc_user",
+      JSON.stringify(
+        data.user
+      )
+    );
+
+    currentUser =
+      data.user;
+
+    openApp();
+
+  }catch(error){
+
+    console.error(error);
+
+    showAuthMessage(
+      "Server connection failed"
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   OPEN APP
+===================================================== */
+
+function openApp(){
+
+  if(!currentUser)
+    return;
+
+  document
+    .getElementById(
+      "authScreen"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  document
+    .getElementById(
+      "appScreen"
+    )
+    .classList.remove(
+      "hidden"
+    );
+
+  document.getElementById(
+    "profileName"
+  ).textContent =
+    currentUser.username;
+
+  document.getElementById(
+    "profileId"
+  ).textContent =
+    "ID: " +
+    currentUser.id;
+
+  connectSocket();
+
+  loadUsers();
+
+  loadFriends();
+
+  loadRequests();
+
+}
+
+
+/* =====================================================
+   SOCKET
+===================================================== */
+
+function connectSocket(){
+
+  if(socket)
+    return;
+
+  socket =
+    io({
+      transports:[
+        "websocket",
+        "polling"
       ]
-    };
+    });
 
 
-    /* =====================================================
-       AUTH MESSAGE
-    ===================================================== */
+  socket.on(
+    "connect",
+    ()=>{
+      
+      socket.emit(
+        "user-online",
+        currentUser
+      );
 
-    function showAuthMessage(message, success = false) {
-
-      const box =
-        document.getElementById("authMessage");
-
-      box.textContent = message;
-
-      box.style.color =
-        success ? "#22c55e" : "#ef4444";
     }
+  );
 
 
-    function clearAuth() {
-
-      document.getElementById(
-        "loginUsername"
-      ).value = "";
-
-      document.getElementById(
-        "loginPassword"
-      ).value = "";
-
-      document.getElementById(
-        "registerUsername"
-      ).value = "";
-
-      document.getElementById(
-        "registerPassword"
-      ).value = "";
-
-      showAuthMessage("");
+  socket.on(
+    "online-users",
+    ()=>{
+      loadUsers();
+      loadFriends();
     }
+  );
 
 
-    /* =====================================================
-       REGISTER
-    ===================================================== */
+  socket.on(
+    "private-message",
+    message=>{
 
-    async function register() {
+      if(
+        selectedUser &&
+        (
+          (
+            Number(message.sender_id) ===
+            Number(currentUser.id) &&
+            Number(message.receiver_id) ===
+            Number(selectedUser.id)
+          )
+          ||
+          (
+            Number(message.sender_id) ===
+            Number(selectedUser.id) &&
+            Number(message.receiver_id) ===
+            Number(currentUser.id)
+          )
+        )
+      ){
 
-      const username =
-        document.getElementById(
-          "registerUsername"
-        ).value.trim();
-
-      const password =
-        document.getElementById(
-          "registerPassword"
-        ).value;
-
-      if (!username || !password) {
-
-        showAuthMessage(
-          "Enter username and password"
+        displayMessage(
+          message
         );
 
-        return;
       }
 
-      try {
+    }
+  );
 
-        const response =
-          await fetch("/api/register", {
 
-            method: "POST",
+  socket.on(
+    "message-deleted",
+    ()=>{
+      loadChatHistory();
+    }
+  );
 
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
 
-            body: JSON.stringify({
-              username,
-              password
-            })
+  socket.on(
+    "message-error",
+    data=>{
 
-          });
+      alert(
+        data.error ||
+        "Message failed"
+      );
 
-        const data =
-          await response.json();
+    }
+  );
 
-        if (!response.ok) {
 
-          showAuthMessage(
-            data.error ||
-            "Registration failed"
+  socket.on(
+    "messages-read",
+    ()=>{
+      document
+        .querySelectorAll(
+          ".readMark"
+        )
+        .forEach(
+          mark=>{
+            mark.textContent="✓✓";
+          }
+        );
+    }
+  );
+
+
+  socket.on(
+    "typing",
+    data=>{
+
+      if(
+        selectedUser &&
+        Number(
+          data.senderId
+        ) ===
+        Number(
+          selectedUser.id
+        )
+      ){
+
+        document
+          .getElementById(
+            "typingIndicator"
+          )
+          .classList.toggle(
+            "hidden",
+            !data.typing
           );
 
-          return;
-        }
-
-        showAuthMessage(
-          "Account created successfully!",
-          true
-        );
-
-        document.getElementById(
-          "loginUsername"
-        ).value = username;
-
-        document.getElementById(
-          "loginPassword"
-        ).value = password;
-
-      } catch (error) {
-
-        console.error(error);
-
-        showAuthMessage(
-          "Server connection failed"
-        );
       }
+
     }
+  );
 
 
-    /* =====================================================
-       LOGIN
-    ===================================================== */
+  socket.on(
+    "friend-request",
+    ()=>{
 
-    async function login() {
+      loadRequests();
 
-      const username =
-        document.getElementById(
-          "loginUsername"
-        ).value.trim();
+      alert(
+        "📩 New friend request"
+      );
 
-      const password =
-        document.getElementById(
-          "loginPassword"
-        ).value;
-
-      if (!username || !password) {
-
-        showAuthMessage(
-          "Enter username and password"
-        );
-
-        return;
-      }
-
-      try {
-
-        const response =
-          await fetch("/api/login", {
-
-            method: "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body: JSON.stringify({
-              username,
-              password
-            })
-
-          });
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-
-          showAuthMessage(
-            data.error ||
-            "Login failed"
-          );
-
-          return;
-        }
-
-        localStorage.setItem(
-          "rtc_user",
-          JSON.stringify(data.user)
-        );
-
-        localStorage.setItem(
-          "rtc_token",
-          data.token
-        );
-
-        currentUser = data.user;
-
-        openApp();
-
-      } catch (error) {
-
-        console.error(error);
-
-        showAuthMessage(
-          "Server connection failed"
-        );
-      }
     }
+  );
 
 
-    /* =====================================================
-       OPEN APP
-    ===================================================== */
+  socket.on(
+    "friend-accepted",
+    ()=>{
 
-    function openApp() {
-
-      document
-        .getElementById("authScreen")
-        .classList.add("hidden");
-
-      document
-        .getElementById("appScreen")
-        .classList.remove("hidden");
-
-      document
-        .getElementById("profileName")
-        .textContent =
-        currentUser.username;
-
-      document
-        .getElementById("profileId")
-        .textContent =
-        "ID: " + currentUser.id;
-
-      connectSocket();
+      loadFriends();
 
       loadUsers();
+
     }
+  );
 
 
-    /* =====================================================
-       SOCKET CONNECTION
-    ===================================================== */
+  /* CALL */
 
-    function connectSocket() {
+  socket.on(
+    "incoming-call",
+    data=>{
 
-      if (socket) return;
+      incomingCallData =
+        data;
 
-      socket = io();
+      document.getElementById(
+        "callerText"
+      ).textContent =
+        (
+          data.callerName ||
+          "Someone"
+        ) +
+        " is calling (" +
+        (
+          data.callType ||
+          "audio"
+        ) +
+        ")";
 
-      socket.on("connect", () => {
-
-        console.log(
-          "Socket connected"
+      document
+        .getElementById(
+          "incomingCall"
+        )
+        .classList.remove(
+          "hidden"
         );
 
-        socket.emit(
-          "user-online",
-          currentUser
+    }
+  );
+
+
+  socket.on(
+    "call-offer",
+    async data=>{
+
+      pendingOffer =
+        data.offer;
+
+      incomingCallData =
+        {
+          ...(incomingCallData || {}),
+          ...data
+        };
+
+      if(
+        peerConnection &&
+        selectedUser &&
+        Number(
+          selectedUser.id
+        ) ===
+        Number(
+          data.callerId
+        )
+      ){
+
+        await acceptRemoteOffer(
+          data
         );
 
-      });
+      }
+
+    }
+  );
 
 
-      socket.on(
-        "online-users",
-        (ids) => {
+  socket.on(
+    "call-answer",
+    async data=>{
 
-          updateUsersList(ids);
+      if(!peerConnection)
+        return;
 
-        }
-      );
+      try{
 
-
-      socket.on(
-        "private-message",
-        (message) => {
-
-          displayMessage(message);
-
-        }
-      );
-
-
-      socket.on(
-        "incoming-call",
-        (data) => {
-
-          incomingCallData = data;
-
-          document.getElementById(
-            "callerText"
-          ).textContent =
-            "Incoming " +
-            (data.callType || "audio") +
-            " call";
-
-          document
-            .getElementById(
-              "incomingCall"
-            )
-            .classList.remove("hidden");
-
-        }
-      );
-
-
-      socket.on(
-        "call-offer",
-        async (data) => {
-
-          incomingCallData = data;
-
-        }
-      );
-
-
-      socket.on(
-        "call-answer",
-        async (data) => {
-
-          if (!peerConnection) return;
-
-          await peerConnection.setRemoteDescription(
+        await peerConnection
+          .setRemoteDescription(
             new RTCSessionDescription(
               data.answer
             )
           );
 
-        }
-      );
+        await flushIce();
 
-
-      socket.on(
-        "ice-candidate",
-        async (data) => {
-
-          try {
-
-            if (
-              peerConnection &&
-              data.candidate
-            ) {
-
-              await peerConnection.addIceCandidate(
-                new RTCIceCandidate(
-                  data.candidate
-                )
-              );
-
-            }
-
-          } catch (error) {
-
-            console.error(
-              "ICE error:",
-              error
-            );
-
-          }
-
-        }
-      );
-
-
-      socket.on(
-        "end-call",
-        () => {
-
-          closeCall();
-
-        }
-      );
-
-    }
-
-
-    /* =====================================================
-       LOAD USERS
-    ===================================================== */
-
-    async function loadUsers() {
-
-      try {
-
-        const response =
-          await fetch("/api/users");
-
-        const users =
-          await response.json();
-
-        const onlineIds =
-          users
-            .filter(user => user.online)
-            .map(user => String(user.id));
-
-        updateUsersList(onlineIds);
-
-      } catch (error) {
-
-        console.error(error);
-
-      }
-    }
-
-
-    /* =====================================================
-       USER LIST
-    ===================================================== */
-
-    function updateUsersList(
-      onlineIds = []
-    ) {
-
-      fetch("/api/users")
-        .then(response =>
-          response.json()
-        )
-        .then(users => {
-
-          const list =
-            document.getElementById(
-              "usersList"
-            );
-
-          list.innerHTML = "";
-
-          users.forEach(user => {
-
-            if (
-              currentUser &&
-              user.id === currentUser.id
-            ) {
-              return;
-            }
-
-            const div =
-              document.createElement("div");
-
-            div.className =
-              "userItem";
-
-            const online =
-              onlineIds.includes(
-                String(user.id)
-              );
-
-            div.innerHTML = `
-              <span class="${
-                online
-                  ? "onlineDot"
-                  : "offlineDot"
-              }"></span>
-              ${escapeHtml(user.username)}
-              <small style="color:#777;">
-                ID: ${user.id}
-              </small>
-            `;
-
-            div.onclick = () => {
-
-              selectedUser = user;
-
-              document.getElementById(
-                "chatUserName"
-              ).textContent =
-                user.username;
-
-              document.getElementById(
-                "chatUserStatus"
-              ).textContent =
-                online
-                  ? "Online"
-                  : "Offline";
-
-              document.getElementById(
-                "messages"
-              ).innerHTML = "";
-
-            };
-
-            list.appendChild(div);
-
-          });
-
-        })
-        .catch(error =>
-          console.error(error)
-        );
-    }
-
-
-    /* =====================================================
-       CONNECT USER
-    ===================================================== */
-
-    function connectUser() {
-
-      const id =
-        Number(
-          document.getElementById(
-            "connectUserId"
-          ).value
-        );
-
-      if (!id) {
-
-        alert(
-          "Enter a valid User ID"
-        );
-
-        return;
-      }
-
-      fetch("/api/users")
-        .then(response =>
-          response.json()
-        )
-        .then(users => {
-
-          const user =
-            users.find(
-              u => u.id === id
-            );
-
-          if (!user) {
-
-            alert(
-              "User not found"
-            );
-
-            return;
-          }
-
-          selectedUser = user;
-
-          document.getElementById(
-            "chatUserName"
-          ).textContent =
-            user.username;
-
-          document.getElementById(
-            "chatUserStatus"
-          ).textContent =
-            user.online
-              ? "Online"
-              : "Offline";
-
-          document.getElementById(
-            "messages"
-          ).innerHTML = "";
-
-        });
-
-    }
-
-
-    /* =====================================================
-       SEND MESSAGE
-    ===================================================== */
-
-    function sendMessage() {
-
-      const input =
-        document.getElementById(
-          "messageInput"
-        );
-
-      const message =
-        input.value.trim();
-
-      if (!message) return;
-
-      if (!selectedUser) {
-
-        alert(
-          "Select a user first"
-        );
-
-        return;
-      }
-
-      if (!socket) {
-
-        alert(
-          "Socket is not connected"
-        );
-
-        return;
-      }
-
-      socket.emit(
-        "private-message",
-        {
-          senderId:
-            currentUser.id,
-
-          receiverId:
-            selectedUser.id,
-
-          message
-        }
-      );
-
-      input.value = "";
-
-    }
-
-
-    function handleMessageKey(event) {
-
-      if (
-        event.key === "Enter"
-      ) {
-
-        event.preventDefault();
-
-        sendMessage();
-
-      }
-
-    }
-
-
-    /* =====================================================
-       DISPLAY MESSAGE
-    ===================================================== */
-
-    function displayMessage(message) {
-
-      const container =
-        document.getElementById(
-          "messages"
-        );
-
-      const empty =
-        container.querySelector(
-          ".emptyChat"
-        );
-
-      if (empty) {
-        empty.remove();
-      }
-
-      const div =
-        document.createElement("div");
-
-      div.className =
-        "message " +
-        (
-          Number(message.sender_id) ===
-          Number(currentUser.id)
-            ? "mine"
-            : "theirs"
-        );
-
-      const time =
-        new Date(
-          message.created_at
-        ).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit"
-        });
-
-      div.innerHTML = `
-        <div>${escapeHtml(
-          message.message
-        )}</div>
-
-        <div class="messageTime">
-          ${time}
-        </div>
-      `;
-
-      container.appendChild(div);
-
-      container.scrollTop =
-        container.scrollHeight;
-
-    }
-
-
-    /* =====================================================
-       AUDIO CALL
-    ===================================================== */
-
-    async function startAudioCall() {
-
-      await startCall("audio");
-
-    }
-
-
-    /* =====================================================
-       VIDEO CALL
-    ===================================================== */
-
-    async function startVideoCall() {
-
-      await startCall("video");
-
-    }
-
-
-    /* =====================================================
-       START CALL
-    ===================================================== */
-
-    async function startCall(
-      callType
-    ) {
-
-      if (!selectedUser) {
-
-        alert(
-          "Select a user first"
-        );
-
-        return;
-      }
-
-      try {
-
-        localStream =
-          await navigator.mediaDevices.getUserMedia(
-            {
-              audio: true,
-              video:
-                callType === "video"
-            }
-          );
-
-        showLocalStream();
-
-        peerConnection =
-          createPeerConnection();
-
-        localStream
-          .getTracks()
-          .forEach(track => {
-
-            peerConnection.addTrack(
-              track,
-              localStream
-            );
-
-          });
-
-        const offer =
-          await peerConnection.createOffer();
-
-        await peerConnection.setLocalDescription(
-          offer
-        );
-
-        socket.emit(
-          "start-call",
-          {
-            receiverId:
-              selectedUser.id,
-
-            callerId:
-              currentUser.id,
-
-            callerName:
-              currentUser.username,
-
-            callType
-          }
-        );
-
-        socket.emit(
-          "call-offer",
-          {
-            receiverId:
-              selectedUser.id,
-
-            callerId:
-              currentUser.id,
-
-            callType,
-
-            offer
-          }
-        );
-
-      } catch (error) {
-
-        console.error(error);
-
-        alert(
-          "Camera/microphone permission is required."
-        );
-
-      }
-
-    }
-
-
-    /* =====================================================
-       PEER CONNECTION
-    ===================================================== */
-
-    function createPeerConnection() {
-
-      const pc =
-        new RTCPeerConnection(
-          rtcConfig
-        );
-
-      pc.onicecandidate =
-        event => {
-
-          if (
-            event.candidate &&
-            selectedUser
-          ) {
-
-            socket.emit(
-              "ice-candidate",
-              {
-                receiverId:
-                  selectedUser.id,
-
-                candidate:
-                  event.candidate
-              }
-            );
-
-          }
-
-        };
-
-
-      pc.ontrack =
-        event => {
-
-          const remoteVideo =
-            document.getElementById(
-              "remoteVideo"
-            );
-
-          remoteVideo.srcObject =
-            event.streams[0];
-
-        };
-
-
-      pc.onconnectionstatechange =
-        () => {
-
-          console.log(
-            "WebRTC:",
-            pc.connectionState
-          );
-
-          if (
-            pc.connectionState ===
-            "failed"
-          ) {
-
-            closeCall();
-
-          }
-
-        };
-
-      return pc;
-
-    }
-
-
-    /* =====================================================
-       ACCEPT CALL
-    ===================================================== */
-
-    async function acceptCall() {
-
-      document
-        .getElementById(
-          "incomingCall"
-        )
-        .classList.add("hidden");
-
-      if (!incomingCallData) {
-        return;
-      }
-
-      const data =
-        incomingCallData;
-
-      selectedUser = {
-        id: data.callerId,
-        username:
-          data.callerName ||
-          "Caller"
-      };
-
-      try {
-
-        const video =
-          data.callType ===
-          "video";
-
-        localStream =
-          await navigator.mediaDevices.getUserMedia(
-            {
-              audio: true,
-              video
-            }
-          );
-
-        showLocalStream();
-
-        peerConnection =
-          createPeerConnection();
-
-        localStream
-          .getTracks()
-          .forEach(track => {
-
-            peerConnection.addTrack(
-              track,
-              localStream
-            );
-
-          });
-
-        if (data.offer) {
-
-          await peerConnection.setRemoteDescription(
-            new RTCSessionDescription(
-              data.offer
-            )
-          );
-
-          const answer =
-            await peerConnection.createAnswer();
-
-          await peerConnection.setLocalDescription(
-            answer
-          );
-
-          socket.emit(
-            "call-answer",
-            {
-              receiverId:
-                data.callerId,
-
-              answer
-            }
-          );
-
-        }
-
-      } catch (error) {
-
-        console.error(error);
-
-        alert(
-          "Could not access microphone/camera."
-        );
-
-      }
-
-    }
-
-
-    /* =====================================================
-       REJECT CALL
-    ===================================================== */
-
-    function rejectCall() {
-
-      document
-        .getElementById(
-          "incomingCall"
-        )
-        .classList.add("hidden");
-
-      incomingCallData = null;
-
-    }
-
-
-    /* =====================================================
-       LOCAL VIDEO
-    ===================================================== */
-
-    function showLocalStream() {
-
-      const video =
-        document.getElementById(
-          "localVideo"
-        );
-
-      video.srcObject =
-        localStream;
-
-      document
-        .getElementById(
-          "videoPanel"
-        )
-        .classList.remove("hidden");
-
-    }
-
-
-    /* =====================================================
-       MUTE
-    ===================================================== */
-
-    function toggleMute() {
-
-      if (!localStream) return;
-
-      const audioTracks =
-        localStream.getAudioTracks();
-
-      audioTracks.forEach(track => {
-
-        track.enabled =
-          !track.enabled;
-
-      });
-
-    }
-
-
-    /* =====================================================
-       CAMERA
-    ===================================================== */
-
-    function toggleCamera() {
-
-      if (!localStream) return;
-
-      const videoTracks =
-        localStream.getVideoTracks();
-
-      videoTracks.forEach(track => {
-
-        track.enabled =
-          !track.enabled;
-
-      });
-
-    }
-
-
-    /* =====================================================
-       SCREEN SHARE
-    ===================================================== */
-
-    async function shareScreen() {
-
-      if (!selectedUser) {
-
-        alert(
-          "Select a user first"
-        );
-
-        return;
-      }
-
-      try {
-
-        const screenStream =
-          await navigator.mediaDevices.getDisplayMedia(
-            {
-              video: true,
-              audio: true
-            }
-          );
-
-        const screenTrack =
-          screenStream.getVideoTracks()[0];
-
-        if (
-          peerConnection
-        ) {
-
-          const sender =
-            peerConnection
-              .getSenders()
-              .find(
-                s =>
-                  s.track &&
-                  s.track.kind ===
-                  "video"
-              );
-
-          if (sender) {
-
-            await sender.replaceTrack(
-              screenTrack
-            );
-
-          }
-
-        }
-
-        const localVideo =
-          document.getElementById(
-            "localVideo"
-          );
-
-        localVideo.srcObject =
-          screenStream;
-
-        screenTrack.onended =
-          () => {
-
-            if (localStream) {
-
-              localVideo.srcObject =
-                localStream;
-
-            }
-
-          };
-
-        socket.emit(
-          "screen-share",
-          {
-            receiverId:
-              selectedUser.id,
-
-            userId:
-              currentUser.id
-          }
-        );
-
-      } catch (error) {
+      }catch(error){
 
         console.error(
-          "Screen share error:",
+          "Answer error:",
           error
         );
 
       }
 
     }
+  );
 
 
-    /* =====================================================
-       END CALL
-    ===================================================== */
+  socket.on(
+    "ice-candidate",
+    async data=>{
 
-    function endCall() {
+      if(!data.candidate)
+        return;
 
-      if (
-        selectedUser &&
-        socket
-      ) {
+      if(
+        peerConnection &&
+        peerConnection.remoteDescription
+      ){
 
-        socket.emit(
-          "end-call",
-          {
-            receiverId:
-              selectedUser.id
-          }
-        );
+        try{
 
-      }
+          await peerConnection
+            .addIceCandidate(
+              new RTCIceCandidate(
+                data.candidate
+              )
+            );
 
-      closeCall();
+        }catch(error){
 
-    }
-
-
-    function closeCall() {
-
-      if (peerConnection) {
-
-        peerConnection.close();
-
-        peerConnection = null;
-
-      }
-
-      if (localStream) {
-
-        localStream
-          .getTracks()
-          .forEach(track =>
-            track.stop()
-          );
-
-        localStream = null;
-
-      }
-
-      document.getElementById(
-        "localVideo"
-      ).srcObject = null;
-
-      document.getElementById(
-        "remoteVideo"
-      ).srcObject = null;
-
-      document
-        .getElementById(
-          "videoPanel"
-        )
-        .classList.add("hidden");
-
-    }
-
-
-    /* =====================================================
-       FILE UPLOAD
-    ===================================================== */
-
-    async function uploadFile() {
-
-      const input =
-        document.getElementById(
-          "fileInput"
-        );
-
-      const file =
-        input.files[0];
-
-      if (!file) return;
-
-      const formData =
-        new FormData();
-
-      formData.append(
-        "file",
-        file
-      );
-
-      try {
-
-        const response =
-          await fetch(
-            "/api/upload",
-            {
-              method: "POST",
-              body: formData
-            }
-          );
-
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-
-          alert(
-            data.error ||
-            "Upload failed"
-          );
-
-          return;
-        }
-
-        if (selectedUser) {
-
-          socket.emit(
-            "private-message",
-            {
-              senderId:
-                currentUser.id,
-
-              receiverId:
-                selectedUser.id,
-
-              message:
-                `📎 ${data.file.originalName}\n${location.origin}${data.file.url}`
-            }
-          );
-
-        } else {
-
-          alert(
-            "File uploaded successfully"
+          console.error(
+            error
           );
 
         }
 
-      } catch (error) {
+      }else{
 
-        console.error(error);
-
-        alert(
-          "File upload failed"
+        iceQueue.push(
+          data.candidate
         );
 
       }
 
-      input.value = "";
-
     }
+  );
 
 
-    /* =====================================================
-       LOGOUT
-    ===================================================== */
+  socket.on(
+    "end-call",
+    ()=>{
+      closeCall();
+    }
+  );
 
-    function logout() {
+
+  socket.on(
+    "call-error",
+    data=>{
+
+      alert(
+        data.error ||
+        "Call failed"
+      );
 
       closeCall();
 
-      if (socket) {
+    }
+  );
 
-        socket.disconnect();
+}
 
-        socket = null;
 
-      }
+/* =====================================================
+   LOAD USERS
+===================================================== */
 
-      localStorage.removeItem(
-        "rtc_user"
+async function loadUsers(
+  search=""
+){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/users?search=" +
+        encodeURIComponent(
+          search
+        ),
+        {
+          headers:
+            authHeaders()
+        }
       );
 
-      localStorage.removeItem(
-        "rtc_token"
-      );
+    if(response.status===401){
 
-      currentUser = null;
-      selectedUser = null;
+      logout();
 
-      document
-        .getElementById(
-          "appScreen"
-        )
-        .classList.add("hidden");
+      return;
+    }
 
-      document
-        .getElementById(
-          "authScreen"
-        )
-        .classList.remove("hidden");
+    const data =
+      await response.json();
+
+    if(
+      Array.isArray(data)
+    ){
+
+      allUsers =
+        data;
+
+      renderUsers();
 
     }
 
+  }catch(error){
 
-    /* =====================================================
-       ESCAPE HTML
-    ===================================================== */
+    console.error(
+      "Users:",
+      error
+    );
 
-    function escapeHtml(text) {
+  }
+
+}
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+function searchUsers(){
+
+  const search =
+    document.getElementById(
+      "searchInput"
+    ).value.trim();
+
+  loadUsers(search);
+
+}
+
+
+/* =====================================================
+   RENDER USERS
+===================================================== */
+
+function renderUsers(){
+
+  const list =
+    document.getElementById(
+      "usersList"
+    );
+
+  list.innerHTML="";
+
+  const visible =
+    allUsers.filter(
+      user =>
+        Number(user.id) !==
+        Number(currentUser.id)
+    );
+
+  if(!visible.length){
+
+    list.innerHTML =
+      `<div class="emptySide">
+        No users found
+      </div>`;
+
+    return;
+  }
+
+  visible.forEach(
+    user=>{
 
       const div =
         document.createElement(
           "div"
         );
 
-      div.textContent =
-        String(text);
+      div.className =
+        "userItem";
 
-      return div.innerHTML;
+      const online =
+        Boolean(user.online);
 
-    }
+      const alreadyFriend =
+        friends.some(
+          f =>
+            Number(f.id) ===
+            Number(user.id)
+        );
 
+      div.innerHTML = `
+        <div>
+          <span class="${
+            online
+              ? "onlineDot"
+              : "offlineDot"
+          }"></span>
+          <strong>
+            ${escapeHtml(
+              user.username
+            )}
+          </strong>
+        </div>
 
-    /* =====================================================
-       AUTO LOGIN
-    ===================================================== */
+        <small style="color:#777;">
+          ID: ${user.id}
+          • ${online?"Online":"Offline"}
+        </small>
 
-    window.addEventListener(
-      "load",
-      () => {
+        <div class="itemButtons">
 
-        const savedUser =
-          localStorage.getItem(
-            "rtc_user"
-          );
+          <button
+            class="smallBtn chatFriendBtn"
+            onclick="event.stopPropagation();selectUserById(${user.id})"
+          >
+            Chat
+          </button>
 
-        if (savedUser) {
-
-          try {
-
-            currentUser =
-              JSON.parse(
-                savedUser
-              );
-
-            if (
-              currentUser &&
-              currentUser.id
-            ) {
-
-              openApp();
-
-            }
-
-          } catch (error) {
-
-            localStorage.removeItem(
-              "rtc_user"
-            );
-
+          ${
+            alreadyFriend
+              ? `<span style="
+                    color:#22c55e;
+                    font-size:12px;
+                    padding:7px;
+                  ">
+                    ✓ Friend
+                 </span>`
+              : `
+                <button
+                  class="smallBtn addBtn"
+                  onclick="
+                    event.stopPropagation();
+                    sendFriendRequest(${user.id})
+                  "
+                >
+                  + Add
+                </button>
+              `
           }
 
-        }
+        </div>
+      `;
 
+      div.onclick =
+        ()=>selectUser(user);
+
+      list.appendChild(
+        div
+      );
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   SELECT USER
+===================================================== */
+
+async function selectUserById(
+  id
+){
+
+  const user =
+    allUsers.find(
+      u =>
+        Number(u.id) ===
+        Number(id)
+    );
+
+  if(user){
+
+    await selectUser(
+      user
+    );
+
+    return;
+  }
+
+  const response =
+    await fetch(
+      "/api/users",
+      {
+        headers:
+          authHeaders()
       }
     );
 
+  const users =
+    await response.json();
 
-    /* =====================================================
-       PWA SERVICE WORKER
-    ===================================================== */
+  const found =
+    users.find(
+      u =>
+        Number(u.id) ===
+        Number(id)
+    );
 
-    if (
-      "serviceWorker" in navigator
-    ) {
+  if(found)
+    await selectUser(
+      found
+    );
 
-      window.addEventListener(
-        "load",
-        () => {
+}
 
-          navigator.serviceWorker
-            .register(
-              "/service-worker.js"
-            )
-            .then(() => {
 
-              console.log(
-                "Service Worker registered"
-              );
+async function selectUser(
+  user
+){
 
-            })
-            .catch(error => {
+  selectedUser =
+    user;
 
-              console.error(
-                "Service Worker error:",
-                error
-              );
+  document.getElementById(
+    "chatUserName"
+  ).textContent =
+    user.username;
 
-            });
+  document.getElementById(
+    "chatUserStatus"
+  ).textContent =
+    user.online
+      ? "Online"
+      : "Offline";
 
+  await loadChatHistory();
+
+}
+
+
+/* =====================================================
+   CONNECT USER
+===================================================== */
+
+async function connectUser(){
+
+  const id =
+    Number(
+      document.getElementById(
+        "connectUserId"
+      ).value
+    );
+
+  if(!id){
+
+    alert(
+      "Enter a valid User ID"
+    );
+
+    return;
+  }
+
+  await selectUserById(
+    id
+  );
+
+  document.getElementById(
+    "connectUserId"
+  ).value="";
+
+}
+
+
+/* =====================================================
+   CHAT HISTORY
+===================================================== */
+
+async function loadChatHistory(){
+
+  if(
+    !currentUser ||
+    !selectedUser
+  )
+    return;
+
+  const box =
+    document.getElementById(
+      "messages"
+    );
+
+  box.innerHTML =
+    `<div class="emptyChat">
+      Loading messages...
+    </div>`;
+
+  try{
+
+    const response =
+      await fetch(
+        `/api/messages/${currentUser.id}/${selectedUser.id}`,
+        {
+          headers:
+            authHeaders()
         }
+      );
+
+    if(response.status===401){
+
+      logout();
+
+      return;
+    }
+
+    const messages =
+      await response.json();
+
+    box.innerHTML="";
+
+    if(
+      !Array.isArray(messages) ||
+      messages.length===0
+    ){
+
+      box.innerHTML =
+        `<div class="emptyChat">
+          No messages yet.
+        </div>`;
+
+    }else{
+
+      messages.forEach(
+        displayMessage
       );
 
     }
 
-  </script>
+    scrollMessages();
+
+    socket.emit(
+      "messages-read",
+      {
+        senderId:
+          selectedUser.id
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    box.innerHTML =
+      `<div class="emptyChat">
+        Could not load messages.
+      </div>`;
+
+  }
+
+}
+
+
+/* =====================================================
+   SEND MESSAGE
+===================================================== */
+
+function sendMessage(){
+
+  const input =
+    document.getElementById(
+      "messageInput"
+    );
+
+  const message =
+    input.value.trim();
+
+  if(!message)
+    return;
+
+  if(!selectedUser){
+
+    alert(
+      "Select a user first"
+    );
+
+    return;
+  }
+
+  socket.emit(
+    "private-message",
+    {
+      senderId:
+        currentUser.id,
+
+      receiverId:
+        selectedUser.id,
+
+      message,
+
+      messageType:
+        "text"
+    }
+  );
+
+  input.value="";
+
+  stopTyping();
+
+}
+
+
+/* =====================================================
+   ENTER
+===================================================== */
+
+function handleMessageKey(
+  event
+){
+
+  if(
+    event.key==="Enter" &&
+    !event.shiftKey
+  ){
+
+    event.preventDefault();
+
+    sendMessage();
+
+  }
+
+}
+
+
+/* =====================================================
+   DISPLAY MESSAGE
+===================================================== */
+
+function displayMessage(
+  message
+){
+
+  const box =
+    document.getElementById(
+      "messages"
+    );
+
+  const empty =
+    box.querySelector(
+      ".emptyChat"
+    );
+
+  if(empty)
+    empty.remove();
+
+  const div =
+    document.createElement(
+      "div"
+    );
+
+  const mine =
+    Number(
+      message.sender_id
+    ) ===
+    Number(
+      currentUser.id
+    );
+
+  div.className =
+    "message " +
+    (
+      mine
+        ? "mine"
+        : "theirs"
+    );
+
+  let content="";
+
+  if(
+    message.is_deleted
+  ){
+
+    content =
+      `<div style="opacity:.6;">
+        Message deleted
+      </div>`;
+
+  }else if(
+    message.message_type==="file" &&
+    message.file_url
+  ){
+
+    content = `
+      📎
+      <a
+        href="${escapeAttribute(
+          message.file_url
+        )}"
+        target="_blank"
+        rel="noopener"
+        style="
+          color:white;
+          text-decoration:underline;
+        "
+      >
+        ${escapeHtml(
+          message.file_name ||
+          "File"
+        )}
+      </a>
+    `;
+
+  }else{
+
+    content =
+      `<div style="white-space:pre-wrap;">
+        ${escapeHtml(
+          message.message || ""
+        )}
+      </div>`;
+
+  }
+
+  const time =
+    message.created_at
+      ? new Date(
+          message.created_at
+        ).toLocaleTimeString(
+          [],
+          {
+            hour:"2-digit",
+            minute:"2-digit"
+          }
+        )
+      : "";
+
+  const read =
+    mine
+      ? (
+        message.is_read
+          ? "✓✓"
+          : "✓"
+      )
+      : "";
+
+  div.innerHTML = `
+    ${content}
+
+    <div class="messageTime">
+      ${time}
+
+      <span class="readMark">
+        ${read}
+      </span>
+
+      ${
+        mine &&
+        message.id &&
+        !message.is_deleted
+          ? `
+            <button
+              class="deleteMessage"
+              onclick="
+                deleteMessage(${message.id})
+              "
+            >
+              Delete
+            </button>
+          `
+          : ""
+      }
+
+    </div>
+  `;
+
+  box.appendChild(
+    div
+  );
+
+  scrollMessages();
+
+}
+
+
+/* =====================================================
+   DELETE
+===================================================== */
+
+async function deleteMessage(
+  id
+){
+
+  if(
+    !confirm(
+      "Delete this message?"
+    )
+  )
+    return;
+
+  try{
+
+    const response =
+      await fetch(
+        `/api/messages/${id}`,
+        {
+          method:"DELETE",
+          headers:
+            authHeaders()
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Delete failed"
+      );
+
+    }
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   FILE UPLOAD
+===================================================== */
+
+async function uploadFile(){
+
+  const input =
+    document.getElementById(
+      "fileInput"
+    );
+
+  const file =
+    input.files[0];
+
+  if(!file)
+    return;
+
+  if(!selectedUser){
+
+    alert(
+      "Select a user first"
+    );
+
+    input.value="";
+
+    return;
+  }
+
+  if(
+    file.size >
+    100 * 1024 * 1024
+  ){
+
+    alert(
+      "Maximum file size is 100 MB."
+    );
+
+    input.value="";
+
+    return;
+  }
+
+  try{
+
+    const form =
+      new FormData();
+
+    form.append(
+      "file",
+      file
+    );
+
+    const response =
+      await fetch(
+        "/api/upload",
+        {
+          method:"POST",
+          headers:
+            authHeaders(),
+          body:form
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Upload failed"
+      );
+
+      return;
+    }
+
+    socket.emit(
+      "private-message",
+      {
+        senderId:
+          currentUser.id,
+
+        receiverId:
+          selectedUser.id,
+
+        message:
+          "📎 " +
+          data.file.name,
+
+        messageType:
+          "file",
+
+        fileName:
+          data.file.name,
+
+        fileUrl:
+          data.file.url,
+
+        fileSize:
+          data.file.size
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      "File upload failed"
+    );
+
+  }finally{
+
+    input.value="";
+
+  }
+
+}
+
+
+/* =====================================================
+   FRIEND REQUEST
+===================================================== */
+
+async function sendFriendRequest(
+  receiverId
+){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/friends/request",
+        {
+          method:"POST",
+          headers:{
+            ...authHeaders(),
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            receiverId
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Could not send request"
+      );
+
+      return;
+    }
+
+    alert(
+      "✅ Friend request sent"
+    );
+
+    loadUsers();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   REQUESTS
+===================================================== */
+
+async function loadRequests(){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/friends/requests",
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if(!response.ok)
+      return;
+
+    requests =
+      await response.json();
+
+    renderRequests();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+function renderRequests(){
+
+  const list =
+    document.getElementById(
+      "requestsList"
+    );
+
+  const badge =
+    document.getElementById(
+      "requestBadge"
+    );
+
+  list.innerHTML="";
+
+  if(!requests.length){
+
+    badge.classList.add(
+      "hidden"
+    );
+
+    list.innerHTML =
+      `<div class="emptySide">
+        No pending requests
+      </div>`;
+
+    return;
+  }
+
+  badge.classList.remove(
+    "hidden"
+  );
+
+  badge.textContent =
+    requests.length;
+
+  requests.forEach(
+    request=>{
+
+      const div =
+        document.createElement(
+          "div"
+        );
+
+      div.className =
+        "requestItem";
+
+      div.innerHTML = `
+        <div>
+          👤 User ID:
+          ${request.sender_id}
+        </div>
+
+        <div class="itemButtons">
+
+          <button
+            class="smallBtn acceptBtn"
+            onclick="
+              respondRequest(
+                ${request.id},
+                'accept'
+              )
+            "
+          >
+            ✓ Accept
+          </button>
+
+          <button
+            class="smallBtn rejectBtn"
+            onclick="
+              respondRequest(
+                ${request.id},
+                'reject'
+              )
+            "
+          >
+            ✕ Reject
+          </button>
+
+        </div>
+      `;
+
+      list.appendChild(
+        div
+      );
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   ACCEPT / REJECT
+===================================================== */
+
+async function respondRequest(
+  requestId,
+  action
+){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/friends/respond",
+        {
+          method:"POST",
+          headers:{
+            ...authHeaders(),
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            requestId,
+            action
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Request failed"
+      );
+
+      return;
+    }
+
+    await loadRequests();
+
+    await loadFriends();
+
+    await loadUsers();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   FRIENDS
+===================================================== */
+
+async function loadFriends(){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/friends",
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if(!response.ok)
+      return;
+
+    friends =
+      await response.json();
+
+    renderFriends();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+function renderFriends(){
+
+  const list =
+    document.getElementById(
+      "friendsList"
+    );
+
+  list.innerHTML="";
+
+  if(!friends.length){
+
+    list.innerHTML =
+      `<div class="emptySide">
+        No friends yet
+      </div>`;
+
+    return;
+  }
+
+  friends.forEach(
+    friend=>{
+
+      const div =
+        document.createElement(
+          "div"
+        );
+
+      div.className =
+        "friendItem";
+
+      div.innerHTML = `
+        <div
+          onclick="selectUserById(${friend.id})"
+          style="cursor:pointer;"
+        >
+
+          <span class="${
+            friend.online
+              ? "onlineDot"
+              : "offlineDot"
+          }"></span>
+
+          <strong>
+            ${escapeHtml(
+              friend.username
+            )}
+          </strong>
+
+        </div>
+
+        <small style="color:#777;">
+          ${
+            friend.online
+              ? "Online"
+              : "Offline"
+          }
+        </small>
+      `;
+
+      list.appendChild(
+        div
+      );
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   TYPING
+===================================================== */
+
+function typingStart(){
+
+  if(
+    !socket ||
+    !selectedUser
+  )
+    return;
+
+  if(!currentlyTyping){
+
+    currentlyTyping=true;
+
+    socket.emit(
+      "typing",
+      {
+        receiverId:
+          selectedUser.id,
+        typing:true
+      }
+    );
+
+  }
+
+  clearTimeout(
+    typingTimer
+  );
+
+  typingTimer =
+    setTimeout(
+      stopTyping,
+      1200
+    );
+
+}
+
+
+function stopTyping(){
+
+  clearTimeout(
+    typingTimer
+  );
+
+  if(
+    !currentlyTyping ||
+    !selectedUser
+  )
+    return;
+
+  currentlyTyping=false;
+
+  socket.emit(
+    "typing",
+    {
+      receiverId:
+        selectedUser.id,
+      typing:false
+    }
+  );
+
+  document
+    .getElementById(
+      "typingIndicator"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+}
+
+
+/* =====================================================
+   CALL
+===================================================== */
+
+async function startAudioCall(){
+
+  await startCall(
+    "audio"
+  );
+
+}
+
+
+async function startVideoCall(){
+
+  await startCall(
+    "video"
+  );
+
+}
+
+
+async function startCall(
+  callType
+){
+
+  if(!selectedUser){
+
+    alert(
+      "Select a user first"
+    );
+
+    return;
+  }
+
+  try{
+
+    localStream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+          audio:true,
+          video:
+            callType ===
+            "video"
+        });
+
+    showLocalStream();
+
+    peerConnection =
+      createPeerConnection(
+        selectedUser.id
+      );
+
+    localStream
+      .getTracks()
+      .forEach(
+        track=>{
+          peerConnection.addTrack(
+            track,
+            localStream
+          );
+        }
+      );
+
+    const offer =
+      await peerConnection
+        .createOffer();
+
+    await peerConnection
+      .setLocalDescription(
+        offer
+      );
+
+    socket.emit(
+      "start-call",
+      {
+        receiverId:
+          selectedUser.id,
+
+        callerId:
+          currentUser.id,
+
+        callerName:
+          currentUser.username,
+
+        callType
+      }
+    );
+
+    socket.emit(
+      "call-offer",
+      {
+        receiverId:
+          selectedUser.id,
+
+        callerId:
+          currentUser.id,
+
+        callerName:
+          currentUser.username,
+
+        callType,
+
+        offer
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      "Microphone/camera permission is required."
+    );
+
+    closeCall();
+
+  }
+
+}
+
+
+/* =====================================================
+   PEER CONNECTION
+===================================================== */
+
+function createPeerConnection(
+  remoteUserId
+){
+
+  const pc =
+    new RTCPeerConnection(
+      rtcConfig
+    );
+
+  pc.onicecandidate =
+    event=>{
+
+      if(
+        event.candidate &&
+        socket
+      ){
+
+        socket.emit(
+          "ice-candidate",
+          {
+            receiverId:
+              remoteUserId,
+
+            candidate:
+              event.candidate
+          }
+        );
+
+      }
+
+    };
+
+
+  pc.ontrack =
+    event=>{
+
+      const remote =
+        document.getElementById(
+          "remoteVideo"
+        );
+
+      if(
+        event.streams &&
+        event.streams[0]
+      ){
+
+        remote.srcObject =
+          event.streams[0];
+
+      }
+
+    };
+
+
+  pc.onconnectionstatechange =
+    ()=>{
+
+      if(
+        pc.connectionState ===
+        "failed" ||
+        pc.connectionState ===
+        "closed"
+      ){
+
+        closeCall();
+
+      }
+
+    };
+
+
+  return pc;
+
+}
+
+
+/* =====================================================
+   ACCEPT CALL
+===================================================== */
+
+async function acceptCall(){
+
+  document
+    .getElementById(
+      "incomingCall"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  if(!incomingCallData)
+    return;
+
+  const data =
+    incomingCallData;
+
+  selectedUser = {
+    id:
+      data.callerId,
+
+    username:
+      data.callerName ||
+      "Caller"
+  };
+
+  document.getElementById(
+    "chatUserName"
+  ).textContent =
+    selectedUser.username;
+
+  try{
+
+    localStream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+          audio:true,
+
+          video:
+            data.callType ===
+            "video"
+        });
+
+    showLocalStream();
+
+    peerConnection =
+      createPeerConnection(
+        data.callerId
+      );
+
+    localStream
+      .getTracks()
+      .forEach(
+        track=>{
+          peerConnection.addTrack(
+            track,
+            localStream
+          );
+        }
+      );
+
+    const offer =
+      data.offer ||
+      pendingOffer;
+
+    if(offer){
+
+      await acceptRemoteOffer({
+        ...data,
+        offer
+      });
+
+    }
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      "Could not access microphone/camera."
+    );
+
+    closeCall();
+
+  }
+
+}
+
+
+/* =====================================================
+   REMOTE OFFER
+===================================================== */
+
+async function acceptRemoteOffer(
+  data
+){
+
+  if(!peerConnection)
+    return;
+
+  try{
+
+    await peerConnection
+      .setRemoteDescription(
+        new RTCSessionDescription(
+          data.offer
+        )
+      );
+
+    const answer =
+      await peerConnection
+        .createAnswer();
+
+    await peerConnection
+      .setLocalDescription(
+        answer
+      );
+
+    socket.emit(
+      "call-answer",
+      {
+        receiverId:
+          data.callerId,
+
+        answer
+      }
+    );
+
+    pendingOffer =
+      null;
+
+    await flushIce();
+
+  }catch(error){
+
+    console.error(
+      "Remote offer:",
+      error
+    );
+
+  }
+
+}
+
+
+async function flushIce(){
+
+  if(
+    !peerConnection ||
+    !peerConnection.remoteDescription
+  )
+    return;
+
+  while(
+    iceQueue.length
+  ){
+
+    const candidate =
+      iceQueue.shift();
+
+    try{
+
+      await peerConnection
+        .addIceCandidate(
+          new RTCIceCandidate(
+            candidate
+          )
+        );
+
+    }catch(error){
+
+      console.error(
+        error
+      );
+
+    }
+
+  }
+
+}
+
+
+/* =====================================================
+   REJECT
+===================================================== */
+
+function rejectCall(){
+
+  document
+    .getElementById(
+      "incomingCall"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  incomingCallData =
+    null;
+
+  pendingOffer =
+    null;
+
+}
+
+
+/* =====================================================
+   VIDEO
+===================================================== */
+
+function showLocalStream(){
+
+  document.getElementById(
+    "localVideo"
+  ).srcObject =
+    localStream;
+
+  document
+    .getElementById(
+      "videoPanel"
+    )
+    .classList.remove(
+      "hidden"
+    );
+
+}
+
+
+function toggleMute(){
+
+  if(!localStream)
+    return;
+
+  localStream
+    .getAudioTracks()
+    .forEach(
+      track=>{
+        track.enabled =
+          !track.enabled;
+      }
+    );
+
+}
+
+
+function toggleCamera(){
+
+  if(!localStream)
+    return;
+
+  localStream
+    .getVideoTracks()
+    .forEach(
+      track=>{
+        track.enabled =
+          !track.enabled;
+      }
+    );
+
+}
+
+
+/* =====================================================
+   SCREEN SHARE
+===================================================== */
+
+async function shareScreen(){
+
+  if(!selectedUser){
+
+    alert(
+      "Select a user first"
+    );
+
+    return;
+  }
+
+  if(!peerConnection){
+
+    alert(
+      "Start a video call first."
+    );
+
+    return;
+  }
+
+  try{
+
+    const screenStream =
+      await navigator
+        .mediaDevices
+        .getDisplayMedia({
+          video:true,
+          audio:true
+        });
+
+    const screenTrack =
+      screenStream
+        .getVideoTracks()[0];
+
+    const sender =
+      peerConnection
+        .getSenders()
+        .find(
+          s =>
+            s.track &&
+            s.track.kind ===
+            "video"
+        );
+
+    if(sender){
+
+      await sender
+        .replaceTrack(
+          screenTrack
+        );
+
+    }
+
+    document.getElementById(
+      "localVideo"
+    ).srcObject =
+      screenStream;
+
+    screenTrack.onended =
+      async ()=>{
+
+        const camera =
+          localStream
+            ?.getVideoTracks()[0];
+
+        if(
+          camera &&
+          sender
+        ){
+
+          await sender
+            .replaceTrack(
+              camera
+            );
+
+        }
+
+        if(localStream){
+
+          document.getElementById(
+            "localVideo"
+          ).srcObject =
+            localStream;
+
+        }
+
+      };
+
+  }catch(error){
+
+    console.error(
+      "Screen share:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   END CALL
+===================================================== */
+
+function endCall(){
+
+  if(
+    selectedUser &&
+    socket
+  ){
+
+    socket.emit(
+      "end-call",
+      {
+        receiverId:
+          selectedUser.id
+      }
+    );
+
+  }
+
+  closeCall();
+
+}
+
+
+function closeCall(){
+
+  if(peerConnection){
+
+    peerConnection.close();
+
+    peerConnection =
+      null;
+
+  }
+
+  if(localStream){
+
+    localStream
+      .getTracks()
+      .forEach(
+        track=>{
+          track.stop();
+        }
+      );
+
+    localStream =
+      null;
+
+  }
+
+  iceQueue=[];
+
+  pendingOffer=null;
+
+  document.getElementById(
+    "localVideo"
+  ).srcObject=null;
+
+  document.getElementById(
+    "remoteVideo"
+  ).srcObject=null;
+
+  document
+    .getElementById(
+      "videoPanel"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+}
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+function logout(){
+
+  closeCall();
+
+  if(socket){
+
+    socket.disconnect();
+
+    socket=null;
+
+  }
+
+  localStorage.removeItem(
+    "rtc_token"
+  );
+
+  localStorage.removeItem(
+    "rtc_user"
+  );
+
+  currentUser=null;
+  selectedUser=null;
+
+  document
+    .getElementById(
+      "appScreen"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  document
+    .getElementById(
+      "authScreen"
+    )
+    .classList.remove(
+      "hidden"
+    );
+
+}
+
+
+/* =====================================================
+   SCROLL
+===================================================== */
+
+function scrollMessages(){
+
+  const box =
+    document.getElementById(
+      "messages"
+    );
+
+  setTimeout(
+    ()=>{
+      box.scrollTop =
+        box.scrollHeight;
+    },
+    20
+  );
+
+}
+
+
+/* =====================================================
+   ESCAPE
+===================================================== */
+
+function escapeHtml(
+  text
+){
+
+  const div =
+    document.createElement(
+      "div"
+    );
+
+  div.textContent =
+    String(
+      text ?? ""
+    );
+
+  return div.innerHTML;
+
+}
+
+
+function escapeAttribute(
+  text
+){
+
+  return String(
+    text ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    );
+
+}
+
+
+/* =====================================================
+   AUTO LOGIN
+===================================================== */
+
+async function autoLogin(){
+
+  const token =
+    localStorage.getItem(
+      "rtc_token"
+    );
+
+  const saved =
+    localStorage.getItem(
+      "rtc_user"
+    );
+
+  if(
+    !token ||
+    !saved
+  )
+    return;
+
+  try{
+
+    currentUser =
+      JSON.parse(
+        saved
+      );
+
+    const response =
+      await fetch(
+        "/api/me",
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if(!response.ok){
+
+      logout();
+
+      return;
+    }
+
+    currentUser =
+      await response.json();
+
+    localStorage.setItem(
+      "rtc_user",
+      JSON.stringify(
+        currentUser
+      )
+    );
+
+    openApp();
+
+  }catch(error){
+
+    console.error(
+      "Auto login:",
+      error
+    );
+
+    localStorage.removeItem(
+      "rtc_token"
+    );
+
+    localStorage.removeItem(
+      "rtc_user"
+    );
+
+    currentUser=null;
+
+  }
+
+}
+
+
+/* =====================================================
+   START
+===================================================== */
+
+window.addEventListener(
+  "load",
+  ()=>{
+    autoLogin();
+  }
+);
+
+
+/* =====================================================
+   SERVICE WORKER
+===================================================== */
+
+if(
+  "serviceWorker" in
+  navigator
+){
+
+  window.addEventListener(
+    "load",
+    ()=>{
+      navigator.serviceWorker
+        .register(
+          "/service-worker.js"
+        )
+        .catch(
+          error =>
+            console.error(
+              "Service Worker:",
+              error
+            )
+        );
+    }
+  );
+
+}
+
+</script>
 
 </body>
 </html>
