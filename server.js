@@ -2,8 +2,8 @@ const express = require("express");
 const http = require("http");
 const path = require("path");
 const multer = require("multer");
-const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const { createClient } = require("@supabase/supabase-js");
 const { Server } = require("socket.io");
 
@@ -11,7 +11,10 @@ const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "DELETE"]
+  }
 });
 
 const PORT = process.env.PORT || 10000;
@@ -21,30 +24,47 @@ const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !JWT_SECRET) {
+if (
+  !SUPABASE_URL ||
+  !SUPABASE_SERVICE_ROLE_KEY ||
+  !JWT_SECRET
+) {
   console.error("Missing Supabase/JWT environment variables");
   process.exit(1);
 }
 
 const supabase = createClient(
   SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY
+  SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
+
+app.use(
+  express.static(path.join(__dirname, "public"))
+);
+
+/* =====================================================
+   FILE UPLOAD
+===================================================== */
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024
+    fileSize: 100 * 1024 * 1024
   }
 });
 
-/* =========================
-   AUTH
-========================= */
+/* =====================================================
+   JWT
+===================================================== */
 
 function createToken(user) {
   return jwt.sign(
@@ -59,38 +79,49 @@ function createToken(user) {
   );
 }
 
-function auth(req, res, next) {
-  const header = req.headers.authorization || "";
-
-  if (!header.startsWith("Bearer ")) {
-    return res.status(401).json({
-      error: "Authentication required"
-    });
-  }
-
-  const token = header.substring(7);
-
+function authMiddleware(req, res, next) {
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    const header = req.headers.authorization || "";
+
+    if (!header.startsWith("Bearer ")) {
+      return res.status(401).json({
+        error: "Authentication required"
+      });
+    }
+
+    const token = header.substring(7);
+
+    const decoded = jwt.verify(
+      token,
+      JWT_SECRET
+    );
+
+    req.user = decoded;
+
     next();
-  } catch {
+
+  } catch (error) {
     return res.status(401).json({
       error: "Invalid or expired token"
     });
   }
 }
 
-/* =========================
+/* =====================================================
    REGISTER
-========================= */
+===================================================== */
 
 app.post("/api/register", async (req, res) => {
   try {
-    const username = String(req.body.username || "")
+    const username = String(
+      req.body.username || ""
+    )
       .trim()
       .toLowerCase();
 
-    const password = String(req.body.password || "");
+    const password = String(
+      req.body.password || ""
+    );
 
     if (!username || !password) {
       return res.status(400).json({
@@ -110,11 +141,20 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
-    const { data: existing } = await supabase
-      .from("users")
-      .select("id")
-      .eq("username", username)
-      .maybeSingle();
+    const { data: existing, error: existingError } =
+      await supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+
+    if (existingError) {
+      console.error(existingError);
+
+      return res.status(500).json({
+        error: "Database error"
+      });
+    }
 
     if (existing) {
       return res.status(409).json({
@@ -122,19 +162,23 @@ app.post("/api/register", async (req, res) => {
       });
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash =
+      await bcrypt.hash(password, 12);
 
-    const { data: user, error } = await supabase
-      .from("users")
-      .insert({
-        username,
-        password_hash: passwordHash
-      })
-      .select("id, username, avatar_url, created_at")
-      .single();
+    const { data: user, error } =
+      await supabase
+        .from("users")
+        .insert({
+          username,
+          password_hash: passwordHash
+        })
+        .select(
+          "id, username, avatar_url, created_at"
+        )
+        .single();
 
     if (error) {
-      console.error(error);
+      console.error("REGISTER:", error);
 
       return res.status(500).json({
         error: "Registration failed"
@@ -150,7 +194,7 @@ app.post("/api/register", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("REGISTER ERROR:", error);
+    console.error(error);
 
     res.status(500).json({
       error: "Registration failed"
@@ -158,29 +202,36 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-/* =========================
+/* =====================================================
    LOGIN
-========================= */
+===================================================== */
 
 app.post("/api/login", async (req, res) => {
   try {
-    const username = String(req.body.username || "")
+    const username = String(
+      req.body.username || ""
+    )
       .trim()
       .toLowerCase();
 
-    const password = String(req.body.password || "");
+    const password = String(
+      req.body.password || ""
+    );
 
-    const { data: user, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("username", username)
-      .maybeSingle();
+    const { data: user, error } =
+      await supabase
+        .from("users")
+        .select(
+          "id, username, password_hash, avatar_url, created_at"
+        )
+        .eq("username", username)
+        .maybeSingle();
 
     if (error) {
-      console.error(error);
+      console.error("LOGIN DB:", error);
 
       return res.status(500).json({
-        error: "Login failed"
+        error: "Database error"
       });
     }
 
@@ -190,10 +241,11 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
-    const valid = await bcrypt.compare(
-      password,
-      user.password_hash
-    );
+    const valid =
+      await bcrypt.compare(
+        password,
+        user.password_hash
+      );
 
     if (!valid) {
       return res.status(401).json({
@@ -208,20 +260,18 @@ app.post("/api/login", async (req, res) => {
       })
       .eq("id", user.id);
 
+    delete user.password_hash;
+
     const token = createToken(user);
 
     res.json({
       message: "Login successful",
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        avatar_url: user.avatar_url
-      }
+      user
     });
 
   } catch (error) {
-    console.error("LOGIN ERROR:", error);
+    console.error(error);
 
     res.status(500).json({
       error: "Login failed"
@@ -229,65 +279,109 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-/* =========================
-   USERS / SEARCH
-========================= */
+/* =====================================================
+   CURRENT USER
+===================================================== */
 
-const onlineUsers = new Map();
-
-app.get("/api/users", auth, async (req, res) => {
-  try {
-    const search = String(
-      req.query.search || ""
-    ).trim().toLowerCase();
-
-    let query = supabase
-      .from("users")
-      .select("id, username, avatar_url, last_seen")
-      .neq("id", req.user.id)
-      .order("username");
-
-    if (search) {
-      query = query.ilike("username", `%${search}%`);
-    }
-
-    const { data, error } = await query;
+app.get(
+  "/api/me",
+  authMiddleware,
+  async (req, res) => {
+    const { data, error } =
+      await supabase
+        .from("users")
+        .select(
+          "id, username, avatar_url, created_at, last_seen"
+        )
+        .eq("id", req.user.id)
+        .single();
 
     if (error) {
-      console.error(error);
-
       return res.status(500).json({
-        error: "Unable to load users"
+        error: "Could not load profile"
       });
     }
 
-    const users = data.map(user => ({
-      ...user,
-      online: onlineUsers.has(String(user.id))
-    }));
-
-    res.json(users);
-
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      error: "Unable to load users"
-    });
+    res.json(data);
   }
-});
+);
 
-/* =========================
+/* =====================================================
+   USER SEARCH
+===================================================== */
+
+app.get(
+  "/api/users",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const search = String(
+        req.query.search || ""
+      )
+        .trim()
+        .toLowerCase();
+
+      let query = supabase
+        .from("users")
+        .select(
+          "id, username, avatar_url, last_seen, created_at"
+        )
+        .neq("id", req.user.id)
+        .order("username", {
+          ascending: true
+        })
+        .limit(100);
+
+      if (search) {
+        query = query.ilike(
+          "username",
+          `%${search}%`
+        );
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error(error);
+
+        return res.status(500).json({
+          error: "Could not load users"
+        });
+      }
+
+      const users = (data || []).map(user => ({
+        ...user,
+        online: onlineUsers.has(
+          String(user.id)
+        )
+      }));
+
+      res.json(users);
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error: "User search failed"
+      });
+    }
+  }
+);
+
+/* =====================================================
    CHAT HISTORY
-========================= */
+===================================================== */
 
 app.get(
   "/api/messages/:userId/:otherUserId",
-  auth,
+  authMiddleware,
   async (req, res) => {
     try {
-      const userId = Number(req.params.userId);
-      const otherUserId = Number(req.params.otherUserId);
+      const userId =
+        Number(req.params.userId);
+
+      const otherUserId =
+        Number(req.params.otherUserId);
 
       if (
         userId !== Number(req.user.id)
@@ -297,33 +391,26 @@ app.get(
         });
       }
 
-      const { data, error } = await supabase
-        .from("messages")
-        .select(`
-          id,
-          sender_id,
-          receiver_id,
-          message,
-          message_type,
-          file_name,
-          file_url,
-          file_size,
-          is_read,
-          is_deleted,
-          created_at
-        `)
-        .or(
-          `and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`
-        )
-        .order("created_at", {
-          ascending: true
-        });
+      const { data, error } =
+        await supabase
+          .from("messages")
+          .select("*")
+          .or(
+            `and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`
+          )
+          .order("created_at", {
+            ascending: true
+          })
+          .limit(500);
 
       if (error) {
-        console.error(error);
+        console.error(
+          "HISTORY:",
+          error
+        );
 
         return res.status(500).json({
-          error: "Unable to load chat history"
+          error: "Could not load chat history"
         });
       }
 
@@ -333,30 +420,34 @@ app.get(
       console.error(error);
 
       res.status(500).json({
-        error: "Unable to load chat history"
+        error: "Chat history failed"
       });
     }
   }
 );
 
-/* =========================
+/* =====================================================
    DELETE MESSAGE
-========================= */
+===================================================== */
 
 app.delete(
   "/api/messages/:id",
-  auth,
+  authMiddleware,
   async (req, res) => {
     try {
-      const messageId = Number(req.params.id);
+      const messageId =
+        Number(req.params.id);
 
-      const { data: message } = await supabase
-        .from("messages")
-        .select("id, sender_id")
-        .eq("id", messageId)
-        .maybeSingle();
+      const { data: message, error } =
+        await supabase
+          .from("messages")
+          .select(
+            "id, sender_id"
+          )
+          .eq("id", messageId)
+          .single();
 
-      if (!message) {
+      if (error || !message) {
         return res.status(404).json({
           error: "Message not found"
         });
@@ -367,30 +458,39 @@ app.delete(
         Number(req.user.id)
       ) {
         return res.status(403).json({
-          error: "You can only delete your own message"
+          error:
+            "You can only delete your own messages"
         });
       }
 
-      const { error } = await supabase
-        .from("messages")
-        .update({
-          is_deleted: true,
-          message: null
-        })
-        .eq("id", messageId);
+      const { error: deleteError } =
+        await supabase
+          .from("messages")
+          .update({
+            is_deleted: true,
+            message: null,
+            file_name: null,
+            file_url: null
+          })
+          .eq("id", messageId);
 
-      if (error) {
+      if (deleteError) {
+        console.error(deleteError);
+
         return res.status(500).json({
-          error: "Delete failed"
+          error: "Could not delete message"
         });
       }
 
-      io.emit("message-deleted", {
-        id: messageId
-      });
+      io.emit(
+        "message-deleted",
+        {
+          id: messageId
+        }
+      );
 
       res.json({
-        message: "Message deleted"
+        success: true
       });
 
     } catch (error) {
@@ -403,13 +503,13 @@ app.delete(
   }
 );
 
-/* =========================
-   FILE UPLOAD
-========================= */
+/* =====================================================
+   FILE UPLOAD → SUPABASE STORAGE
+===================================================== */
 
 app.post(
   "/api/upload",
-  auth,
+  authMiddleware,
   upload.single("file"),
   async (req, res) => {
     try {
@@ -419,88 +519,105 @@ app.post(
         });
       }
 
-      const safeName = req.file.originalname
-        .replace(/[^a-zA-Z0-9._-]/g, "_");
+      const safeName =
+        req.file.originalname
+          .replace(/[^a-zA-Z0-9._-]/g, "_");
 
       const filePath =
         `${req.user.id}/${Date.now()}-${safeName}`;
 
-      const { error } = await supabase.storage
-        .from("chat-files")
-        .upload(
-          filePath,
-          req.file.buffer,
-          {
-            contentType: req.file.mimetype,
-            upsert: false
-          }
-        );
+      const { error } =
+        await supabase.storage
+          .from("chat-files")
+          .upload(
+            filePath,
+            req.file.buffer,
+            {
+              contentType:
+                req.file.mimetype,
+              upsert: false
+            }
+          );
 
       if (error) {
-        console.error("STORAGE ERROR:", error);
+        console.error(
+          "STORAGE:",
+          error
+        );
 
         return res.status(500).json({
-          error: "File upload failed"
+          error:
+            "File upload failed. Check chat-files bucket."
         });
       }
 
-      const { data: signed } =
-        await supabase.storage
+      const { data } =
+        supabase.storage
           .from("chat-files")
-          .createSignedUrl(
-            filePath,
-            60 * 60 * 24 * 7
-          );
+          .getPublicUrl(filePath);
 
       res.json({
-        message: "File uploaded",
+        success: true,
         file: {
-          originalName: req.file.originalname,
+          name: req.file.originalname,
           size: req.file.size,
+          type: req.file.mimetype,
           path: filePath,
-          url: signed?.signedUrl || null
+          url: data.publicUrl
         }
       });
 
     } catch (error) {
-      console.error("UPLOAD ERROR:", error);
+      console.error(error);
 
       res.status(500).json({
-        error: "File upload failed"
+        error: "Upload failed"
       });
     }
   }
 );
 
-/* =========================
+/* =====================================================
    HEALTH
-========================= */
+===================================================== */
 
 app.get("/health", async (req, res) => {
   try {
-    const { error } = await supabase
-      .from("users")
-      .select("id")
-      .limit(1);
+    const { error } =
+      await supabase
+        .from("users")
+        .select("id")
+        .limit(1);
 
     res.json({
       status: "ok",
-      database: error ? "error" : "connected",
+      database:
+        error ? "error" : "connected",
       socket: "enabled",
       storage: "enabled",
       webrtc: "enabled"
     });
 
-  } catch {
+  } catch (error) {
     res.status(500).json({
-      status: "error"
+      status: "error",
+      database: "error",
+      socket: "enabled",
+      storage: "enabled",
+      webrtc: "enabled"
     });
   }
 });
 
-/* =========================
+/* =====================================================
+   ONLINE USERS
+===================================================== */
+
+const onlineUsers = new Map();
+
+/* =====================================================
    SOCKET.IO
-========================= */
+===================================================== */
 
 io.on("connection", socket => {
 
@@ -509,34 +626,54 @@ io.on("connection", socket => {
     socket.id
   );
 
-  socket.on("user-online", async user => {
+  /* ---------------- USER ONLINE ---------------- */
 
-    if (!user?.id) return;
+  socket.on(
+    "user-online",
+    async user => {
 
-    const userId = String(user.id);
+      if (!user || !user.id) {
+        return;
+      }
 
-    onlineUsers.set(userId, {
-      socketId: socket.id,
-      username: user.username
-    });
+      const userId =
+        String(user.id);
 
-    socket.userId = userId;
-    socket.username = user.username;
+      onlineUsers.set(
+        userId,
+        {
+          socketId: socket.id,
+          username: user.username
+        }
+      );
 
-    await supabase
-      .from("users")
-      .update({
-        last_seen: new Date().toISOString()
-      })
-      .eq("id", Number(userId));
+      socket.userId = userId;
+      socket.username =
+        user.username;
 
-    io.emit(
-      "online-users",
-      Array.from(onlineUsers.keys())
-    );
-  });
+      await supabase
+        .from("users")
+        .update({
+          last_seen:
+            new Date().toISOString()
+        })
+        .eq("id", user.id);
 
-  /* PRIVATE MESSAGE */
+      io.emit(
+        "online-users",
+        Array.from(
+          onlineUsers.keys()
+        )
+      );
+
+      console.log(
+        "ONLINE:",
+        user.username
+      );
+    }
+  );
+
+  /* ---------------- PRIVATE MESSAGE ---------------- */
 
   socket.on(
     "private-message",
@@ -551,7 +688,8 @@ io.on("connection", socket => {
           Number(data.receiverId);
 
         const message =
-          String(data.message || "").trim();
+          String(data.message || "")
+            .trim();
 
         if (
           !senderId ||
@@ -561,24 +699,43 @@ io.on("connection", socket => {
           return;
         }
 
-        const { data: saved, error } =
+        if (
+          senderId !==
+          Number(socket.userId)
+        ) {
+          return;
+        }
+
+        const { data: saved,
+          error } =
           await supabase
             .from("messages")
             .insert({
-              sender_id: senderId,
-              receiver_id: receiverId,
+              sender_id:
+                senderId,
+              receiver_id:
+                receiverId,
               message,
               message_type:
-                data.messageType || "text"
+                "text"
             })
-            .select()
+            .select("*")
             .single();
 
         if (error) {
           console.error(
-            "MESSAGE DB ERROR:",
+            "MESSAGE DB:",
             error
           );
+
+          socket.emit(
+            "message-error",
+            {
+              error:
+                "Message could not be saved"
+            }
+          );
+
           return;
         }
 
@@ -588,7 +745,9 @@ io.on("connection", socket => {
           );
 
         if (receiver) {
-          io.to(receiver.socketId).emit(
+          io.to(
+            receiver.socketId
+          ).emit(
             "private-message",
             saved
           );
@@ -608,176 +767,322 @@ io.on("connection", socket => {
     }
   );
 
-  /* TYPING */
+  /* ---------------- TYPING ---------------- */
 
-  socket.on("typing", data => {
+  socket.on(
+    "typing",
+    data => {
 
-    const receiver =
-      onlineUsers.get(
-        String(data.receiverId)
-      );
+      const receiver =
+        onlineUsers.get(
+          String(data.receiverId)
+        );
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
+      if (!receiver) {
+        return;
+      }
+
+      io.to(
+        receiver.socketId
+      ).emit(
         "typing",
         {
-          senderId: data.senderId
+          senderId:
+            socket.userId,
+          typing:
+            Boolean(data.typing)
         }
       );
     }
-  });
+  );
 
-  /* CALL */
+  /* ---------------- READ RECEIPT ---------------- */
 
-  socket.on("start-call", data => {
+  socket.on(
+    "messages-read",
+    async data => {
 
-    const receiver =
-      onlineUsers.get(
-        String(data.receiverId)
-      );
+      const senderId =
+        Number(data.senderId);
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
+      const receiverId =
+        Number(socket.userId);
+
+      await supabase
+        .from("messages")
+        .update({
+          is_read: true
+        })
+        .eq(
+          "sender_id",
+          senderId
+        )
+        .eq(
+          "receiver_id",
+          receiverId
+        )
+        .eq(
+          "is_read",
+          false
+        );
+
+      const sender =
+        onlineUsers.get(
+          String(senderId)
+        );
+
+      if (sender) {
+        io.to(
+          sender.socketId
+        ).emit(
+          "messages-read",
+          {
+            byUserId:
+              receiverId
+          }
+        );
+      }
+    }
+  );
+
+  /* =================================================
+     AUDIO / VIDEO CALL SIGNALING
+  ================================================= */
+
+  socket.on(
+    "start-call",
+    data => {
+
+      const receiver =
+        onlineUsers.get(
+          String(data.receiverId)
+        );
+
+      if (!receiver) {
+        socket.emit(
+          "call-error",
+          {
+            error:
+              "User is offline"
+          }
+        );
+
+        return;
+      }
+
+      io.to(
+        receiver.socketId
+      ).emit(
         "incoming-call",
         {
           ...data,
-          callerSocketId: socket.id
+          callerSocketId:
+            socket.id
         }
       );
     }
-  });
+  );
 
-  socket.on("call-offer", data => {
+  socket.on(
+    "call-offer",
+    data => {
 
-    const receiver =
-      onlineUsers.get(
-        String(data.receiverId)
-      );
+      const receiver =
+        onlineUsers.get(
+          String(data.receiverId)
+        );
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
+      if (!receiver) {
+        return;
+      }
+
+      io.to(
+        receiver.socketId
+      ).emit(
         "call-offer",
         {
           ...data,
-          callerSocketId: socket.id
+          callerSocketId:
+            socket.id
         }
       );
     }
-  });
+  );
 
-  socket.on("call-answer", data => {
+  socket.on(
+    "call-answer",
+    data => {
 
-    const receiver =
-      onlineUsers.get(
-        String(data.receiverId)
-      );
+      const receiver =
+        onlineUsers.get(
+          String(data.receiverId)
+        );
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
+      if (!receiver) {
+        return;
+      }
+
+      io.to(
+        receiver.socketId
+      ).emit(
         "call-answer",
         data
       );
     }
-  });
+  );
 
-  socket.on("ice-candidate", data => {
+  socket.on(
+    "ice-candidate",
+    data => {
 
-    const receiver =
-      onlineUsers.get(
-        String(data.receiverId)
-      );
+      const receiver =
+        onlineUsers.get(
+          String(data.receiverId)
+        );
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
+      if (!receiver) {
+        return;
+      }
+
+      io.to(
+        receiver.socketId
+      ).emit(
         "ice-candidate",
         data
       );
     }
-  });
+  );
 
-  socket.on("end-call", data => {
+  /* ---------------- END CALL ---------------- */
 
-    const receiver =
-      onlineUsers.get(
-        String(data.receiverId)
-      );
+  socket.on(
+    "end-call",
+    data => {
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
+      const receiver =
+        onlineUsers.get(
+          String(data.receiverId)
+        );
+
+      if (!receiver) {
+        return;
+      }
+
+      io.to(
+        receiver.socketId
+      ).emit(
         "end-call",
         data
       );
     }
-  });
+  );
 
-  socket.on("screen-share", data => {
+  /* ---------------- SCREEN SHARE ---------------- */
 
-    const receiver =
-      onlineUsers.get(
-        String(data.receiverId)
-      );
+  socket.on(
+    "screen-share",
+    data => {
 
-    if (receiver) {
-      io.to(receiver.socketId).emit(
+      const receiver =
+        onlineUsers.get(
+          String(data.receiverId)
+        );
+
+      if (!receiver) {
+        return;
+      }
+
+      io.to(
+        receiver.socketId
+      ).emit(
         "screen-share",
         data
       );
     }
-  });
-
-  /* DISCONNECT */
-
-  socket.on("disconnect", async () => {
-
-    if (socket.userId) {
-
-      onlineUsers.delete(
-        socket.userId
-      );
-
-      await supabase
-        .from("users")
-        .update({
-          last_seen:
-            new Date().toISOString()
-        })
-        .eq(
-          "id",
-          Number(socket.userId)
-        );
-    }
-
-    io.emit(
-      "online-users",
-      Array.from(onlineUsers.keys())
-    );
-
-    console.log(
-      "Socket disconnected:",
-      socket.id
-    );
-  });
-});
-
-/* =========================
-   FRONTEND FALLBACK
-========================= */
-
-app.use((req, res) => {
-
-  res.sendFile(
-    path.join(
-      __dirname,
-      "public",
-      "index.html"
-    )
   );
 
+  /* ---------------- CALL TRANSFER ---------------- */
+
+  socket.on(
+    "call-transfer",
+    data => {
+
+      const receiver =
+        onlineUsers.get(
+          String(data.newReceiverId)
+        );
+
+      if (!receiver) {
+        return;
+      }
+
+      io.to(
+        receiver.socketId
+      ).emit(
+        "call-transfer",
+        data
+      );
+    }
+  );
+
+  /* ---------------- DISCONNECT ---------------- */
+
+  socket.on(
+    "disconnect",
+    async () => {
+
+      if (socket.userId) {
+
+        onlineUsers.delete(
+          socket.userId
+        );
+
+        await supabase
+          .from("users")
+          .update({
+            last_seen:
+              new Date().toISOString()
+          })
+          .eq(
+            "id",
+            Number(socket.userId)
+          );
+      }
+
+      io.emit(
+        "online-users",
+        Array.from(
+          onlineUsers.keys()
+        )
+      );
+
+      console.log(
+        "Socket disconnected:",
+        socket.id
+      );
+    }
+  );
 });
 
-/* =========================
-   START
-========================= */
+/* =====================================================
+   SPA FALLBACK
+===================================================== */
+
+app.use(
+  (req, res) => {
+    res.sendFile(
+      path.join(
+        __dirname,
+        "public",
+        "index.html"
+      )
+    );
+  }
+);
+
+/* =====================================================
+   START SERVER
+===================================================== */
 
 server.listen(
   PORT,
