@@ -1,211 +1,291 @@
-async function login() {
-  const username = document.getElementById("loginUsername").value.trim();
-  const password = document.getElementById("loginPassword").value;
+/* =========================================================
+   RealTimeChat - FULL FRONTEND JAVASCRIPT
+   Works with the upgraded Supabase + Socket.IO server
+========================================================= */
 
-  if (!username || !password) {
-    showAuthMessage("Username and password required", true);
-    return;
-  }
+let socket = null;
 
-  try {
-    const response = await fetch("/api/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        username: username,
-        password: password
-      })
-    });
+let currentUser = null;
+let selectedUser = null;
 
-    const data = await response.json();
+let allUsers = [];
+let onlineUserIds = [];
 
-    if (!response.ok) {
-      showAuthMessage(data.error || "Login failed", true);
-      return;
+let localStream = null;
+let peerConnection = null;
+
+let incomingCallData = null;
+let pendingCallType = "audio";
+
+let isMuted = false;
+let isCameraOff = false;
+
+const rtcConfig = {
+  iceServers: [
+    {
+      urls: "stun:stun.l.google.com:19302"
     }
+  ]
+};
 
-    localStorage.setItem("movieToken", data.token);
-    localStorage.setItem("currentUser", JSON.stringify(data.user));
 
-    currentUser = data.user;
+/* =========================================================
+   AUTH HELPERS
+========================================================= */
 
-    showAuthMessage("Login successful!", false);
-    showApp();
-
-  } catch (error) {
-    console.error("Login error:", error);
-    showAuthMessage("Server connection failed", true);
-  }
+function getToken() {
+  return localStorage.getItem("rtc_token");
 }
 
-/* CREATE ACCOUNT */
+
+function authHeaders(extra = {}) {
+  const token = getToken();
+
+  return {
+    ...extra,
+    ...(token
+      ? {
+          Authorization: "Bearer " + token
+        }
+      : {})
+  };
+}
+
+
+function showAuthMessage(message, success = false) {
+  const box = document.getElementById("authMessage");
+
+  if (!box) return;
+
+  box.textContent = message;
+
+  box.style.color = success
+    ? "#22c55e"
+    : "#ef4444";
+}
+
+
+function clearAuth() {
+  document.getElementById(
+    "loginUsername"
+  ).value = "";
+
+  document.getElementById(
+    "loginPassword"
+  ).value = "";
+
+  document.getElementById(
+    "registerUsername"
+  ).value = "";
+
+  document.getElementById(
+    "registerPassword"
+  ).value = "";
+
+  showAuthMessage("");
+}
+
+
+/* =========================================================
+   REGISTER
+========================================================= */
 
 async function register() {
-
   const username =
-    document.getElementById("registerUsername").value.trim();
+    document.getElementById(
+      "registerUsername"
+    ).value.trim();
 
   const password =
-    document.getElementById("registerPassword").value;
+    document.getElementById(
+      "registerPassword"
+    ).value;
 
-  if (!username) {
+  if (!username || !password) {
     showAuthMessage(
-      "Please enter username.",
-      true
+      "Enter username and password"
     );
     return;
   }
 
-  if (!password) {
+  if (username.length < 3) {
     showAuthMessage(
-      "Please enter password.",
-      true
+      "Username must be at least 3 characters"
     );
     return;
   }
 
   if (password.length < 6) {
     showAuthMessage(
-      "Password must be at least 6 characters.",
-      true
+      "Password must be at least 6 characters"
     );
     return;
   }
 
-  showAuthMessage(
-    "Creating account...",
-    false
-  );
-
   try {
-
-    const data = await api(
-      "/api/register",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          username: username,
-          password: password
-        })
-      }
+    showAuthMessage(
+      "Creating account..."
     );
 
-    token = data.token;
+    const response =
+      await fetch("/api/register", {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+          username,
+          password
+        })
+      });
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      showAuthMessage(
+        data.error ||
+        "Registration failed"
+      );
+      return;
+    }
+
+    /*
+      Save token + user
+    */
 
     localStorage.setItem(
-      "movieToken",
-      token
+      "rtc_token",
+      data.token
+    );
+
+    localStorage.setItem(
+      "rtc_user",
+      JSON.stringify(data.user)
     );
 
     currentUser = data.user;
 
     showAuthMessage(
       "Account created successfully!",
-      false
+      true
     );
 
-    setTimeout(function () {
-      showApp();
+    /*
+      Open app automatically
+    */
+
+    setTimeout(() => {
+      openApp();
     }, 500);
 
   } catch (error) {
+    console.error(
+      "REGISTER ERROR:",
+      error
+    );
 
     showAuthMessage(
-      error.message ||
-      "Account creation failed.",
-      true
+      "Server connection failed"
     );
   }
 }
 
 
-/* LOGIN */
+/* =========================================================
+   LOGIN
+========================================================= */
 
 async function login() {
-
   const username =
-    document.getElementById("loginUsername").value.trim();
+    document.getElementById(
+      "loginUsername"
+    ).value.trim();
 
   const password =
-    document.getElementById("loginPassword").value;
+    document.getElementById(
+      "loginPassword"
+    ).value;
 
   if (!username || !password) {
-
     showAuthMessage(
-      "Please enter username and password.",
-      true
+      "Enter username and password"
     );
-
     return;
   }
 
-  showAuthMessage(
-    "Logging in...",
-    false
-  );
-
   try {
-
-    const data = await api(
-      "/api/login",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          username: username,
-          password: password
-        })
-      }
+    showAuthMessage(
+      "Logging in..."
     );
 
-    token = data.token;
+    const response =
+      await fetch("/api/login", {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+          username,
+          password
+        })
+      });
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      showAuthMessage(
+        data.error ||
+        "Login failed"
+      );
+      return;
+    }
+
+    /*
+      IMPORTANT:
+      New backend returns JWT token
+    */
 
     localStorage.setItem(
-      "movieToken",
-      token
+      "rtc_token",
+      data.token
+    );
+
+    localStorage.setItem(
+      "rtc_user",
+      JSON.stringify(data.user)
     );
 
     currentUser = data.user;
 
-    showApp();
+    openApp();
 
   } catch (error) {
+    console.error(
+      "LOGIN ERROR:",
+      error
+    );
 
     showAuthMessage(
-      error.message ||
-      "Login failed.",
-      true
+      "Server connection failed"
     );
   }
 }
 
 
-/* SESSION */
+/* =========================================================
+   OPEN APP
+========================================================= */
 
-async function checkSession() {
-
-  if (!token) {
-    return;
-  }
-
-  try {
-
-    currentUser =
-      await api("/api/me");
-
-    showApp();
-
-  } catch (error) {
-
-    logout();
-  }
-}
-
-
-/* SHOW APP */
-
-function showApp() {
+function openApp() {
+  if (!currentUser) return;
 
   document
     .getElementById("authScreen")
@@ -216,342 +296,2016 @@ function showApp() {
     .classList.remove("hidden");
 
   document
-    .getElementById("logoutBtn")
-    .classList.remove("hidden");
+    .getElementById("profileName")
+    .textContent =
+    currentUser.username;
 
   document
-    .getElementById("userStatus")
+    .getElementById("profileId")
     .textContent =
-      currentUser.username +
-      (currentUser.isPremium
-        ? " ⭐ Premium"
-        : "");
+    "ID: " + currentUser.id;
 
-  if (currentUser.isAdmin) {
+  connectSocket();
 
-    document
-      .getElementById("adminTab")
-      .classList.remove("hidden");
-  }
-
-  loadMovies();
+  loadUsers();
 }
 
 
-/* LOGOUT */
+/* =========================================================
+   SOCKET CONNECTION
+========================================================= */
 
-function logout() {
+function connectSocket() {
+  if (socket) return;
 
-  localStorage.removeItem(
-    "movieToken"
+  socket = io({
+    transports: [
+      "websocket",
+      "polling"
+    ]
+  });
+
+
+  /* ---------------- CONNECT ---------------- */
+
+  socket.on(
+    "connect",
+    () => {
+      console.log(
+        "Socket connected:",
+        socket.id
+      );
+
+      socket.emit(
+        "user-online",
+        currentUser
+      );
+    }
   );
 
-  token = null;
-  currentUser = null;
 
-  location.reload();
+  /* ---------------- ONLINE USERS ---------------- */
+
+  socket.on(
+    "online-users",
+    ids => {
+      onlineUserIds =
+        ids.map(String);
+
+      renderUsers();
+    }
+  );
+
+
+  /* ---------------- PRIVATE MESSAGE ---------------- */
+
+  socket.on(
+    "private-message",
+    message => {
+      handleIncomingMessage(
+        message
+      );
+    }
+  );
+
+
+  /* ---------------- MESSAGE ERROR ---------------- */
+
+  socket.on(
+    "message-error",
+    data => {
+      alert(
+        data.error ||
+        "Message failed"
+      );
+    }
+  );
+
+
+  /* ---------------- MESSAGE DELETED ---------------- */
+
+  socket.on(
+    "message-deleted",
+    data => {
+      loadChatHistory();
+    }
+  );
+
+
+  /* ---------------- TYPING ---------------- */
+
+  socket.on(
+    "typing",
+    data => {
+      if (
+        selectedUser &&
+        Number(data.senderId) ===
+          Number(selectedUser.id)
+      ) {
+        showTyping(
+          data.typing
+        );
+      }
+    }
+  );
+
+
+  /* ---------------- READ RECEIPT ---------------- */
+
+  socket.on(
+    "messages-read",
+    data => {
+      updateReadStatus();
+    }
+  );
+
+
+  /* ---------------- INCOMING CALL ---------------- */
+
+  socket.on(
+    "incoming-call",
+    data => {
+      incomingCallData = data;
+
+      pendingCallType =
+        data.callType ||
+        "audio";
+
+      const callerName =
+        data.callerName ||
+        "Someone";
+
+      const callerText =
+        document.getElementById(
+          "callerText"
+        );
+
+      if (callerText) {
+        callerText.textContent =
+          callerName +
+          " is calling you (" +
+          pendingCallType +
+          ")";
+      }
+
+      document
+        .getElementById(
+          "incomingCall"
+        )
+        .classList.remove(
+          "hidden"
+        );
+    }
+  );
+
+
+  /* ---------------- CALL OFFER ---------------- */
+
+  socket.on(
+    "call-offer",
+    async data => {
+      incomingCallData = {
+        ...incomingCallData,
+        ...data
+      };
+
+      pendingCallType =
+        data.callType ||
+        pendingCallType ||
+        "audio";
+    }
+  );
+
+
+  /* ---------------- CALL ANSWER ---------------- */
+
+  socket.on(
+    "call-answer",
+    async data => {
+      try {
+        if (!peerConnection) {
+          return;
+        }
+
+        await peerConnection
+          .setRemoteDescription(
+            new RTCSessionDescription(
+              data.answer
+            )
+          );
+
+      } catch (error) {
+        console.error(
+          "CALL ANSWER ERROR:",
+          error
+        );
+      }
+    }
+  );
+
+
+  /* ---------------- ICE ---------------- */
+
+  socket.on(
+    "ice-candidate",
+    async data => {
+      try {
+        if (
+          peerConnection &&
+          data.candidate
+        ) {
+          await peerConnection
+            .addIceCandidate(
+              new RTCIceCandidate(
+                data.candidate
+              )
+            );
+        }
+      } catch (error) {
+        console.error(
+          "ICE ERROR:",
+          error
+        );
+      }
+    }
+  );
+
+
+  /* ---------------- END CALL ---------------- */
+
+  socket.on(
+    "end-call",
+    () => {
+      closeCall();
+    }
+  );
+
+
+  /* ---------------- CALL ERROR ---------------- */
+
+  socket.on(
+    "call-error",
+    data => {
+      alert(
+        data.error ||
+        "Call failed"
+      );
+    }
+  );
+
+
+  /* ---------------- DISCONNECT ---------------- */
+
+  socket.on(
+    "disconnect",
+    () => {
+      console.log(
+        "Socket disconnected"
+      );
+    }
+  );
 }
 
 
-/* MOVIES */
+/* =========================================================
+   LOAD USERS
+========================================================= */
 
-async function loadMovies() {
-
+async function loadUsers() {
   try {
+    const response =
+      await fetch(
+        "/api/users",
+        {
+          headers:
+            authHeaders()
+        }
+      );
 
-    allMovies =
-      await api("/api/movies");
+    if (
+      response.status === 401
+    ) {
+      logout();
+      return;
+    }
 
-    renderMovies(allMovies);
+    const users =
+      await response.json();
+
+    if (!Array.isArray(users)) {
+      return;
+    }
+
+    allUsers = users;
+
+    renderUsers();
 
   } catch (error) {
+    console.error(
+      "LOAD USERS ERROR:",
+      error
+    );
+  }
+}
 
+
+/* =========================================================
+   RENDER USERS
+========================================================= */
+
+function renderUsers() {
+  const list =
     document.getElementById(
-      "movies"
-    ).innerHTML =
-      '<div class="message error">' +
-      escapeHtml(error.message) +
-      '</div>';
-  }
-}
-
-
-/* RENDER MOVIES */
-
-function renderMovies(movies) {
-
-  const container =
-    document.getElementById("movies");
-
-  if (!movies.length) {
-
-    container.innerHTML =
-      '<div class="section">' +
-      'No movies available yet.' +
-      '</div>';
-
-    return;
-  }
-
-  container.innerHTML =
-    movies.map(function (movie) {
-
-      const image =
-        movie.thumbnail_url ||
-        "https://via.placeholder.com/600x350?text=Movie";
-
-      const type =
-        movie.is_premium
-          ? '<span class="premium">⭐ PREMIUM</span>'
-          : '<span class="free">FREE</span>';
-
-      return `
-        <div class="movie">
-
-          <img
-            src="${escapeAttribute(image)}"
-            alt="${escapeAttribute(movie.title)}"
-          >
-
-          <div class="movie-content">
-
-            <h3>
-              ${escapeHtml(movie.title)}
-            </h3>
-
-            <p>
-              ${escapeHtml(
-                movie.description || ""
-              )}
-            </p>
-
-            <p>${type}</p>
-
-            <button
-              class="primary"
-              onclick="watchMovie(${movie.id})"
-            >
-              ▶ Watch
-            </button>
-
-          </div>
-
-        </div>
-      `;
-
-    }).join("");
-}
-
-
-/* WATCH */
-
-async function watchMovie(id) {
-
-  try {
-
-    const movie =
-      await api(
-        "/api/movies/" + id + "/watch"
-      );
-
-    document
-      .getElementById("player")
-      .classList.remove("hidden");
-
-    document
-      .getElementById("playerTitle")
-      .textContent =
-      movie.title;
-
-    const player =
-      document.getElementById(
-        "videoPlayer"
-      );
-
-    player.src =
-      movie.videoUrl;
-
-    player.play().catch(
-      function () {}
+      "usersList"
     );
 
-  } catch (error) {
+  if (!list) return;
 
-    alert(error.message);
-  }
+  list.innerHTML = "";
+
+  allUsers.forEach(user => {
+
+    if (
+      currentUser &&
+      Number(user.id) ===
+        Number(currentUser.id)
+    ) {
+      return;
+    }
+
+    const div =
+      document.createElement(
+        "div"
+      );
+
+    div.className =
+      "userItem";
+
+    const online =
+      onlineUserIds.includes(
+        String(user.id)
+      );
+
+    const dotClass =
+      online
+        ? "onlineDot"
+        : "offlineDot";
+
+    div.innerHTML = `
+      <span class="${dotClass}"></span>
+      <strong>${escapeHtml(
+        user.username
+      )}</strong>
+
+      <small style="
+        display:block;
+        color:#777;
+        margin-top:4px;
+      ">
+        ID: ${user.id}
+        ${online ? " • Online" : " • Offline"}
+      </small>
+    `;
+
+    div.onclick = () => {
+      selectUser(user);
+    };
+
+    list.appendChild(div);
+  });
 }
 
 
-/* SEARCH */
+/* =========================================================
+   SELECT USER
+========================================================= */
 
-function filterMovies() {
+async function selectUser(user) {
+  selectedUser = user;
 
-  const query =
-    document
-      .getElementById("searchBox")
-      .value
-      .toLowerCase();
+  document.getElementById(
+    "chatUserName"
+  ).textContent =
+    user.username;
 
-  const filtered =
-    allMovies.filter(function (movie) {
+  const online =
+    onlineUserIds.includes(
+      String(user.id)
+    );
 
-      return movie.title
-        .toLowerCase()
-        .includes(query);
+  document.getElementById(
+    "chatUserStatus"
+  ).textContent =
+    online
+      ? "Online"
+      : "Offline";
 
-    });
-
-  renderMovies(filtered);
+  await loadChatHistory();
 }
 
 
-/* ADMIN */
+/* =========================================================
+   CONNECT USER BY ID
+========================================================= */
 
-function showAdmin() {
+async function connectUser() {
+  const input =
+    document.getElementById(
+      "connectUserId"
+    );
 
-  if (!currentUser ||
-      !currentUser.isAdmin) {
+  const id =
+    Number(input.value);
+
+  if (!id) {
+    alert(
+      "Enter a valid User ID"
+    );
     return;
   }
 
-  document
-    .getElementById("homeSection")
-    .classList.add("hidden");
+  const user =
+    allUsers.find(
+      u =>
+        Number(u.id) === id
+    );
 
-  document
-    .getElementById("adminSection")
-    .classList.remove("hidden");
-}
-
-
-function showHome() {
-
-  document
-    .getElementById("adminSection")
-    .classList.add("hidden");
-
-  document
-    .getElementById("homeSection")
-    .classList.remove("hidden");
-}
-
-
-/* ADD MOVIE */
-
-async function addMovie() {
-
-  const title =
-    document.getElementById(
-      "movieTitle"
-    ).value;
-
-  const videoUrl =
-    document.getElementById(
-      "movieUrl"
-    ).value;
-
-  const thumbnailUrl =
-    document.getElementById(
-      "thumbnailUrl"
-    ).value;
-
-  const description =
-    document.getElementById(
-      "movieDescription"
-    ).value;
-
-  const isPremium =
-    document.getElementById(
-      "moviePremium"
-    ).checked;
+  if (user) {
+    await selectUser(user);
+    input.value = "";
+    return;
+  }
 
   try {
+    const response =
+      await fetch(
+        "/api/users",
+        {
+          headers:
+            authHeaders()
+        }
+      );
 
-    await api(
-      "/api/admin/movies",
-      {
-        method: "POST",
+    const users =
+      await response.json();
 
-        body: JSON.stringify({
-          title: title,
-          videoUrl: videoUrl,
-          thumbnailUrl: thumbnailUrl,
-          description: description,
-          isPremium: isPremium
-        })
+    const found =
+      users.find(
+        u =>
+          Number(u.id) === id
+      );
+
+    if (!found) {
+      alert(
+        "User not found"
+      );
+      return;
+    }
+
+    allUsers = users;
+
+    await selectUser(found);
+
+    input.value = "";
+
+    renderUsers();
+
+  } catch (error) {
+    console.error(error);
+
+    alert(
+      "Could not find user"
+    );
+  }
+}
+
+
+/* =========================================================
+   CHAT HISTORY
+========================================================= */
+
+async function loadChatHistory() {
+  if (
+    !currentUser ||
+    !selectedUser
+  ) {
+    return;
+  }
+
+  const container =
+    document.getElementById(
+      "messages"
+    );
+
+  container.innerHTML = `
+    <div class="emptyChat">
+      Loading messages...
+    </div>
+  `;
+
+  try {
+    const response =
+      await fetch(
+        `/api/messages/${currentUser.id}/${selectedUser.id}`,
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if (
+      response.status === 401
+    ) {
+      logout();
+      return;
+    }
+
+    const messages =
+      await response.json();
+
+    container.innerHTML = "";
+
+    if (
+      !Array.isArray(messages) ||
+      messages.length === 0
+    ) {
+      container.innerHTML = `
+        <div class="emptyChat">
+          No messages yet.<br>
+          Start the conversation!
+        </div>
+      `;
+      return;
+    }
+
+    messages.forEach(
+      message => {
+        displayMessage(
+          message,
+          false
+        );
       }
     );
 
-    showAdminMessage(
-      "Movie added successfully.",
-      false
-    );
+    scrollMessages();
 
-    loadMovies();
+    /*
+      Mark received messages read
+    */
+
+    if (socket) {
+      socket.emit(
+        "messages-read",
+        {
+          senderId:
+            selectedUser.id
+        }
+      );
+    }
 
   } catch (error) {
+    console.error(
+      "HISTORY ERROR:",
+      error
+    );
 
-    showAdminMessage(
-      error.message,
-      true
+    container.innerHTML = `
+      <div class="emptyChat">
+        Could not load messages.
+      </div>
+    `;
+  }
+}
+
+
+/* =========================================================
+   SEND MESSAGE
+========================================================= */
+
+function sendMessage() {
+  const input =
+    document.getElementById(
+      "messageInput"
+    );
+
+  const message =
+    input.value.trim();
+
+  if (!message) {
+    return;
+  }
+
+  if (!selectedUser) {
+    alert(
+      "Select a user first"
+    );
+    return;
+  }
+
+  if (!socket) {
+    alert(
+      "Socket is not connected"
+    );
+    return;
+  }
+
+  socket.emit(
+    "private-message",
+    {
+      senderId:
+        currentUser.id,
+
+      receiverId:
+        selectedUser.id,
+
+      message
+    }
+  );
+
+  input.value = "";
+
+  stopTyping();
+}
+
+
+/* =========================================================
+   ENTER TO SEND
+========================================================= */
+
+function handleMessageKey(event) {
+  if (
+    event.key === "Enter" &&
+    !event.shiftKey
+  ) {
+    event.preventDefault();
+
+    sendMessage();
+  }
+}
+
+
+/* =========================================================
+   MESSAGE RECEIVED
+========================================================= */
+
+function handleIncomingMessage(
+  message
+) {
+  /*
+    Only display in current conversation
+  */
+
+  if (
+    !selectedUser
+  ) {
+    return;
+  }
+
+  const senderId =
+    Number(message.sender_id);
+
+  const receiverId =
+    Number(message.receiver_id);
+
+  const myId =
+    Number(currentUser.id);
+
+  const selectedId =
+    Number(selectedUser.id);
+
+  const belongsToChat =
+    (
+      senderId === myId &&
+      receiverId === selectedId
+    ) ||
+    (
+      senderId === selectedId &&
+      receiverId === myId
+    );
+
+  if (!belongsToChat) {
+    /*
+      Message belongs to another chat.
+      Refresh users for future notification UI.
+    */
+
+    return;
+  }
+
+  displayMessage(
+    message,
+    true
+  );
+
+  if (
+    senderId !== myId &&
+    socket
+  ) {
+    socket.emit(
+      "messages-read",
+      {
+        senderId
+      }
     );
   }
 }
 
 
-/* MESSAGES */
+/* =========================================================
+   DISPLAY MESSAGE
+========================================================= */
 
-function showAuthMessage(
+function displayMessage(
   message,
-  error
+  animate = true
 ) {
+  const container =
+    document.getElementById(
+      "messages"
+    );
+
+  if (!container) {
+    return;
+  }
+
+  const empty =
+    container.querySelector(
+      ".emptyChat"
+    );
+
+  if (empty) {
+    empty.remove();
+  }
+
+  const div =
+    document.createElement(
+      "div"
+    );
+
+  const mine =
+    Number(message.sender_id) ===
+    Number(currentUser.id);
+
+  div.className =
+    "message " +
+    (
+      mine
+        ? "mine"
+        : "theirs"
+    );
+
+  if (message.is_deleted) {
+    div.innerHTML = `
+      <div style="opacity:.6;">
+        Message deleted
+      </div>
+    `;
+  } else {
+
+    let body = "";
+
+    /*
+      FILE MESSAGE
+    */
+
+    if (
+      message.message_type ===
+        "file" &&
+      message.file_url
+    ) {
+      body = `
+        <a
+          href="${escapeAttribute(
+            message.file_url
+          )}"
+          target="_blank"
+          rel="noopener"
+          style="
+            color:white;
+            text-decoration:underline;
+          "
+        >
+          📎 ${escapeHtml(
+            message.file_name ||
+            "File"
+          )}
+        </a>
+      `;
+    } else {
+
+      const safeMessage =
+        escapeHtml(
+          message.message || ""
+        );
+
+      /*
+        Preserve line breaks
+      */
+
+      body = `
+        <div style="
+          white-space:pre-wrap;
+        ">
+          ${safeMessage}
+        </div>
+      `;
+    }
+
+    const time =
+      message.created_at
+        ? new Date(
+            message.created_at
+          ).toLocaleTimeString(
+            [],
+            {
+              hour: "2-digit",
+              minute: "2-digit"
+            }
+          )
+        : "";
+
+    const readMark =
+      mine
+        ? (
+            message.is_read
+              ? " ✓✓"
+              : " ✓"
+          )
+        : "";
+
+    div.innerHTML = `
+      ${body}
+
+      <div class="messageTime">
+        ${time}
+        <span class="readMark">
+          ${readMark}
+        </span>
+      </div>
+    `;
+  }
+
+  container.appendChild(div);
+
+  scrollMessages();
+}
+
+
+/* =========================================================
+   SCROLL CHAT
+========================================================= */
+
+function scrollMessages() {
+  const container =
+    document.getElementById(
+      "messages"
+    );
+
+  if (!container) return;
+
+  setTimeout(() => {
+    container.scrollTop =
+      container.scrollHeight;
+  }, 20);
+}
+
+
+/* =========================================================
+   READ STATUS
+========================================================= */
+
+function updateReadStatus() {
+  document
+    .querySelectorAll(
+      ".readMark"
+    )
+    .forEach(mark => {
+      mark.textContent =
+        " ✓✓";
+    });
+}
+
+
+/* =========================================================
+   TYPING
+========================================================= */
+
+let typingTimer = null;
+let currentlyTyping = false;
+
+
+function startTyping() {
+  if (
+    !socket ||
+    !selectedUser
+  ) {
+    return;
+  }
+
+  if (!currentlyTyping) {
+    currentlyTyping = true;
+
+    socket.emit(
+      "typing",
+      {
+        receiverId:
+          selectedUser.id,
+
+        typing: true
+      }
+    );
+  }
+
+  clearTimeout(
+    typingTimer
+  );
+
+  typingTimer =
+    setTimeout(
+      stopTyping,
+      1200
+    );
+}
+
+
+function stopTyping() {
+  clearTimeout(
+    typingTimer
+  );
+
+  if (
+    !currentlyTyping ||
+    !socket ||
+    !selectedUser
+  ) {
+    return;
+  }
+
+  currentlyTyping = false;
+
+  socket.emit(
+    "typing",
+    {
+      receiverId:
+        selectedUser.id,
+
+      typing: false
+    }
+  );
+}
+
+
+function showTyping(
+  typing
+) {
+  const status =
+    document.getElementById(
+      "chatUserStatus"
+    );
+
+  if (!status) return;
+
+  if (typing) {
+    status.textContent =
+      "typing...";
+  } else {
+
+    const online =
+      onlineUserIds.includes(
+        String(
+          selectedUser?.id
+        )
+      );
+
+    status.textContent =
+      online
+        ? "Online"
+        : "Offline";
+  }
+}
+
+
+/* =========================================================
+   MESSAGE INPUT TYPING EVENT
+========================================================= */
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+
+    const input =
+      document.getElementById(
+        "messageInput"
+      );
+
+    if (input) {
+
+      input.addEventListener(
+        "input",
+        () => {
+          startTyping();
+        }
+      );
+    }
+  }
+);
+
+
+/* =========================================================
+   FILE UPLOAD
+========================================================= */
+
+async function uploadFile() {
+  const input =
+    document.getElementById(
+      "fileInput"
+    );
+
+  const file =
+    input.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  if (!selectedUser) {
+    alert(
+      "Select a user first"
+    );
+
+    input.value = "";
+    return;
+  }
+
+  /*
+    100 MB frontend limit
+  */
+
+  if (
+    file.size >
+    100 * 1024 * 1024
+  ) {
+    alert(
+      "File must be smaller than 100 MB."
+    );
+
+    input.value = "";
+    return;
+  }
+
+  try {
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      file
+    );
+
+    const response =
+      await fetch(
+        "/api/upload",
+        {
+          method: "POST",
+
+          headers:
+            authHeaders(),
+
+          body: formData
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!response.ok) {
+      alert(
+        data.error ||
+        "Upload failed"
+      );
+
+      return;
+    }
+
+    /*
+      Send uploaded file
+      through Socket.IO.
+    */
+
+    socket.emit(
+      "private-message",
+      {
+        senderId:
+          currentUser.id,
+
+        receiverId:
+          selectedUser.id,
+
+        message:
+          "📎 " +
+          data.file.name,
+
+        messageType:
+          "file",
+
+        fileName:
+          data.file.name,
+
+        fileUrl:
+          data.file.url,
+
+        fileSize:
+          data.file.size
+      }
+    );
+
+  } catch (error) {
+    console.error(
+      "UPLOAD ERROR:",
+      error
+    );
+
+    alert(
+      "File upload failed"
+    );
+
+  } finally {
+    input.value = "";
+  }
+}
+
+
+/* =========================================================
+   AUDIO CALL
+========================================================= */
+
+async function startAudioCall() {
+  await startCall(
+    "audio"
+  );
+}
+
+
+/* =========================================================
+   VIDEO CALL
+========================================================= */
+
+async function startVideoCall() {
+  await startCall(
+    "video"
+  );
+}
+
+
+/* =========================================================
+   START CALL
+========================================================= */
+
+async function startCall(
+  callType
+) {
+  if (!selectedUser) {
+    alert(
+      "Select a user first"
+    );
+    return;
+  }
+
+  if (!socket) {
+    alert(
+      "Socket is not connected"
+    );
+    return;
+  }
+
+  try {
+
+    pendingCallType =
+      callType;
+
+    localStream =
+      await navigator.mediaDevices
+        .getUserMedia({
+          audio: true,
+          video:
+            callType === "video"
+        });
+
+    showLocalStream();
+
+    peerConnection =
+      createPeerConnection(
+        selectedUser.id
+      );
+
+    localStream
+      .getTracks()
+      .forEach(track => {
+
+        peerConnection.addTrack(
+          track,
+          localStream
+        );
+
+      });
+
+    const offer =
+      await peerConnection
+        .createOffer();
+
+    await peerConnection
+      .setLocalDescription(
+        offer
+      );
+
+    socket.emit(
+      "start-call",
+      {
+        receiverId:
+          selectedUser.id,
+
+        callerId:
+          currentUser.id,
+
+        callerName:
+          currentUser.username,
+
+        callType
+      }
+    );
+
+    socket.emit(
+      "call-offer",
+      {
+        receiverId:
+          selectedUser.id,
+
+        callerId:
+          currentUser.id,
+
+        callerName:
+          currentUser.username,
+
+        callType,
+
+        offer
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "START CALL ERROR:",
+      error
+    );
+
+    alert(
+      "Microphone/camera permission is required."
+    );
+
+    closeCall();
+  }
+}
+
+
+/* =========================================================
+   CREATE WEBRTC CONNECTION
+========================================================= */
+
+function createPeerConnection(
+  remoteUserId
+) {
+  const pc =
+    new RTCPeerConnection(
+      rtcConfig
+    );
+
+  pc.onicecandidate =
+    event => {
+
+      if (
+        event.candidate &&
+        socket
+      ) {
+
+        socket.emit(
+          "ice-candidate",
+          {
+            receiverId:
+              remoteUserId,
+
+            candidate:
+              event.candidate
+          }
+        );
+      }
+    };
+
+
+  pc.ontrack =
+    event => {
+
+      const remoteVideo =
+        document.getElementById(
+          "remoteVideo"
+        );
+
+      if (
+        remoteVideo &&
+        event.streams[0]
+      ) {
+        remoteVideo.srcObject =
+          event.streams[0];
+      }
+    };
+
+
+  pc.onconnectionstatechange =
+    () => {
+
+      console.log(
+        "WebRTC state:",
+        pc.connectionState
+      );
+
+      if (
+        pc.connectionState ===
+          "failed" ||
+        pc.connectionState ===
+          "closed"
+      ) {
+        closeCall();
+      }
+    };
+
+
+  return pc;
+}
+
+
+/* =========================================================
+   ACCEPT CALL
+========================================================= */
+
+async function acceptCall() {
+  document
+    .getElementById(
+      "incomingCall"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  if (!incomingCallData) {
+    return;
+  }
+
+  const data =
+    incomingCallData;
+
+  const callerId =
+    data.callerId;
+
+  selectedUser = {
+    id: callerId,
+
+    username:
+      data.callerName ||
+      "Caller"
+  };
 
   document.getElementById(
-    "authMessage"
-  ).innerHTML =
-    '<div class="message ' +
-    (error ? "error" : "success") +
-    '">' +
-    escapeHtml(message) +
-    '</div>';
+    "chatUserName"
+  ).textContent =
+    selectedUser.username;
+
+  pendingCallType =
+    data.callType ||
+    "audio";
+
+  try {
+
+    localStream =
+      await navigator.mediaDevices
+        .getUserMedia({
+          audio: true,
+
+          video:
+            pendingCallType ===
+            "video"
+        });
+
+    showLocalStream();
+
+    peerConnection =
+      createPeerConnection(
+        callerId
+      );
+
+    localStream
+      .getTracks()
+      .forEach(track => {
+
+        peerConnection.addTrack(
+          track,
+          localStream
+        );
+
+      });
+
+    /*
+      Offer may have arrived
+      before Accept.
+    */
+
+    if (data.offer) {
+
+      await peerConnection
+        .setRemoteDescription(
+          new RTCSessionDescription(
+            data.offer
+          )
+        );
+
+      const answer =
+        await peerConnection
+          .createAnswer();
+
+      await peerConnection
+        .setLocalDescription(
+          answer
+        );
+
+      socket.emit(
+        "call-answer",
+        {
+          receiverId:
+            callerId,
+
+          answer
+        }
+      );
+    }
+
+  } catch (error) {
+
+    console.error(
+      "ACCEPT CALL ERROR:",
+      error
+    );
+
+    alert(
+      "Could not access microphone/camera."
+    );
+
+    closeCall();
+  }
+
+  incomingCallData =
+    null;
 }
 
 
-function showAdminMessage(
-  message,
-  error
-) {
+/* =========================================================
+   REJECT CALL
+========================================================= */
+
+function rejectCall() {
+  document
+    .getElementById(
+      "incomingCall"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  incomingCallData =
+    null;
+}
+
+
+/* =========================================================
+   SHOW LOCAL STREAM
+========================================================= */
+
+function showLocalStream() {
+  const video =
+    document.getElementById(
+      "localVideo"
+    );
+
+  if (video) {
+    video.srcObject =
+      localStream;
+  }
+
+  document
+    .getElementById(
+      "videoPanel"
+    )
+    .classList.remove(
+      "hidden"
+    );
+}
+
+
+/* =========================================================
+   MUTE
+========================================================= */
+
+function toggleMute() {
+  if (!localStream) {
+    return;
+  }
+
+  const tracks =
+    localStream.getAudioTracks();
+
+  tracks.forEach(track => {
+    track.enabled =
+      !track.enabled;
+  });
+
+  isMuted =
+    !isMuted;
+}
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+function toggleCamera() {
+  if (!localStream) {
+    return;
+  }
+
+  const tracks =
+    localStream.getVideoTracks();
+
+  tracks.forEach(track => {
+    track.enabled =
+      !track.enabled;
+  });
+
+  isCameraOff =
+    !isCameraOff;
+}
+
+
+/* =========================================================
+   SCREEN SHARE
+========================================================= */
+
+async function shareScreen() {
+  if (!selectedUser) {
+    alert(
+      "Select a user first"
+    );
+    return;
+  }
+
+  if (!peerConnection) {
+    alert(
+      "Start a video call first."
+    );
+    return;
+  }
+
+  try {
+
+    const screenStream =
+      await navigator.mediaDevices
+        .getDisplayMedia({
+          video: true,
+          audio: true
+        });
+
+    const screenTrack =
+      screenStream.getVideoTracks()[0];
+
+    const sender =
+      peerConnection
+        .getSenders()
+        .find(
+          s =>
+            s.track &&
+            s.track.kind ===
+              "video"
+        );
+
+    if (sender) {
+
+      await sender.replaceTrack(
+        screenTrack
+      );
+
+    }
+
+    const localVideo =
+      document.getElementById(
+        "localVideo"
+      );
+
+    localVideo.srcObject =
+      screenStream;
+
+    screenTrack.onended =
+      async () => {
+
+        if (
+          localStream &&
+          peerConnection
+        ) {
+
+          const cameraTrack =
+            localStream
+              .getVideoTracks()[0];
+
+          if (cameraTrack) {
+
+            const sender =
+              peerConnection
+                .getSenders()
+                .find(
+                  s =>
+                    s.track &&
+                    s.track.kind ===
+                      "video"
+                );
+
+            if (sender) {
+
+              await sender
+                .replaceTrack(
+                  cameraTrack
+                );
+            }
+          }
+
+          localVideo.srcObject =
+            localStream;
+        }
+      };
+
+    socket.emit(
+      "screen-share",
+      {
+        receiverId:
+          selectedUser.id,
+
+        userId:
+          currentUser.id
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "SCREEN SHARE ERROR:",
+      error
+    );
+  }
+}
+
+
+/* =========================================================
+   END CALL
+========================================================= */
+
+function endCall() {
+
+  if (
+    selectedUser &&
+    socket
+  ) {
+
+    socket.emit(
+      "end-call",
+      {
+        receiverId:
+          selectedUser.id
+      }
+    );
+  }
+
+  closeCall();
+}
+
+
+/* =========================================================
+   CLOSE CALL
+========================================================= */
+
+function closeCall() {
+
+  if (peerConnection) {
+
+    peerConnection.ontrack =
+      null;
+
+    peerConnection.onicecandidate =
+      null;
+
+    peerConnection.close();
+
+    peerConnection =
+      null;
+  }
+
+  if (localStream) {
+
+    localStream
+      .getTracks()
+      .forEach(track => {
+        track.stop();
+      });
+
+    localStream =
+      null;
+  }
+
+  const localVideo =
+    document.getElementById(
+      "localVideo"
+    );
+
+  const remoteVideo =
+    document.getElementById(
+      "remoteVideo"
+    );
+
+  if (localVideo) {
+    localVideo.srcObject =
+      null;
+  }
+
+  if (remoteVideo) {
+    remoteVideo.srcObject =
+      null;
+  }
+
+  document
+    .getElementById(
+      "videoPanel"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  isMuted = false;
+  isCameraOff = false;
+}
+
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+function logout() {
+
+  closeCall();
+
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+
+  localStorage.removeItem(
+    "rtc_user"
+  );
+
+  localStorage.removeItem(
+    "rtc_token"
+  );
+
+  currentUser = null;
+  selectedUser = null;
+  allUsers = [];
+  onlineUserIds = [];
+
+  document
+    .getElementById(
+      "appScreen"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  document
+    .getElementById(
+      "authScreen"
+    )
+    .classList.remove(
+      "hidden"
+    );
 
   document.getElementById(
-    "adminMessage"
-  ).innerHTML =
-    '<div class="message ' +
-    (error ? "error" : "success") +
-    '">' +
-    escapeHtml(message) +
-    '</div>';
+    "messages"
+  ).innerHTML = `
+    <div class="emptyChat">
+      Connect with a user to start chatting.
+    </div>
+  `;
+
+  document.getElementById(
+    "chatUserName"
+  ).textContent =
+    "Select a user";
+
+  document.getElementById(
+    "chatUserStatus"
+  ).textContent =
+    "No conversation selected";
 }
 
 
-/* SECURITY */
+/* =========================================================
+   AUTO LOGIN
+========================================================= */
 
-function escapeHtml(value) {
+async function autoLogin() {
 
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  const token =
+    localStorage.getItem(
+      "rtc_token"
+    );
+
+  const savedUser =
+    localStorage.getItem(
+      "rtc_user"
+    );
+
+  if (
+    !token ||
+    !savedUser
+  ) {
+    return;
+  }
+
+  try {
+
+    currentUser =
+      JSON.parse(
+        savedUser
+      );
+
+    /*
+      Verify token with backend
+    */
+
+    const response =
+      await fetch(
+        "/api/me",
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if (!response.ok) {
+
+      localStorage.removeItem(
+        "rtc_token"
+      );
+
+      localStorage.removeItem(
+        "rtc_user"
+      );
+
+      currentUser =
+        null;
+
+      return;
+    }
+
+    const user =
+      await response.json();
+
+    currentUser =
+      user;
+
+    localStorage.setItem(
+      "rtc_user",
+      JSON.stringify(
+        user
+      )
+    );
+
+    openApp();
+
+  } catch (error) {
+
+    console.error(
+      "AUTO LOGIN ERROR:",
+      error
+    );
+
+    localStorage.removeItem(
+      "rtc_token"
+    );
+
+    localStorage.removeItem(
+      "rtc_user"
+    );
+  }
 }
 
 
-function escapeAttribute(value) {
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
 
-  return escapeHtml(value);
+function escapeHtml(
+  text
+) {
+  const div =
+    document.createElement(
+      "div"
+    );
+
+  div.textContent =
+    String(
+      text ?? ""
+    );
+
+  return div.innerHTML;
 }
 
 
-/* START */
+function escapeAttribute(
+  text
+) {
+  return String(
+    text ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    );
+}
 
-checkSession();
+
+/* =========================================================
+   PWA SERVICE WORKER
+========================================================= */
+
+if (
+  "serviceWorker" in navigator
+) {
+
+  window.addEventListener(
+    "load",
+    () => {
+
+      navigator.serviceWorker
+        .register(
+          "/service-worker.js"
+        )
+        .then(() => {
+
+          console.log(
+            "Service Worker registered"
+          );
+
+        })
+        .catch(error => {
+
+          console.error(
+            "Service Worker error:",
+            error
+          );
+
+        });
+
+    }
+  );
+}
+
+
+/* =========================================================
+   START APP
+========================================================= */
+
+window.addEventListener(
+  "load",
+  () => {
+    autoLogin();
+  }
+);
