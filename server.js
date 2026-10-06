@@ -29,7 +29,9 @@ if (
   !SUPABASE_SERVICE_ROLE_KEY ||
   !JWT_SECRET
 ) {
-  console.error("Missing Supabase/JWT environment variables");
+  console.error(
+    "Missing SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY or JWT_SECRET"
+  );
   process.exit(1);
 }
 
@@ -46,14 +48,7 @@ const supabase = createClient(
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-
-app.use(
-  express.static(path.join(__dirname, "public"))
-);
-
-/* =====================================================
-   FILE UPLOAD
-===================================================== */
+app.use(express.static(path.join(__dirname, "public")));
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -62,9 +57,7 @@ const upload = multer({
   }
 });
 
-/* =====================================================
-   JWT
-===================================================== */
+const onlineUsers = new Map();
 
 function createToken(user) {
   return jwt.sign(
@@ -81,7 +74,8 @@ function createToken(user) {
 
 function authMiddleware(req, res, next) {
   try {
-    const header = req.headers.authorization || "";
+    const header =
+      req.headers.authorization || "";
 
     if (!header.startsWith("Bearer ")) {
       return res.status(401).json({
@@ -91,17 +85,14 @@ function authMiddleware(req, res, next) {
 
     const token = header.substring(7);
 
-    const decoded = jwt.verify(
+    req.user = jwt.verify(
       token,
       JWT_SECRET
     );
 
-    req.user = decoded;
-
     next();
-
-  } catch (error) {
-    return res.status(401).json({
+  } catch {
+    res.status(401).json({
       error: "Invalid or expired token"
     });
   }
@@ -125,31 +116,34 @@ app.post("/api/register", async (req, res) => {
 
     if (!username || !password) {
       return res.status(400).json({
-        error: "Username and password are required"
+        error:
+          "Username and password are required"
       });
     }
 
     if (username.length < 3) {
       return res.status(400).json({
-        error: "Username must be at least 3 characters"
+        error:
+          "Username must be at least 3 characters"
       });
     }
 
     if (password.length < 6) {
       return res.status(400).json({
-        error: "Password must be at least 6 characters"
+        error:
+          "Password must be at least 6 characters"
       });
     }
 
-    const { data: existing, error: existingError } =
+    const { data: existing, error } =
       await supabase
         .from("users")
         .select("id")
         .eq("username", username)
         .maybeSingle();
 
-    if (existingError) {
-      console.error(existingError);
+    if (error) {
+      console.error(error);
 
       return res.status(500).json({
         error: "Database error"
@@ -158,14 +152,15 @@ app.post("/api/register", async (req, res) => {
 
     if (existing) {
       return res.status(409).json({
-        error: "Username already exists"
+        error:
+          "Username already exists"
       });
     }
 
     const passwordHash =
       await bcrypt.hash(password, 12);
 
-    const { data: user, error } =
+    const { data: user, error: insertError } =
       await supabase
         .from("users")
         .insert({
@@ -177,19 +172,17 @@ app.post("/api/register", async (req, res) => {
         )
         .single();
 
-    if (error) {
-      console.error("REGISTER:", error);
+    if (insertError) {
+      console.error(insertError);
 
       return res.status(500).json({
         error: "Registration failed"
       });
     }
 
-    const token = createToken(user);
-
     res.status(201).json({
       message: "Account created",
-      token,
+      token: createToken(user),
       user
     });
 
@@ -221,14 +214,12 @@ app.post("/api/login", async (req, res) => {
     const { data: user, error } =
       await supabase
         .from("users")
-        .select(
-          "id, username, password_hash, avatar_url, created_at"
-        )
+        .select("*")
         .eq("username", username)
         .maybeSingle();
 
     if (error) {
-      console.error("LOGIN DB:", error);
+      console.error(error);
 
       return res.status(500).json({
         error: "Database error"
@@ -237,7 +228,8 @@ app.post("/api/login", async (req, res) => {
 
     if (!user) {
       return res.status(401).json({
-        error: "Invalid username or password"
+        error:
+          "Invalid username or password"
       });
     }
 
@@ -249,24 +241,24 @@ app.post("/api/login", async (req, res) => {
 
     if (!valid) {
       return res.status(401).json({
-        error: "Invalid username or password"
+        error:
+          "Invalid username or password"
       });
     }
 
     await supabase
       .from("users")
       .update({
-        last_seen: new Date().toISOString()
+        last_seen:
+          new Date().toISOString()
       })
       .eq("id", user.id);
 
     delete user.password_hash;
 
-    const token = createToken(user);
-
     res.json({
       message: "Login successful",
-      token,
+      token: createToken(user),
       user
     });
 
@@ -307,7 +299,7 @@ app.get(
 );
 
 /* =====================================================
-   USER SEARCH
+   USERS
 ===================================================== */
 
 app.get(
@@ -349,14 +341,15 @@ app.get(
         });
       }
 
-      const users = (data || []).map(user => ({
-        ...user,
-        online: onlineUsers.has(
-          String(user.id)
-        )
-      }));
-
-      res.json(users);
+      res.json(
+        (data || []).map(user => ({
+          ...user,
+          online:
+            onlineUsers.has(
+              String(user.id)
+            )
+        }))
+      );
 
     } catch (error) {
       console.error(error);
@@ -384,7 +377,8 @@ app.get(
         Number(req.params.otherUserId);
 
       if (
-        userId !== Number(req.user.id)
+        userId !==
+        Number(req.user.id)
       ) {
         return res.status(403).json({
           error: "Access denied"
@@ -404,13 +398,11 @@ app.get(
           .limit(500);
 
       if (error) {
-        console.error(
-          "HISTORY:",
-          error
-        );
+        console.error(error);
 
         return res.status(500).json({
-          error: "Could not load chat history"
+          error:
+            "Could not load chat history"
         });
       }
 
@@ -438,16 +430,16 @@ app.delete(
       const messageId =
         Number(req.params.id);
 
-      const { data: message, error } =
+      const { data: message } =
         await supabase
           .from("messages")
           .select(
             "id, sender_id"
           )
           .eq("id", messageId)
-          .single();
+          .maybeSingle();
 
-      if (error || !message) {
+      if (!message) {
         return res.status(404).json({
           error: "Message not found"
         });
@@ -459,11 +451,11 @@ app.delete(
       ) {
         return res.status(403).json({
           error:
-            "You can only delete your own messages"
+            "You can only delete your own message"
         });
       }
 
-      const { error: deleteError } =
+      const { error } =
         await supabase
           .from("messages")
           .update({
@@ -474,11 +466,10 @@ app.delete(
           })
           .eq("id", messageId);
 
-      if (deleteError) {
-        console.error(deleteError);
-
+      if (error) {
         return res.status(500).json({
-          error: "Could not delete message"
+          error:
+            "Could not delete message"
         });
       }
 
@@ -504,7 +495,7 @@ app.delete(
 );
 
 /* =====================================================
-   FILE UPLOAD → SUPABASE STORAGE
+   FILE UPLOAD
 ===================================================== */
 
 app.post(
@@ -521,7 +512,10 @@ app.post(
 
       const safeName =
         req.file.originalname
-          .replace(/[^a-zA-Z0-9._-]/g, "_");
+          .replace(
+            /[^a-zA-Z0-9._-]/g,
+            "_"
+          );
 
       const filePath =
         `${req.user.id}/${Date.now()}-${safeName}`;
@@ -540,10 +534,7 @@ app.post(
           );
 
       if (error) {
-        console.error(
-          "STORAGE:",
-          error
-        );
+        console.error(error);
 
         return res.status(500).json({
           error:
@@ -554,16 +545,23 @@ app.post(
       const { data } =
         supabase.storage
           .from("chat-files")
-          .getPublicUrl(filePath);
+          .getPublicUrl(
+            filePath
+          );
 
       res.json({
         success: true,
         file: {
-          name: req.file.originalname,
-          size: req.file.size,
-          type: req.file.mimetype,
-          path: filePath,
-          url: data.publicUrl
+          name:
+            req.file.originalname,
+          size:
+            req.file.size,
+          type:
+            req.file.mimetype,
+          path:
+            filePath,
+          url:
+            data.publicUrl
         }
       });
 
@@ -572,6 +570,406 @@ app.post(
 
       res.status(500).json({
         error: "Upload failed"
+      });
+    }
+  }
+);
+
+/* =====================================================
+   FRIEND REQUEST — SEND
+===================================================== */
+
+app.post(
+  "/api/friends/request",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const receiverId =
+        Number(req.body.receiverId);
+
+      if (!receiverId) {
+        return res.status(400).json({
+          error:
+            "Receiver ID required"
+        });
+      }
+
+      if (
+        receiverId ===
+        Number(req.user.id)
+      ) {
+        return res.status(400).json({
+          error:
+            "You cannot add yourself"
+        });
+      }
+
+      const { data: existing } =
+        await supabase
+          .from("friend_requests")
+          .select(
+            "id, status"
+          )
+          .eq(
+            "sender_id",
+            req.user.id
+          )
+          .eq(
+            "receiver_id",
+            receiverId
+          )
+          .maybeSingle();
+
+      if (existing) {
+        return res.status(409).json({
+          error:
+            "Friend request already exists"
+        });
+      }
+
+      const { data: friendship } =
+        await supabase
+          .from("friendships")
+          .select("id")
+          .eq(
+            "user_id",
+            req.user.id
+          )
+          .eq(
+            "friend_id",
+            receiverId
+          )
+          .maybeSingle();
+
+      if (friendship) {
+        return res.status(409).json({
+          error:
+            "Already friends"
+        });
+      }
+
+      const { data, error } =
+        await supabase
+          .from("friend_requests")
+          .insert({
+            sender_id:
+              req.user.id,
+            receiver_id:
+              receiverId,
+            status:
+              "pending"
+          })
+          .select("*")
+          .single();
+
+      if (error) {
+        console.error(error);
+
+        return res.status(500).json({
+          error:
+            "Could not send request"
+        });
+      }
+
+      const receiver =
+        onlineUsers.get(
+          String(receiverId)
+        );
+
+      if (receiver) {
+        io.to(
+          receiver.socketId
+        ).emit(
+          "friend-request",
+          data
+        );
+      }
+
+      res.json({
+        success: true,
+        request: data
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error:
+          "Friend request failed"
+      });
+    }
+  }
+);
+
+/* =====================================================
+   FRIEND REQUESTS — INCOMING
+===================================================== */
+
+app.get(
+  "/api/friends/requests",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { data, error } =
+        await supabase
+          .from("friend_requests")
+          .select("*")
+          .eq(
+            "receiver_id",
+            req.user.id
+          )
+          .eq(
+            "status",
+            "pending"
+          )
+          .order(
+            "created_at",
+            {
+              ascending: false
+            }
+          );
+
+      if (error) {
+        console.error(error);
+
+        return res.status(500).json({
+          error:
+            "Could not load requests"
+        });
+      }
+
+      res.json(data || []);
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error:
+          "Request loading failed"
+      });
+    }
+  }
+);
+
+/* =====================================================
+   FRIEND REQUEST — ACCEPT / REJECT
+===================================================== */
+
+app.post(
+  "/api/friends/respond",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const requestId =
+        Number(req.body.requestId);
+
+      const action =
+        String(
+          req.body.action || ""
+        );
+
+      if (
+        !requestId ||
+        ![
+          "accept",
+          "reject"
+        ].includes(action)
+      ) {
+        return res.status(400).json({
+          error:
+            "Invalid request"
+        });
+      }
+
+      const { data: request } =
+        await supabase
+          .from("friend_requests")
+          .select("*")
+          .eq(
+            "id",
+            requestId
+          )
+          .eq(
+            "receiver_id",
+            req.user.id
+          )
+          .eq(
+            "status",
+            "pending"
+          )
+          .maybeSingle();
+
+      if (!request) {
+        return res.status(404).json({
+          error:
+            "Request not found"
+        });
+      }
+
+      if (action === "reject") {
+        await supabase
+          .from("friend_requests")
+          .update({
+            status:
+              "rejected"
+          })
+          .eq(
+            "id",
+            requestId
+          );
+
+        return res.json({
+          success: true,
+          action:
+            "rejected"
+        });
+      }
+
+      await supabase
+        .from("friend_requests")
+        .update({
+          status:
+            "accepted"
+        })
+        .eq(
+          "id",
+          requestId
+        );
+
+      const { error } =
+        await supabase
+          .from("friendships")
+          .upsert([
+            {
+              user_id:
+                request.sender_id,
+              friend_id:
+                request.receiver_id,
+              status:
+                "accepted"
+            },
+            {
+              user_id:
+                request.receiver_id,
+              friend_id:
+                request.sender_id,
+              status:
+                "accepted"
+            }
+          ]);
+
+      if (error) {
+        console.error(error);
+
+        return res.status(500).json({
+          error:
+            "Could not create friendship"
+        });
+      }
+
+      const sender =
+        onlineUsers.get(
+          String(request.sender_id)
+        );
+
+      if (sender) {
+        io.to(
+          sender.socketId
+        ).emit(
+          "friend-accepted",
+          {
+            userId:
+              req.user.id
+          }
+        );
+      }
+
+      res.json({
+        success: true,
+        action:
+          "accepted"
+      });
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error:
+          "Friend response failed"
+      });
+    }
+  }
+);
+
+/* =====================================================
+   FRIENDS LIST
+===================================================== */
+
+app.get(
+  "/api/friends",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { data, error } =
+        await supabase
+          .from("friendships")
+          .select(
+            "friend_id, status"
+          )
+          .eq(
+            "user_id",
+            req.user.id
+          )
+          .eq(
+            "status",
+            "accepted"
+          );
+
+      if (error) {
+        return res.status(500).json({
+          error:
+            "Could not load friends"
+        });
+      }
+
+      const ids =
+        (data || []).map(
+          x => x.friend_id
+        );
+
+      if (!ids.length) {
+        return res.json([]);
+      }
+
+      const { data: friends } =
+        await supabase
+          .from("users")
+          .select(
+            "id, username, avatar_url, last_seen"
+          )
+          .in(
+            "id",
+            ids
+          );
+
+      res.json(
+        (friends || []).map(
+          friend => ({
+            ...friend,
+            online:
+              onlineUsers.has(
+                String(friend.id)
+              )
+          })
+        )
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error:
+          "Friends loading failed"
       });
     }
   }
@@ -592,480 +990,590 @@ app.get("/health", async (req, res) => {
     res.json({
       status: "ok",
       database:
-        error ? "error" : "connected",
-      socket: "enabled",
-      storage: "enabled",
-      webrtc: "enabled"
+        error
+          ? "error"
+          : "connected",
+      socket:
+        "enabled",
+      storage:
+        "enabled",
+      webrtc:
+        "enabled",
+      friends:
+        "enabled"
     });
 
-  } catch (error) {
+  } catch {
     res.status(500).json({
-      status: "error",
-      database: "error",
-      socket: "enabled",
-      storage: "enabled",
-      webrtc: "enabled"
+      status:
+        "error"
     });
   }
 });
 
 /* =====================================================
-   ONLINE USERS
-===================================================== */
-
-const onlineUsers = new Map();
-
-/* =====================================================
    SOCKET.IO
 ===================================================== */
 
-io.on("connection", socket => {
+io.on(
+  "connection",
+  socket => {
 
-  console.log(
-    "Socket connected:",
-    socket.id
-  );
+    console.log(
+      "Socket connected:",
+      socket.id
+    );
 
-  /* ---------------- USER ONLINE ---------------- */
+    /* ---------- ONLINE ---------- */
 
-  socket.on(
-    "user-online",
-    async user => {
+    socket.on(
+      "user-online",
+      async user => {
 
-      if (!user || !user.id) {
-        return;
+        if (
+          !user ||
+          !user.id
+        ) {
+          return;
+        }
+
+        const userId =
+          String(user.id);
+
+        onlineUsers.set(
+          userId,
+          {
+            socketId:
+              socket.id,
+            username:
+              user.username
+          }
+        );
+
+        socket.userId =
+          userId;
+
+        socket.username =
+          user.username;
+
+        await supabase
+          .from("users")
+          .update({
+            last_seen:
+              new Date()
+                .toISOString()
+          })
+          .eq(
+            "id",
+            Number(user.id)
+          );
+
+        io.emit(
+          "online-users",
+          Array.from(
+            onlineUsers.keys()
+          )
+        );
       }
+    );
 
-      const userId =
-        String(user.id);
+    /* ---------- PRIVATE MESSAGE ---------- */
 
-      onlineUsers.set(
-        userId,
-        {
-          socketId: socket.id,
-          username: user.username
-        }
-      );
+    socket.on(
+      "private-message",
+      async data => {
 
-      socket.userId = userId;
-      socket.username =
-        user.username;
+        try {
 
-      await supabase
-        .from("users")
-        .update({
-          last_seen:
-            new Date().toISOString()
-        })
-        .eq("id", user.id);
+          const senderId =
+            Number(
+              data.senderId
+            );
 
-      io.emit(
-        "online-users",
-        Array.from(
-          onlineUsers.keys()
-        )
-      );
+          const receiverId =
+            Number(
+              data.receiverId
+            );
 
-      console.log(
-        "ONLINE:",
-        user.username
-      );
-    }
-  );
+          if (
+            !senderId ||
+            !receiverId
+          ) {
+            return;
+          }
 
-  /* ---------------- PRIVATE MESSAGE ---------------- */
+          if (
+            senderId !==
+            Number(socket.userId)
+          ) {
+            return;
+          }
 
-  socket.on(
-    "private-message",
-    async data => {
+          const messageType =
+            data.messageType ===
+            "file"
+              ? "file"
+              : "text";
 
-      try {
+          const message =
+            String(
+              data.message || ""
+            ).trim();
 
-        const senderId =
-          Number(data.senderId);
+          if (
+            messageType ===
+              "text" &&
+            !message
+          ) {
+            return;
+          }
 
-        const receiverId =
-          Number(data.receiverId);
+          const insertData = {
+            sender_id:
+              senderId,
 
-        const message =
-          String(data.message || "")
-            .trim();
+            receiver_id:
+              receiverId,
 
-        if (
-          !senderId ||
-          !receiverId ||
-          !message
-        ) {
-          return;
-        }
+            message:
+              message || null,
 
-        if (
-          senderId !==
-          Number(socket.userId)
-        ) {
-          return;
-        }
+            message_type:
+              messageType,
 
-        const { data: saved,
-          error } =
-          await supabase
+            file_name:
+              data.fileName ||
+              null,
+
+            file_url:
+              data.fileUrl ||
+              null,
+
+            file_size:
+              data.fileSize
+                ? Number(
+                    data.fileSize
+                  )
+                : null
+          };
+
+          const {
+            data: saved,
+            error
+          } = await supabase
             .from("messages")
-            .insert({
-              sender_id:
-                senderId,
-              receiver_id:
-                receiverId,
-              message,
-              message_type:
-                "text"
-            })
+            .insert(
+              insertData
+            )
             .select("*")
             .single();
 
-        if (error) {
-          console.error(
-            "MESSAGE DB:",
-            error
-          );
+          if (error) {
+            console.error(
+              "MESSAGE DB:",
+              error
+            );
+
+            socket.emit(
+              "message-error",
+              {
+                error:
+                  "Message could not be saved"
+              }
+            );
+
+            return;
+          }
+
+          const receiver =
+            onlineUsers.get(
+              String(
+                receiverId
+              )
+            );
+
+          if (receiver) {
+            io.to(
+              receiver.socketId
+            ).emit(
+              "private-message",
+              saved
+            );
+          }
 
           socket.emit(
-            "message-error",
-            {
-              error:
-                "Message could not be saved"
-            }
+            "private-message",
+            saved
           );
 
-          return;
+        } catch (error) {
+          console.error(
+            error
+          );
         }
+      }
+    );
+
+    /* ---------- TYPING ---------- */
+
+    socket.on(
+      "typing",
+      data => {
 
         const receiver =
           onlineUsers.get(
-            String(receiverId)
+            String(
+              data.receiverId
+            )
+          );
+
+        if (!receiver) {
+          return;
+        }
+
+        io.to(
+          receiver.socketId
+        ).emit(
+          "typing",
+          {
+            senderId:
+              socket.userId,
+
+            typing:
+              Boolean(
+                data.typing
+              )
+          }
+        );
+      }
+    );
+
+    /* ---------- READ ---------- */
+
+    socket.on(
+      "messages-read",
+      async data => {
+
+        const senderId =
+          Number(
+            data.senderId
+          );
+
+        const receiverId =
+          Number(
+            socket.userId
+          );
+
+        await supabase
+          .from("messages")
+          .update({
+            is_read:
+              true
+          })
+          .eq(
+            "sender_id",
+            senderId
+          )
+          .eq(
+            "receiver_id",
+            receiverId
+          )
+          .eq(
+            "is_read",
+            false
+          );
+
+        const sender =
+          onlineUsers.get(
+            String(
+              senderId
+            )
+          );
+
+        if (sender) {
+          io.to(
+            sender.socketId
+          ).emit(
+            "messages-read",
+            {
+              byUserId:
+                receiverId
+            }
+          );
+        }
+      }
+    );
+
+    /* ---------- FRIEND REQUEST ---------- */
+
+    socket.on(
+      "friend-request-notification",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
           );
 
         if (receiver) {
           io.to(
             receiver.socketId
           ).emit(
-            "private-message",
-            saved
+            "friend-request",
+            data
           );
         }
-
-        socket.emit(
-          "private-message",
-          saved
-        );
-
-      } catch (error) {
-        console.error(
-          "MESSAGE ERROR:",
-          error
-        );
       }
-    }
-  );
+    );
 
-  /* ---------------- TYPING ---------------- */
+    /* ---------- AUDIO / VIDEO CALL ---------- */
 
-  socket.on(
-    "typing",
-    data => {
+    socket.on(
+      "start-call",
+      data => {
 
-      const receiver =
-        onlineUsers.get(
-          String(data.receiverId)
-        );
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
 
-      if (!receiver) {
-        return;
-      }
+        if (!receiver) {
 
-      io.to(
-        receiver.socketId
-      ).emit(
-        "typing",
-        {
-          senderId:
-            socket.userId,
-          typing:
-            Boolean(data.typing)
+          socket.emit(
+            "call-error",
+            {
+              error:
+                "User is offline"
+            }
+          );
+
+          return;
         }
-      );
-    }
-  );
 
-  /* ---------------- READ RECEIPT ---------------- */
-
-  socket.on(
-    "messages-read",
-    async data => {
-
-      const senderId =
-        Number(data.senderId);
-
-      const receiverId =
-        Number(socket.userId);
-
-      await supabase
-        .from("messages")
-        .update({
-          is_read: true
-        })
-        .eq(
-          "sender_id",
-          senderId
-        )
-        .eq(
-          "receiver_id",
-          receiverId
-        )
-        .eq(
-          "is_read",
-          false
-        );
-
-      const sender =
-        onlineUsers.get(
-          String(senderId)
-        );
-
-      if (sender) {
         io.to(
-          sender.socketId
+          receiver.socketId
         ).emit(
-          "messages-read",
+          "incoming-call",
           {
-            byUserId:
-              receiverId
+            ...data,
+            callerSocketId:
+              socket.id
           }
         );
       }
-    }
-  );
+    );
 
-  /* =================================================
-     AUDIO / VIDEO CALL SIGNALING
-  ================================================= */
+    /* ---------- WEBRTC OFFER ---------- */
 
-  socket.on(
-    "start-call",
-    data => {
+    socket.on(
+      "call-offer",
+      data => {
 
-      const receiver =
-        onlineUsers.get(
-          String(data.receiverId)
-        );
-
-      if (!receiver) {
-        socket.emit(
-          "call-error",
-          {
-            error:
-              "User is offline"
-          }
-        );
-
-        return;
-      }
-
-      io.to(
-        receiver.socketId
-      ).emit(
-        "incoming-call",
-        {
-          ...data,
-          callerSocketId:
-            socket.id
-        }
-      );
-    }
-  );
-
-  socket.on(
-    "call-offer",
-    data => {
-
-      const receiver =
-        onlineUsers.get(
-          String(data.receiverId)
-        );
-
-      if (!receiver) {
-        return;
-      }
-
-      io.to(
-        receiver.socketId
-      ).emit(
-        "call-offer",
-        {
-          ...data,
-          callerSocketId:
-            socket.id
-        }
-      );
-    }
-  );
-
-  socket.on(
-    "call-answer",
-    data => {
-
-      const receiver =
-        onlineUsers.get(
-          String(data.receiverId)
-        );
-
-      if (!receiver) {
-        return;
-      }
-
-      io.to(
-        receiver.socketId
-      ).emit(
-        "call-answer",
-        data
-      );
-    }
-  );
-
-  socket.on(
-    "ice-candidate",
-    data => {
-
-      const receiver =
-        onlineUsers.get(
-          String(data.receiverId)
-        );
-
-      if (!receiver) {
-        return;
-      }
-
-      io.to(
-        receiver.socketId
-      ).emit(
-        "ice-candidate",
-        data
-      );
-    }
-  );
-
-  /* ---------------- END CALL ---------------- */
-
-  socket.on(
-    "end-call",
-    data => {
-
-      const receiver =
-        onlineUsers.get(
-          String(data.receiverId)
-        );
-
-      if (!receiver) {
-        return;
-      }
-
-      io.to(
-        receiver.socketId
-      ).emit(
-        "end-call",
-        data
-      );
-    }
-  );
-
-  /* ---------------- SCREEN SHARE ---------------- */
-
-  socket.on(
-    "screen-share",
-    data => {
-
-      const receiver =
-        onlineUsers.get(
-          String(data.receiverId)
-        );
-
-      if (!receiver) {
-        return;
-      }
-
-      io.to(
-        receiver.socketId
-      ).emit(
-        "screen-share",
-        data
-      );
-    }
-  );
-
-  /* ---------------- CALL TRANSFER ---------------- */
-
-  socket.on(
-    "call-transfer",
-    data => {
-
-      const receiver =
-        onlineUsers.get(
-          String(data.newReceiverId)
-        );
-
-      if (!receiver) {
-        return;
-      }
-
-      io.to(
-        receiver.socketId
-      ).emit(
-        "call-transfer",
-        data
-      );
-    }
-  );
-
-  /* ---------------- DISCONNECT ---------------- */
-
-  socket.on(
-    "disconnect",
-    async () => {
-
-      if (socket.userId) {
-
-        onlineUsers.delete(
-          socket.userId
-        );
-
-        await supabase
-          .from("users")
-          .update({
-            last_seen:
-              new Date().toISOString()
-          })
-          .eq(
-            "id",
-            Number(socket.userId)
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
           );
+
+        if (!receiver) {
+          return;
+        }
+
+        io.to(
+          receiver.socketId
+        ).emit(
+          "call-offer",
+          {
+            ...data,
+            callerSocketId:
+              socket.id
+          }
+        );
       }
+    );
 
-      io.emit(
-        "online-users",
-        Array.from(
-          onlineUsers.keys()
-        )
-      );
+    /* ---------- WEBRTC ANSWER ---------- */
 
-      console.log(
-        "Socket disconnected:",
-        socket.id
-      );
-    }
-  );
-});
+    socket.on(
+      "call-answer",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (!receiver) {
+          return;
+        }
+
+        io.to(
+          receiver.socketId
+        ).emit(
+          "call-answer",
+          data
+        );
+      }
+    );
+
+    /* ---------- ICE ---------- */
+
+    socket.on(
+      "ice-candidate",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (!receiver) {
+          return;
+        }
+
+        io.to(
+          receiver.socketId
+        ).emit(
+          "ice-candidate",
+          data
+        );
+      }
+    );
+
+    /* ---------- END CALL ---------- */
+
+    socket.on(
+      "end-call",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (!receiver) {
+          return;
+        }
+
+        io.to(
+          receiver.socketId
+        ).emit(
+          "end-call",
+          data
+        );
+      }
+    );
+
+    /* ---------- SCREEN SHARE ---------- */
+
+    socket.on(
+      "screen-share",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.receiverId
+            )
+          );
+
+        if (!receiver) {
+          return;
+        }
+
+        io.to(
+          receiver.socketId
+        ).emit(
+          "screen-share",
+          data
+        );
+      }
+    );
+
+    /* ---------- CALL TRANSFER ---------- */
+
+    socket.on(
+      "call-transfer",
+      data => {
+
+        const receiver =
+          onlineUsers.get(
+            String(
+              data.newReceiverId
+            )
+          );
+
+        if (!receiver) {
+          return;
+        }
+
+        io.to(
+          receiver.socketId
+        ).emit(
+          "call-transfer",
+          data
+        );
+      }
+    );
+
+    /* ---------- DISCONNECT ---------- */
+
+    socket.on(
+      "disconnect",
+      async () => {
+
+        if (
+          socket.userId
+        ) {
+
+          onlineUsers.delete(
+            socket.userId
+          );
+
+          await supabase
+            .from("users")
+            .update({
+              last_seen:
+                new Date()
+                  .toISOString()
+            })
+            .eq(
+              "id",
+              Number(
+                socket.userId
+              )
+            );
+        }
+
+        io.emit(
+          "online-users",
+          Array.from(
+            onlineUsers.keys()
+          )
+        );
+
+        console.log(
+          "Socket disconnected:",
+          socket.id
+        );
+      }
+    );
+  }
+);
 
 /* =====================================================
-   SPA FALLBACK
+   FRONTEND FALLBACK
 ===================================================== */
 
 app.use(
