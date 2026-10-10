@@ -1,0 +1,4002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width,initial-scale=1.0">
+
+<title>RealTimeChat</title>
+
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#111111">
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#0f0f0f;
+  color:white;
+}
+
+button,input{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.hidden{
+  display:none!important;
+}
+
+/* ================= AUTH ================= */
+
+#authScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#101010;
+}
+
+.authBox{
+  width:100%;
+  max-width:420px;
+  background:#1d1d1d;
+  padding:30px;
+  border-radius:18px;
+  box-shadow:0 15px 50px rgba(0,0,0,.5);
+}
+
+.authBox h1{
+  text-align:center;
+  margin-top:0;
+}
+
+.authBox h2{
+  margin-bottom:8px;
+}
+
+.authBox input{
+  width:100%;
+  padding:13px;
+  margin:7px 0;
+  border:1px solid #444;
+  border-radius:9px;
+  background:#292929;
+  color:white;
+  outline:none;
+}
+
+.authBox button{
+  border:0;
+  border-radius:9px;
+  padding:13px;
+}
+
+.primaryBtn{
+  background:#2563eb;
+  color:white;
+}
+
+.secondaryBtn{
+  background:#333;
+  color:white;
+}
+
+.authButtons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+
+#authMessage{
+  text-align:center;
+  min-height:20px;
+  margin-top:15px;
+}
+
+/* ================= APP ================= */
+
+#appScreen{
+  height:100vh;
+  display:flex;
+  overflow:hidden;
+}
+
+/* ================= SIDEBAR ================= */
+
+.sidebar{
+  width:320px;
+  background:#181818;
+  border-right:1px solid #333;
+  padding:16px;
+  overflow-y:auto;
+}
+
+.logo{
+  font-size:24px;
+  font-weight:bold;
+  margin-bottom:18px;
+}
+
+.profile{
+  background:#242424;
+  padding:14px;
+  border-radius:12px;
+  margin-bottom:12px;
+}
+
+.profileName{
+  font-size:18px;
+  font-weight:bold;
+}
+
+.userId{
+  color:#999;
+  font-size:13px;
+  margin-top:4px;
+}
+
+.searchBox input,
+.connectBox input{
+  width:100%;
+  padding:11px;
+  margin-bottom:7px;
+  border:1px solid #444;
+  border-radius:8px;
+  background:#292929;
+  color:white;
+  outline:none;
+}
+
+.connectBtn,
+.searchBtn{
+  width:100%;
+  padding:11px;
+  border:0;
+  border-radius:8px;
+  background:#2563eb;
+  color:white;
+}
+
+.sectionTitle{
+  font-weight:bold;
+  margin:18px 0 9px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.badge{
+  background:#ef4444;
+  color:white;
+  min-width:22px;
+  height:22px;
+  padding:2px 6px;
+  border-radius:20px;
+  font-size:12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.userItem,
+.friendItem,
+.requestItem{
+  background:#242424;
+  padding:11px;
+  border-radius:9px;
+  margin-bottom:7px;
+}
+
+.userItem{
+  cursor:pointer;
+}
+
+.userItem:hover,
+.friendItem:hover{
+  background:#303030;
+}
+
+.onlineDot,
+.offlineDot{
+  display:inline-block;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  margin-right:7px;
+}
+
+.onlineDot{
+  background:#22c55e;
+}
+
+.offlineDot{
+  background:#777;
+}
+
+.itemButtons{
+  display:flex;
+  gap:5px;
+  margin-top:8px;
+}
+
+.smallBtn{
+  border:0;
+  border-radius:7px;
+  padding:7px 9px;
+  color:white;
+  font-size:12px;
+}
+
+.addBtn{
+  background:#2563eb;
+}
+
+.acceptBtn{
+  background:#16a34a;
+}
+
+.rejectBtn{
+  background:#dc2626;
+}
+
+.chatFriendBtn{
+  background:#7c3aed;
+}
+
+.emptySide{
+  color:#777;
+  font-size:13px;
+  padding:8px 2px;
+}
+
+.logoutBtn{
+  width:100%;
+  margin-top:20px;
+  padding:11px;
+  border:0;
+  border-radius:8px;
+  background:#7f1d1d;
+  color:white;
+}
+
+/* ================= EXTRA CHAT FEATURES ================= */
+.messageTools{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}.reactionBtn{border:0;background:#333;color:white;border-radius:12px;padding:3px 7px;font-size:12px}.reactionBtn:hover{background:#555}.chatSearch{display:flex;gap:5px;width:min(320px,45vw)}.chatSearch input{min-width:0;flex:1;background:#292929;border:1px solid #444;color:white;border-radius:8px;padding:8px}.chatSearch button{border:0;border-radius:8px;background:#444;color:white;padding:8px}.groupItem{background:#242424;padding:10px;border-radius:9px;margin-bottom:7px;cursor:pointer}.groupItem:hover{background:#303030}.createGroup{display:flex;gap:5px}.createGroup input{min-width:0;flex:1;background:#292929;border:1px solid #444;color:white;border-radius:8px;padding:8px}.createGroup button{border:0;border-radius:8px;background:#16a34a;color:white;padding:8px}.
+@media(max-width:700px){.chatSearch{width:100%}.chatHeader{gap:8px}.messageBar{position:sticky;bottom:0;z-index:20;display:flex;align-items:center}.messageBar input{font-size:16px}.fileBtn,.sendBtn{flex:0 0 auto}.sidebar{max-height:46vh}.groupItem{font-size:14px}}
+
+/* ================= CHAT ================= */
+
+.chatArea{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+}
+
+.chatHeader{
+  min-height:70px;
+  padding:12px 18px;
+  background:#181818;
+  border-bottom:1px solid #333;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.chatUserName{
+  font-size:19px;
+  font-weight:bold;
+}
+
+.callButtons{
+  display:flex;
+  gap:7px;
+}
+
+.callBtn{
+  border:0;
+  border-radius:8px;
+  padding:10px 13px;
+  color:white;
+}
+
+.audioBtn{
+  background:#16a34a;
+}
+
+.videoBtn{
+  background:#2563eb;
+}
+
+.screenBtn{
+  background:#7c3aed;
+}
+
+#messages{
+  flex:1;
+  overflow-y:auto;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  background:#101010;
+}
+
+.message{
+  max-width:75%;
+  padding:10px 13px;
+  border-radius:13px;
+  word-break:break-word;
+}
+
+.mine{
+  align-self:flex-end;
+  background:#2563eb;
+}
+
+.theirs{
+  align-self:flex-start;
+  background:#292929;
+}
+
+.messageTime{
+  font-size:10px;
+  opacity:.7;
+  margin-top:5px;
+}
+
+.readMark{
+  margin-left:3px;
+}
+
+.messageActions{
+  margin-top:5px;
+}
+
+.deleteMessage{
+  border:0;
+  background:transparent;
+  color:#ffb4b4;
+  font-size:11px;
+}
+
+.emptyChat{
+  margin:auto;
+  text-align:center;
+  color:#777;
+}
+
+.messageBar{
+  padding:10px;
+  background:#181818;
+  border-top:1px solid #333;
+  display:flex;
+  gap:7px;
+}
+
+.messageBar input{
+  flex:1;
+  min-width:0;
+  padding:12px;
+  background:#292929;
+  border:1px solid #444;
+  border-radius:9px;
+  color:white;
+}
+
+.fileBtn,
+.sendBtn{
+  border:0;
+  border-radius:9px;
+  padding:10px 14px;
+  color:white;
+}
+
+.fileBtn{
+  background:#444;
+}
+
+.sendBtn{
+  background:#2563eb;
+}
+
+#fileInput{
+  display:none;
+}
+
+.typing{
+  color:#777;
+  font-size:12px;
+  padding:0 20px 5px;
+}
+
+/* ================= CALL ================= */
+
+#incomingCall{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.78);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+}
+
+.callPopup{
+  width:min(90%,360px);
+  background:#222;
+  padding:25px;
+  border-radius:18px;
+  text-align:center;
+}
+
+.callPopup button{
+  border:0;
+  border-radius:9px;
+  padding:12px 18px;
+  margin:5px;
+  color:white;
+}
+
+.acceptCall{
+  background:#16a34a;
+}
+
+.rejectCall{
+  background:#dc2626;
+}
+
+/* ================= VIDEO ================= */
+
+#videoPanel{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  width:min(450px,90vw);
+  background:#000;
+  border-radius:15px;
+  padding:10px;
+  z-index:1500;
+  box-shadow:0 10px 40px rgba(0,0,0,.6);
+}
+
+.videos{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+video{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+  background:#050505;
+  border-radius:10px;
+}
+
+.videoControls{
+  display:flex;
+  justify-content:center;
+  gap:7px;
+  margin-top:8px;
+}
+
+.videoControls button{
+  border:0;
+  border-radius:8px;
+  padding:9px 12px;
+  background:#333;
+  color:white;
+}
+
+.endCall{
+  background:#dc2626!important;
+}
+
+/* ================= MOBILE ================= */
+
+@media(max-width:700px){
+
+  #appScreen{
+    flex-direction:column;
+  }
+
+  .sidebar{
+    width:100%;
+    max-height:44vh;
+    border-right:0;
+    border-bottom:1px solid #333;
+  }
+
+  .chatHeader{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .callButtons{
+    width:100%;
+  }
+
+  .callBtn{
+    flex:1;
+  }
+
+  .message{
+    max-width:88%;
+  }
+
+  .videos{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =====================================================
+     AUTH
+===================================================== -->
+
+<section id="authScreen">
+
+  <div class="authBox">
+
+    <h1>💬 RealTimeChat</h1>
+
+    <h2>Login</h2>
+
+    <input
+      id="loginUsername"
+      placeholder="Username"
+      autocomplete="username"
+    >
+
+    <input
+      id="loginPassword"
+      type="password"
+      placeholder="Password"
+      autocomplete="current-password"
+    >
+
+    <button
+      class="primaryBtn"
+      style="width:100%;"
+      onclick="login()"
+    >
+      Login
+    </button>
+
+    <hr style="border-color:#333;margin:25px 0;">
+
+    <h2>Create Account</h2>
+
+    <input
+      id="registerUsername"
+      placeholder="Choose username"
+      autocomplete="username"
+    >
+
+    <input
+      id="registerPassword"
+      type="password"
+      placeholder="Create password"
+      autocomplete="new-password"
+    >
+
+    <div class="authButtons">
+
+      <button
+        class="primaryBtn"
+        onclick="register()"
+      >
+        Register
+      </button>
+
+      <button
+        class="secondaryBtn"
+        onclick="clearAuth()"
+      >
+        Clear
+      </button>
+
+    </div>
+
+    <div id="authMessage"></div>
+
+  </div>
+
+</section>
+
+
+<!-- =====================================================
+     APP
+===================================================== -->
+
+<section id="appScreen" class="hidden">
+
+  <!-- SIDEBAR -->
+
+  <aside class="sidebar">
+
+    <div class="logo">
+      💬 RealTimeChat
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;">
+      <button type="button" class="secondaryBtn" style="font-size:12px;padding:8px;" onclick="toggleChatLock()">🔒 Lock app</button>
+      <label style="font-size:12px;display:flex;gap:6px;align-items:center;background:#262626;border-radius:8px;padding:7px;">
+        <input id="muteUnknownCalls" type="checkbox" style="width:auto;" onchange="saveMuteUnknownCalls()">
+        Mute unknown calls
+      </label>
+    </div>
+
+    <div class="profile">
+
+      <div
+        id="profileName"
+        class="profileName"
+      >
+        User
+      </div>
+
+      <div
+        id="profileId"
+        class="userId"
+      >
+        ID: -
+      </div>
+
+    </div>
+
+
+    <!-- SEARCH -->
+
+    <div class="searchBox">
+
+      <input
+        id="searchInput"
+        placeholder="🔍 Search username..."
+        oninput="searchUsers()"
+      >
+
+    </div>
+
+
+    <!-- CONNECT -->
+
+    <div class="connectBox">
+
+      <input
+        id="connectUserId"
+        type="number"
+        placeholder="Enter User ID"
+      >
+
+      <button
+        class="connectBtn"
+        onclick="connectUser()"
+      >
+        Connect User
+      </button>
+
+    </div>
+
+
+    <!-- FRIEND REQUESTS -->
+
+    <div class="sectionTitle">
+
+      <span>📩 Requests</span>
+
+      <span
+        id="requestBadge"
+        class="badge hidden"
+      >
+        0
+      </span>
+
+    </div>
+
+    <div id="requestsList"></div>
+
+
+    <!-- FRIENDS -->
+
+    <div class="sectionTitle">
+      🤝 Friends
+    </div>
+
+    <div id="friendsList"></div>
+
+
+    <!-- GROUPS -->
+
+    <div class="sectionTitle">👨‍👩‍👧 Groups</div>
+    <div class="createGroup">
+      <input id="groupNameInput" placeholder="New group name">
+      <button onclick="createGroup()">＋</button>
+    </div>
+    <div id="groupsList" style="margin-top:8px;"></div>
+
+
+    <!-- USERS -->
+
+    <div class="sectionTitle">
+      👥 Users
+    </div>
+
+    <div id="usersList"></div>
+
+
+    <button
+      class="logoutBtn"
+      onclick="logout()"
+    >
+      Logout
+    </button>
+
+  </aside>
+
+
+  <!-- CHAT -->
+
+  <main class="chatArea">
+
+    <header class="chatHeader">
+
+      <div>
+
+        <div
+          id="chatUserName"
+          class="chatUserName"
+        >
+          Select a user
+        </div>
+
+        <small
+          id="chatUserStatus"
+          style="color:#888;"
+        >
+          No conversation selected
+        </small>
+
+      </div>
+
+
+      <div class="chatSearch">
+        <input id="messageSearchInput" placeholder="🔎 Search messages..." onkeydown="handleMessageSearch(event)">
+        <button onclick="searchMessages()">Search</button>
+      </div>
+
+      <div class="callButtons">
+
+        <button
+          class="callBtn audioBtn"
+          onclick="startAudioCall()"
+        >
+          📞 Audio
+        </button>
+
+        <button
+          class="callBtn videoBtn"
+          onclick="startVideoCall()"
+        >
+          📹 Video
+        </button>
+
+        <button
+          class="callBtn screenBtn"
+          onclick="shareScreen()"
+        >
+          🖥️ Screen
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <div
+      id="typingIndicator"
+      class="typing hidden"
+    >
+      typing...
+    </div>
+
+
+    <div style="display:flex;gap:6px;padding:7px 12px;background:#171717;border-bottom:1px solid #333;">
+      <button type="button" class="secondaryBtn" onclick="filterVisibleMessages('all')" style="padding:6px 10px;font-size:12px;">All</button>
+      <button type="button" class="secondaryBtn" onclick="filterVisibleMessages('text')" style="padding:6px 10px;font-size:12px;">Text</button>
+      <button type="button" class="secondaryBtn" onclick="filterVisibleMessages('files')" style="padding:6px 10px;font-size:12px;">Files / voice</button>
+    </div>
+
+    <div id="messages">
+
+      <div class="emptyChat">
+        Connect with a user to start chatting.
+      </div>
+
+    </div>
+
+
+    <div class="messageBar">
+
+      <label
+        class="fileBtn"
+        for="fileInput"
+      >
+        📎
+      </label>
+
+      <input
+        id="fileInput"
+        type="file"
+        onchange="uploadFile()"
+      >
+
+      <button id="voiceNoteBtn" type="button" class="fileBtn" onclick="toggleVoiceNote()" title="Record voice note" style="border:0;background:#2b2b2b;color:white;border-radius:8px;padding:8px 10px;">🎙️</button>
+
+      <input
+        id="messageInput"
+        placeholder="Type a message..."
+        oninput="typingStart()"
+        onkeydown="handleMessageKey(event)"
+      >
+
+      <button
+        class="sendBtn"
+        onclick="sendMessage()"
+      >
+        Send
+      </button>
+
+    </div>
+
+  </main>
+
+</section>
+
+
+<!-- =====================================================
+     INCOMING CALL
+===================================================== -->
+
+<div
+  id="incomingCall"
+  class="hidden"
+>
+
+  <div class="callPopup">
+
+    <h2>📞 Incoming Call</h2>
+
+    <p id="callerText">
+      Someone is calling...
+    </p>
+
+    <button
+      class="acceptCall"
+      onclick="acceptCall()"
+    >
+      Accept
+    </button>
+
+    <button
+      class="rejectCall"
+      onclick="rejectCall()"
+    >
+      Reject
+    </button>
+
+  </div>
+
+</div>
+
+
+<!-- =====================================================
+     VIDEO PANEL
+===================================================== -->
+
+<div
+  id="videoPanel"
+  class="hidden"
+>
+
+  <div class="videos">
+
+    <video
+      id="localVideo"
+      autoplay
+      muted
+      playsinline
+    ></video>
+
+    <video
+      id="remoteVideo"
+      autoplay
+      playsinline
+    ></video>
+
+  </div>
+
+  <div class="videoControls">
+
+    <button onclick="toggleMute()">
+      🎤 Mute
+    </button>
+
+    <button onclick="toggleCamera()">
+      📷 Camera
+    </button>
+
+    <button
+      class="endCall"
+      onclick="endCall()"
+    >
+      ❌ End
+    </button>
+
+  </div>
+
+</div>
+
+
+<div id="chatLockOverlay" class="hidden" style="position:fixed;inset:0;z-index:99999;background:#080b12f5;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:min(360px,100%);background:#1b2230;border:1px solid #3a4558;border-radius:18px;padding:24px;text-align:center;">
+    <h2>🔒 RealTimeChat locked</h2>
+    <p style="color:#b6c1d1;font-size:13px;">Enter your app passcode to continue.</p>
+    <input id="chatUnlockPin" type="password" inputmode="numeric" maxlength="32" placeholder="Passcode" style="width:100%;padding:12px;margin:10px 0;background:#0f1724;color:white;border:1px solid #445;border-radius:9px;">
+    <button type="button" onclick="unlockChatApp()" style="padding:10px 16px;">Unlock</button>
+    <div id="chatUnlockError" style="color:#fca5a5;margin-top:10px;"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+/* =====================================================
+   GLOBALS
+===================================================== */
+
+let socket = null;
+
+let currentUser = null;
+let selectedUser = null;
+let selectedGroup = null;
+let chatMode = "private";
+
+let allUsers = [];
+let friends = [];
+let requests = [];
+
+let localStream = null;
+let peerConnection = null;
+
+let incomingCallData = null;
+let pendingOffer = null;
+
+let iceQueue = [];
+
+let typingTimer = null;
+let currentlyTyping = false;
+const messageCache = new Map();
+let mediaRecorder = null;
+let voiceChunks = [];
+
+const rtcConfig = {
+
+  iceServers: [
+    {
+      urls:
+        "stun:stun.l.google.com:19302"
+    }
+  ]
+
+};
+
+
+/* =====================================================
+   TOKEN
+===================================================== */
+
+function getToken(){
+
+  return localStorage.getItem(
+    "rtc_token"
+  );
+
+}
+
+
+function authHeaders(){
+
+  const token =
+    getToken();
+
+  return token
+    ? {
+        Authorization:
+          "Bearer " + token
+      }
+    : {};
+
+}
+
+
+/* =====================================================
+   AUTH MESSAGE
+===================================================== */
+
+function showAuthMessage(
+  message,
+  success=false
+){
+
+  const box =
+    document.getElementById(
+      "authMessage"
+    );
+
+  box.textContent =
+    message;
+
+  box.style.color =
+    success
+      ? "#22c55e"
+      : "#ef4444";
+
+}
+
+
+function clearAuth(){
+
+  document.getElementById(
+    "loginUsername"
+  ).value="";
+
+  document.getElementById(
+    "loginPassword"
+  ).value="";
+
+  document.getElementById(
+    "registerUsername"
+  ).value="";
+
+  document.getElementById(
+    "registerPassword"
+  ).value="";
+
+  showAuthMessage("");
+
+}
+
+
+/* =====================================================
+   REGISTER
+===================================================== */
+
+async function register(){
+
+  const username =
+    document.getElementById(
+      "registerUsername"
+    ).value.trim();
+
+  const password =
+    document.getElementById(
+      "registerPassword"
+    ).value;
+
+  if(
+    username.length < 3 ||
+    password.length < 6
+  ){
+
+    showAuthMessage(
+      "Username: 3+ characters, Password: 6+ characters"
+    );
+
+    return;
+  }
+
+  try{
+
+    showAuthMessage(
+      "Creating account..."
+    );
+
+    const response =
+      await fetch(
+        "/api/register",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            username,
+            password
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      showAuthMessage(
+        data.error ||
+        "Registration failed"
+      );
+
+      return;
+    }
+
+    showAuthMessage(
+      "Account created. Please login.",
+      true
+    );
+
+    document.getElementById(
+      "loginUsername"
+    ).value=username;
+
+    document.getElementById(
+      "loginPassword"
+    ).value=password;
+
+  }catch(error){
+
+    console.error(error);
+
+    showAuthMessage(
+      "Server connection failed"
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   LOGIN
+===================================================== */
+
+async function login(){
+
+  const username =
+    document.getElementById(
+      "loginUsername"
+    ).value.trim();
+
+  const password =
+    document.getElementById(
+      "loginPassword"
+    ).value;
+
+  if(!username || !password){
+
+    showAuthMessage(
+      "Enter username and password"
+    );
+
+    return;
+  }
+
+  try{
+
+    showAuthMessage(
+      "Logging in..."
+    );
+
+    const response =
+      await fetch(
+        "/api/login",
+        {
+          method:"POST",
+          headers:{
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            username,
+            password
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      showAuthMessage(
+        data.error ||
+        "Login failed"
+      );
+
+      return;
+    }
+
+    localStorage.setItem(
+      "rtc_token",
+      data.token
+    );
+
+    localStorage.setItem(
+      "rtc_user",
+      JSON.stringify(
+        data.user
+      )
+    );
+
+    currentUser =
+      data.user;
+
+    openApp();
+
+  }catch(error){
+
+    console.error(error);
+
+    showAuthMessage(
+      "Server connection failed"
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   OPEN APP
+===================================================== */
+
+function openApp(){
+
+  if(!currentUser)
+    return;
+
+  document
+    .getElementById(
+      "authScreen"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  document
+    .getElementById(
+      "appScreen"
+    )
+    .classList.remove(
+      "hidden"
+    );
+
+  document.getElementById(
+    "profileName"
+  ).textContent =
+    currentUser.username;
+
+  document.getElementById(
+    "profileId"
+  ).textContent =
+    "ID: " +
+    currentUser.id;
+
+  connectSocket();
+
+  loadUsers();
+
+  loadFriends();
+
+  loadRequests();
+
+  loadGroups();
+
+}
+
+
+/* =====================================================
+   SOCKET
+===================================================== */
+
+function connectSocket(){
+
+  if(socket)
+    return;
+
+  socket =
+    io({
+      transports:[
+        "websocket",
+        "polling"
+      ]
+    });
+
+
+  socket.on(
+    "connect",
+    ()=>{
+      
+      socket.emit(
+        "user-online",
+        currentUser
+      );
+
+    }
+  );
+
+
+  socket.on(
+    "online-users",
+    ()=>{
+      loadUsers();
+      loadFriends();
+    }
+  );
+
+
+  socket.on(
+    "private-message",
+    message=>{
+
+      if(
+        selectedUser &&
+        (
+          (
+            Number(message.sender_id) ===
+            Number(currentUser.id) &&
+            Number(message.receiver_id) ===
+            Number(selectedUser.id)
+          )
+          ||
+          (
+            Number(message.sender_id) ===
+            Number(selectedUser.id) &&
+            Number(message.receiver_id) ===
+            Number(currentUser.id)
+          )
+        )
+      ){
+
+        displayMessage(
+          message
+        );
+
+      }
+
+    }
+  );
+
+
+  socket.on(
+    "message-deleted",
+    ()=>{
+      loadChatHistory();
+    }
+  );
+
+  socket.on("message-edited", message => {
+    if (!selectedUser || !message) return;
+    const isCurrentChat =
+      (Number(message.sender_id) === Number(currentUser.id) && Number(message.receiver_id) === Number(selectedUser.id)) ||
+      (Number(message.sender_id) === Number(selectedUser.id) && Number(message.receiver_id) === Number(currentUser.id));
+    if (isCurrentChat) loadChatHistory();
+  });
+
+
+  socket.on(
+    "message-error",
+    data=>{
+
+      alert(
+        data.error ||
+        "Message failed"
+      );
+
+    }
+  );
+
+
+  socket.on(
+    "messages-read",
+    ()=>{
+      document
+        .querySelectorAll(
+          ".readMark"
+        )
+        .forEach(
+          mark=>{
+            mark.textContent="✓✓";
+          }
+        );
+    }
+  );
+
+
+  socket.on(
+    "typing",
+    data=>{
+
+      if(
+        selectedUser &&
+        Number(
+          data.senderId
+        ) ===
+        Number(
+          selectedUser.id
+        )
+      ){
+
+        document
+          .getElementById(
+            "typingIndicator"
+          )
+          .classList.toggle(
+            "hidden",
+            !data.typing
+          );
+
+      }
+
+    }
+  );
+
+
+  socket.on(
+    "friend-request",
+    ()=>{
+
+      loadRequests();
+
+      alert(
+        "📩 New friend request"
+      );
+
+    }
+  );
+
+
+  socket.on(
+    "friend-accepted",
+    ()=>{
+
+      loadFriends();
+
+      loadUsers();
+
+    }
+  );
+
+
+  socket.on("group-message", message=>{
+    if(chatMode==="group" && selectedGroup && Number(message.group_id)===Number(selectedGroup.id)) displayGroupMessage(message);
+  });
+
+  socket.on("reaction-updated", ()=>{
+    if(chatMode==="private" && selectedUser) loadChatHistory();
+  });
+
+  socket.on("friend-removed", ()=>{ loadFriends(); loadUsers(); });
+
+  /* CALL */
+
+  socket.on(
+    "incoming-call",
+    data=>{
+
+      const muteUnknown = localStorage.getItem("rtc_mute_unknown_calls") === "1";
+      const callerId = Number(data.callerId || data.senderId || 0);
+      const isFriend = Array.isArray(friends) && friends.some(f => Number(f.id) === callerId);
+      if (muteUnknown && !isFriend) {
+        if (data.callerId) {
+          socket.emit("end-call", { receiverId: data.callerId, reason: "unknown-caller-muted" });
+        }
+        return;
+      }
+
+      incomingCallData =
+        data;
+
+      document.getElementById(
+        "callerText"
+      ).textContent =
+        (
+          data.callerName ||
+          "Someone"
+        ) +
+        " is calling (" +
+        (
+          data.callType ||
+          "audio"
+        ) +
+        ")";
+
+      document
+        .getElementById(
+          "incomingCall"
+        )
+        .classList.remove(
+          "hidden"
+        );
+
+    }
+  );
+
+
+  socket.on(
+    "call-offer",
+    async data=>{
+
+      pendingOffer =
+        data.offer;
+
+      incomingCallData =
+        {
+          ...(incomingCallData || {}),
+          ...data
+        };
+
+      if(
+        peerConnection &&
+        selectedUser &&
+        Number(
+          selectedUser.id
+        ) ===
+        Number(
+          data.callerId
+        )
+      ){
+
+        await acceptRemoteOffer(
+          data
+        );
+
+      }
+
+    }
+  );
+
+
+  socket.on(
+    "call-answer",
+    async data=>{
+
+      if(!peerConnection)
+        return;
+
+      try{
+
+        await peerConnection
+          .setRemoteDescription(
+            new RTCSessionDescription(
+              data.answer
+            )
+          );
+
+        await flushIce();
+
+      }catch(error){
+
+        console.error(
+          "Answer error:",
+          error
+        );
+
+      }
+
+    }
+  );
+
+
+  socket.on(
+    "ice-candidate",
+    async data=>{
+
+      if(!data.candidate)
+        return;
+
+      if(
+        peerConnection &&
+        peerConnection.remoteDescription
+      ){
+
+        try{
+
+          await peerConnection
+            .addIceCandidate(
+              new RTCIceCandidate(
+                data.candidate
+              )
+            );
+
+        }catch(error){
+
+          console.error(
+            error
+          );
+
+        }
+
+      }else{
+
+        iceQueue.push(
+          data.candidate
+        );
+
+      }
+
+    }
+  );
+
+
+  socket.on(
+    "end-call",
+    ()=>{
+      closeCall();
+    }
+  );
+
+
+  socket.on(
+    "call-error",
+    data=>{
+
+      alert(
+        data.error ||
+        "Call failed"
+      );
+
+      closeCall();
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   LOAD USERS
+===================================================== */
+
+async function loadUsers(
+  search=""
+){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/users?search=" +
+        encodeURIComponent(
+          search
+        ),
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if(response.status===401){
+
+      logout();
+
+      return;
+    }
+
+    const data =
+      await response.json();
+
+    if(
+      Array.isArray(data)
+    ){
+
+      allUsers =
+        data;
+
+      renderUsers();
+
+    }
+
+  }catch(error){
+
+    console.error(
+      "Users:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+function searchUsers(){
+
+  const search =
+    document.getElementById(
+      "searchInput"
+    ).value.trim();
+
+  loadUsers(search);
+
+}
+
+
+/* =====================================================
+   RENDER USERS
+===================================================== */
+
+function renderUsers(){
+
+  const list =
+    document.getElementById(
+      "usersList"
+    );
+
+  list.innerHTML="";
+
+  const visible =
+    allUsers.filter(
+      user =>
+        Number(user.id) !==
+        Number(currentUser.id)
+    );
+
+  if(!visible.length){
+
+    list.innerHTML =
+      `<div class="emptySide">
+        No users found
+      </div>`;
+
+    return;
+  }
+
+  visible.forEach(
+    user=>{
+
+      const div =
+        document.createElement(
+          "div"
+        );
+
+      div.className =
+        "userItem";
+
+      const online =
+        Boolean(user.online);
+
+      const alreadyFriend =
+        friends.some(
+          f =>
+            Number(f.id) ===
+            Number(user.id)
+        );
+
+      div.innerHTML = `
+        <div>
+          <span class="${
+            online
+              ? "onlineDot"
+              : "offlineDot"
+          }"></span>
+          <strong>
+            ${escapeHtml(
+              user.username
+            )}
+          </strong>
+        </div>
+
+        <small style="color:#777;">
+          ID: ${user.id}
+          • ${online?"Online":"Offline"}
+        </small>
+
+        <div class="itemButtons">
+
+          <button
+            class="smallBtn chatFriendBtn"
+            onclick="event.stopPropagation();selectUserById(${user.id})"
+          >
+            Chat
+          </button>
+
+          ${
+            alreadyFriend
+              ? `<span style="
+                    color:#22c55e;
+                    font-size:12px;
+                    padding:7px;
+                  ">
+                    ✓ Friend
+                 </span>`
+              : `
+                <button
+                  class="smallBtn addBtn"
+                  onclick="
+                    event.stopPropagation();
+                    sendFriendRequest(${user.id})
+                  "
+                >
+                  + Add
+                </button>
+              `
+          }
+
+        </div>
+      `;
+
+      div.onclick =
+        ()=>selectUser(user);
+
+      list.appendChild(
+        div
+      );
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   SELECT USER
+===================================================== */
+
+async function selectUserById(
+  id
+){
+
+  const user =
+    allUsers.find(
+      u =>
+        Number(u.id) ===
+        Number(id)
+    );
+
+  if(user){
+
+    await selectUser(
+      user
+    );
+
+    return;
+  }
+
+  const response =
+    await fetch(
+      "/api/users",
+      {
+        headers:
+          authHeaders()
+      }
+    );
+
+  const users =
+    await response.json();
+
+  const found =
+    users.find(
+      u =>
+        Number(u.id) ===
+        Number(id)
+    );
+
+  if(found)
+    await selectUser(
+      found
+    );
+
+}
+
+
+async function selectUser(
+  user
+){
+
+  chatMode = "private";
+  selectedGroup = null;
+  selectedUser =
+    user;
+
+  document.getElementById(
+    "chatUserName"
+  ).textContent =
+    user.username;
+
+  document.getElementById(
+    "chatUserStatus"
+  ).textContent =
+    user.online
+      ? "Online"
+      : "Offline";
+
+  await loadChatHistory();
+
+}
+
+
+/* =====================================================
+   CONNECT USER
+===================================================== */
+
+async function connectUser(){
+
+  const id =
+    Number(
+      document.getElementById(
+        "connectUserId"
+      ).value
+    );
+
+  if(!id){
+
+    alert(
+      "Enter a valid User ID"
+    );
+
+    return;
+  }
+
+  await selectUserById(
+    id
+  );
+
+  document.getElementById(
+    "connectUserId"
+  ).value="";
+
+}
+
+
+/* =====================================================
+   CHAT HISTORY
+===================================================== */
+
+async function loadChatHistory(){
+
+  if(
+    !currentUser ||
+    !selectedUser
+  )
+    return;
+
+  const box =
+    document.getElementById(
+      "messages"
+    );
+
+  box.innerHTML =
+    `<div class="emptyChat">
+      Loading messages...
+    </div>`;
+
+  try{
+
+    const response =
+      await fetch(
+        `/api/messages/${currentUser.id}/${selectedUser.id}`,
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if(response.status===401){
+
+      logout();
+
+      return;
+    }
+
+    const messages =
+      await response.json();
+
+    box.innerHTML="";
+
+    if(
+      !Array.isArray(messages) ||
+      messages.length===0
+    ){
+
+      box.innerHTML =
+        `<div class="emptyChat">
+          No messages yet.
+        </div>`;
+
+    }else{
+
+      messages.forEach(
+        displayMessage
+      );
+
+    }
+
+    scrollMessages();
+
+    socket.emit(
+      "messages-read",
+      {
+        senderId:
+          selectedUser.id
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    box.innerHTML =
+      `<div class="emptyChat">
+        Could not load messages.
+      </div>`;
+
+  }
+
+}
+
+
+/* =====================================================
+   SEND MESSAGE
+===================================================== */
+
+function sendMessage(){
+
+  const input = document.getElementById("messageInput");
+  const message = input.value.trim();
+  if(!message) return;
+
+  if(chatMode==="group" && selectedGroup){
+    socket.emit("group-message",{groupId:selectedGroup.id,message});
+    input.value="";
+    stopTyping();
+    return;
+  }
+
+  if(!selectedUser){ alert("Select a user first"); return; }
+
+  socket.emit(
+    "private-message",
+    {
+      senderId:
+        currentUser.id,
+
+      receiverId:
+        selectedUser.id,
+
+      message,
+
+      messageType:
+        "text"
+    }
+  );
+
+  input.value="";
+
+  stopTyping();
+
+}
+
+
+/* =====================================================
+   ENTER
+===================================================== */
+
+function handleMessageKey(
+  event
+){
+
+  if(
+    event.key==="Enter" &&
+    !event.shiftKey
+  ){
+
+    event.preventDefault();
+
+    sendMessage();
+
+  }
+
+}
+
+
+/* =====================================================
+   DISPLAY MESSAGE
+===================================================== */
+
+function displayMessage(
+  message
+){
+
+  const box =
+    document.getElementById(
+      "messages"
+    );
+
+  const empty =
+    box.querySelector(
+      ".emptyChat"
+    );
+
+  if(empty)
+    empty.remove();
+
+  const div =
+    document.createElement(
+      "div"
+    );
+
+  const mine =
+    Number(
+      message.sender_id
+    ) ===
+    Number(
+      currentUser.id
+    );
+
+  if (message.id != null) messageCache.set(String(message.id), message);
+  div.dataset.messageId = message.id || "";
+  div.dataset.messageKind = (message.message_type === "file" || message.file_url) ? "file" : "text";
+
+  div.className =
+    "message " +
+    (
+      mine
+        ? "mine"
+        : "theirs"
+    );
+
+  let content="";
+
+  if(
+    message.is_deleted
+  ){
+
+    content =
+      `<div style="opacity:.6;">
+        Message deleted
+      </div>`;
+
+  }else if(
+    message.message_type==="file" &&
+    message.file_url &&
+    /\.(webm|ogg|mp3|wav|m4a|aac)(\?|$)/i.test(message.file_url)
+  ){
+
+    content = `
+      🎙️ Voice / audio
+      <audio controls preload="none" src="${escapeAttribute(message.file_url)}" style="display:block;max-width:240px;margin-top:8px;"></audio>
+    `;
+
+  }else if(
+    message.message_type==="file" &&
+    message.file_url
+  ){
+
+    content = `
+      📎
+      <a
+        href="${escapeAttribute(
+          message.file_url
+        )}"
+        target="_blank"
+        rel="noopener"
+        style="
+          color:white;
+          text-decoration:underline;
+        "
+      >
+        ${escapeHtml(
+          message.file_name ||
+          "File"
+        )}
+      </a>
+    `;
+
+  }else{
+
+    content =
+      `<div style="white-space:pre-wrap;">
+        ${escapeHtml(
+          message.message || ""
+        )}
+      </div>`;
+
+  }
+
+  const time =
+    message.created_at
+      ? new Date(
+          message.created_at
+        ).toLocaleTimeString(
+          [],
+          {
+            hour:"2-digit",
+            minute:"2-digit"
+          }
+        )
+      : "";
+
+  const read =
+    mine
+      ? (
+        message.is_read
+          ? "✓✓"
+          : "✓"
+      )
+      : "";
+
+  div.innerHTML = `
+    ${content}
+    ${message.id && !message.is_deleted ? `<div class="messageTools">
+      <button class="reactionBtn" onclick="reactMessage(${message.id},'👍')">👍</button>
+      <button class="reactionBtn" onclick="reactMessage(${message.id},'❤️')">❤️</button>
+      <button class="reactionBtn" onclick="reactMessage(${message.id},'😂')">😂</button>
+      <button class="reactionBtn" onclick="reactMessage(${message.id},'😮')">😮</button>
+      <button class="reactionBtn" onclick="reactMessage(${message.id},'👏')">👏</button>
+    </div>` : ""}
+
+    <div class="messageTime">
+      ${time}
+      ${message.is_edited ? '<span style="opacity:.65;"> · edited</span>' : ''}
+
+      <span class="readMark">
+        ${read}
+      </span>
+
+      ${
+        mine &&
+        message.id &&
+        !message.is_deleted
+          ? `
+            ${message.message_type !== "file" ? `<button class="deleteMessage" onclick="editMessage(${message.id})">Edit</button>` : ""}
+            <button
+              class="deleteMessage"
+              onclick="deleteMessage(${message.id})"
+            >
+              Delete for everyone
+            </button>
+          `
+          : ""
+      }
+
+    </div>
+  `;
+
+  box.appendChild(
+    div
+  );
+
+  scrollMessages();
+
+}
+
+
+/* =====================================================
+   DELETE
+===================================================== */
+
+async function deleteMessage(
+  id
+){
+
+  if(
+    !confirm(
+      "Delete this message?"
+    )
+  )
+    return;
+
+  try{
+
+    const response =
+      await fetch(
+        `/api/messages/${id}`,
+        {
+          method:"DELETE",
+          headers:
+            authHeaders()
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Delete failed"
+      );
+
+    }
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+
+/* =====================================================
+   FEATURE 1: EDIT MESSAGE (15-minute server rule)
+===================================================== */
+async function editMessage(id) {
+  const msg = messageCache.get(String(id));
+  if (!msg || Number(msg.sender_id) !== Number(currentUser.id)) return;
+  if (msg.is_deleted || msg.message_type === "file") return alert("Only text messages can be edited.");
+  const replacement = prompt("Edit message (available for 15 minutes after sending):", msg.message || "");
+  if (replacement === null) return;
+  const message = replacement.trim();
+  if (!message || message.length > 4000) return alert("Message must be 1–4000 characters.");
+  try {
+    const r = await fetch(`/api/messages/${id}/edit`, {
+      method: "PATCH",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
+    const d = await r.json();
+    if (!r.ok) return alert(d.error || "Edit failed.");
+    await loadChatHistory();
+  } catch (e) {
+    console.error(e);
+    alert("Could not edit message.");
+  }
+}
+
+/* =====================================================
+   FEATURE 2: VOICE NOTES (browser MediaRecorder)
+===================================================== */
+async function toggleVoiceNote() {
+  const button = document.getElementById("voiceNoteBtn");
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+    button.textContent = "🎙️";
+    button.style.background = "#2b2b2b";
+    return;
+  }
+  if (chatMode !== "private" || !selectedUser) {
+    alert("Open a private chat before recording a voice note.");
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+    alert("Voice recording is not supported in this browser.");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "";
+    mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    voiceChunks = [];
+    mediaRecorder.ondataavailable = event => { if (event.data && event.data.size) voiceChunks.push(event.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(track => track.stop());
+      const blob = new Blob(voiceChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+      if (!blob.size) return;
+      if (blob.size > 25 * 1024 * 1024) return alert("Voice note is too large (max 25 MB).");
+      await uploadVoiceBlob(blob);
+    };
+    mediaRecorder.start();
+    button.textContent = "⏹ Stop";
+    button.style.background = "#b91c1c";
+  } catch (e) {
+    console.error(e);
+    alert("Microphone permission was not granted.");
+  }
+}
+
+async function uploadVoiceBlob(blob) {
+  if (!selectedUser) return;
+  try {
+    const form = new FormData();
+    form.append("file", blob, `voice-note-${Date.now()}.webm`);
+    const r = await fetch("/api/upload", { method: "POST", headers: authHeaders(), body: form });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Upload failed");
+    socket.emit("private-message", {
+      senderId: currentUser.id,
+      receiverId: selectedUser.id,
+      message: "🎙️ Voice note",
+      messageType: "file",
+      fileName: d.file.name,
+      fileUrl: d.file.url,
+      fileSize: d.file.size
+    });
+  } catch (e) {
+    console.error(e);
+    alert(e.message || "Could not send voice note.");
+  }
+}
+
+/* =====================================================
+   FEATURE 3: BASIC APP LOCK (casual privacy only)
+===================================================== */
+async function sha256Text(value) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function toggleChatLock() {
+  const overlay = document.getElementById("chatLockOverlay");
+  const existing = localStorage.getItem("rtc_app_lock_hash");
+  if (!existing) {
+    const pin = prompt("Create an app passcode (4+ characters). This is a basic screen lock, not account security:");
+    if (!pin || pin.length < 4) return alert("Passcode must be at least 4 characters.");
+    localStorage.setItem("rtc_app_lock_hash", await sha256Text(pin));
+  }
+  document.getElementById("chatUnlockPin").value = "";
+  document.getElementById("chatUnlockError").textContent = "";
+  overlay.classList.remove("hidden");
+  overlay.style.display = "flex";
+}
+async function unlockChatApp() {
+  const pin = document.getElementById("chatUnlockPin").value;
+  const saved = localStorage.getItem("rtc_app_lock_hash");
+  if (saved && await sha256Text(pin) === saved) {
+    document.getElementById("chatLockOverlay").classList.add("hidden");
+    document.getElementById("chatUnlockError").textContent = "";
+  } else {
+    document.getElementById("chatUnlockError").textContent = "Incorrect passcode.";
+  }
+}
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !document.getElementById("chatLockOverlay").classList.contains("hidden")) unlockChatApp();
+});
+
+/* =====================================================
+   FEATURE 4: MUTE UNKNOWN CALLERS
+===================================================== */
+function saveMuteUnknownCalls() {
+  const enabled = document.getElementById("muteUnknownCalls").checked;
+  localStorage.setItem("rtc_mute_unknown_calls", enabled ? "1" : "0");
+}
+function restoreNewFeatureSettings() {
+  const toggle = document.getElementById("muteUnknownCalls");
+  if (toggle) toggle.checked = localStorage.getItem("rtc_mute_unknown_calls") === "1";
+}
+document.addEventListener("DOMContentLoaded", restoreNewFeatureSettings);
+
+/* =====================================================
+   FEATURE 5: FILTER VISIBLE MESSAGES
+===================================================== */
+function filterVisibleMessages(kind) {
+  document.querySelectorAll("#messages .message").forEach(node => {
+    const file = node.dataset.messageKind === "file";
+    node.style.display = kind === "all" || (kind === "files" && file) || (kind === "text" && !file) ? "" : "none";
+  });
+}
+
+/* =====================================================
+   FILE UPLOAD
+===================================================== */
+
+async function uploadFile(){
+
+  const input =
+    document.getElementById(
+      "fileInput"
+    );
+
+  const file =
+    input.files[0];
+
+  if(!file)
+    return;
+
+  if(!selectedUser){
+
+    alert(
+      "Select a user first"
+    );
+
+    input.value="";
+
+    return;
+  }
+
+  if(
+    file.size >
+    100 * 1024 * 1024
+  ){
+
+    alert(
+      "Maximum file size is 100 MB."
+    );
+
+    input.value="";
+
+    return;
+  }
+
+  try{
+
+    const form =
+      new FormData();
+
+    form.append(
+      "file",
+      file
+    );
+
+    const response =
+      await fetch(
+        "/api/upload",
+        {
+          method:"POST",
+          headers:
+            authHeaders(),
+          body:form
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Upload failed"
+      );
+
+      return;
+    }
+
+    socket.emit(
+      "private-message",
+      {
+        senderId:
+          currentUser.id,
+
+        receiverId:
+          selectedUser.id,
+
+        message:
+          "📎 " +
+          data.file.name,
+
+        messageType:
+          "file",
+
+        fileName:
+          data.file.name,
+
+        fileUrl:
+          data.file.url,
+
+        fileSize:
+          data.file.size
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      "File upload failed"
+    );
+
+  }finally{
+
+    input.value="";
+
+  }
+
+}
+
+
+/* =====================================================
+   GROUPS
+===================================================== */
+async function loadGroups(){
+  try{
+    const r=await fetch("/api/groups",{headers:authHeaders()});
+    if(!r.ok) return;
+    const groups=await r.json();
+    const list=document.getElementById("groupsList"); list.innerHTML="";
+    if(!groups.length){list.innerHTML='<div class="emptySide">No groups yet</div>';return;}
+    groups.forEach(g=>{const d=document.createElement("div");d.className="groupItem";d.textContent="👥 "+g.name;d.onclick=()=>selectGroup(g);list.appendChild(d);});
+  }catch(e){console.error("Groups:",e)}
+}
+
+async function createGroup(){
+  const input=document.getElementById("groupNameInput"); const name=input.value.trim();
+  if(!name) return;
+  try{
+    const r=await fetch("/api/groups",{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({name})});
+    const d=await r.json(); if(!r.ok){alert(d.error||"Group creation failed");return;}
+    input.value=""; await loadGroups(); await selectGroup(d);
+  }catch(e){console.error(e)}
+}
+
+async function selectGroup(group){
+  chatMode="group"; selectedGroup=group; selectedUser=null;
+  document.getElementById("chatUserName").textContent="👥 "+group.name;
+  document.getElementById("chatUserStatus").textContent="Group chat";
+  socket.emit("join-group",{groupId:group.id});
+  const box=document.getElementById("messages"); box.innerHTML='<div class="emptyChat">Loading group messages...</div>';
+  try{
+    const r=await fetch(`/api/groups/${group.id}/messages`,{headers:authHeaders()}); const msgs=await r.json(); box.innerHTML="";
+    if(!msgs.length){box.innerHTML='<div class="emptyChat">No group messages yet.</div>';return;}
+    msgs.forEach(displayGroupMessage); scrollMessages();
+  }catch(e){box.innerHTML='<div class="emptyChat">Could not load group messages.</div>'}
+}
+
+function displayGroupMessage(message){
+  const box=document.getElementById("messages"); const empty=box.querySelector(".emptyChat"); if(empty) empty.remove();
+  const div=document.createElement("div"); const mine=Number(message.sender_id)===Number(currentUser.id); div.className="message "+(mine?"mine":"theirs");
+  const time=message.created_at?new Date(message.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";
+  div.innerHTML=`<div style="font-size:11px;opacity:.75;margin-bottom:3px;">User ${message.sender_id}</div><div style="white-space:pre-wrap;">${escapeHtml(message.message||"")}</div><div class="messageTime">${time}</div>`;
+  box.appendChild(div); scrollMessages();
+}
+
+async function reactMessage(messageId,emoji){
+  try{
+    const r=await fetch(`/api/messages/${messageId}/reactions`,{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({emoji})});
+    if(!r.ok){const d=await r.json();alert(d.error||"Reaction failed");return;}
+    if(selectedUser) loadChatHistory();
+  }catch(e){console.error(e)}
+}
+
+async function searchMessages(){
+  if(chatMode!=="private" || !selectedUser) return;
+  const q=document.getElementById("messageSearchInput").value.trim();
+  if(!q){await loadChatHistory();return;}
+  try{
+    const r=await fetch(`/api/messages/search?q=${encodeURIComponent(q)}&userId=${selectedUser.id}`,{headers:authHeaders()});
+    const data=await r.json(); const box=document.getElementById("messages"); box.innerHTML="";
+    if(!data.length){box.innerHTML='<div class="emptyChat">No matching messages.</div>';return;}
+    data.reverse().forEach(displayMessage); scrollMessages();
+  }catch(e){console.error(e)}
+}
+function handleMessageSearch(event){if(event.key==="Enter"){event.preventDefault();searchMessages();}}
+
+/* =====================================================
+   FRIEND REQUEST
+===================================================== */
+
+async function sendFriendRequest(
+  receiverId
+){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/friends/request",
+        {
+          method:"POST",
+          headers:{
+            ...authHeaders(),
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            receiverId
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Could not send request"
+      );
+
+      return;
+    }
+
+    alert(
+      "✅ Friend request sent"
+    );
+
+    loadUsers();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   REQUESTS
+===================================================== */
+
+async function loadRequests(){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/friends/requests",
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if(!response.ok)
+      return;
+
+    requests =
+      await response.json();
+
+    renderRequests();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+function renderRequests(){
+
+  const list =
+    document.getElementById(
+      "requestsList"
+    );
+
+  const badge =
+    document.getElementById(
+      "requestBadge"
+    );
+
+  list.innerHTML="";
+
+  if(!requests.length){
+
+    badge.classList.add(
+      "hidden"
+    );
+
+    list.innerHTML =
+      `<div class="emptySide">
+        No pending requests
+      </div>`;
+
+    return;
+  }
+
+  badge.classList.remove(
+    "hidden"
+  );
+
+  badge.textContent =
+    requests.length;
+
+  requests.forEach(
+    request=>{
+
+      const div =
+        document.createElement(
+          "div"
+        );
+
+      div.className =
+        "requestItem";
+
+      div.innerHTML = `
+        <div>
+          👤 User ID:
+          ${request.sender_id}
+        </div>
+
+        <div class="itemButtons">
+
+          <button
+            class="smallBtn acceptBtn"
+            onclick="
+              respondRequest(
+                ${request.id},
+                'accept'
+              )
+            "
+          >
+            ✓ Accept
+          </button>
+
+          <button
+            class="smallBtn rejectBtn"
+            onclick="
+              respondRequest(
+                ${request.id},
+                'reject'
+              )
+            "
+          >
+            ✕ Reject
+          </button>
+
+        </div>
+      `;
+
+      list.appendChild(
+        div
+      );
+
+    }
+  );
+
+}
+
+
+/* =====================================================
+   ACCEPT / REJECT
+===================================================== */
+
+async function respondRequest(
+  requestId,
+  action
+){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/friends/respond",
+        {
+          method:"POST",
+          headers:{
+            ...authHeaders(),
+            "Content-Type":
+              "application/json"
+          },
+          body:JSON.stringify({
+            requestId,
+            action
+          })
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if(!response.ok){
+
+      alert(
+        data.error ||
+        "Request failed"
+      );
+
+      return;
+    }
+
+    await loadRequests();
+
+    await loadFriends();
+
+    await loadUsers();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   FRIENDS
+===================================================== */
+
+async function loadFriends(){
+
+  try{
+
+    const response =
+      await fetch(
+        "/api/friends",
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if(!response.ok)
+      return;
+
+    friends =
+      await response.json();
+
+    renderFriends();
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+  }
+
+}
+
+
+function renderFriends(){
+
+  const list =
+    document.getElementById(
+      "friendsList"
+    );
+
+  list.innerHTML="";
+
+  if(!friends.length){
+
+    list.innerHTML =
+      `<div class="emptySide">
+        No friends yet
+      </div>`;
+
+    return;
+  }
+
+  friends.forEach(
+    friend=>{
+
+      const div =
+        document.createElement(
+          "div"
+        );
+
+      div.className =
+        "friendItem";
+
+      div.innerHTML = `
+        <div
+          onclick="selectUserById(${friend.id})"
+          style="cursor:pointer;"
+        >
+
+          <span class="${
+            friend.online
+              ? "onlineDot"
+              : "offlineDot"
+          }"></span>
+
+          <strong>
+            ${escapeHtml(
+              friend.username
+            )}
+          </strong>
+
+        </div>
+
+        <small style="color:#777;">
+          ${friend.online ? "Online" : "Offline"}
+        </small>
+        <div class="itemButtons">
+          <button class="smallBtn rejectBtn" onclick="event.stopPropagation();removeFriend(${friend.id})">Remove</button>
+        </div>
+      `;
+
+      list.appendChild(
+        div
+      );
+
+    }
+  );
+
+}
+
+
+async function removeFriend(friendId){
+  if(!confirm("Remove this friend?")) return;
+  try{const r=await fetch(`/api/friends/${friendId}`,{method:"DELETE",headers:authHeaders()});const d=await r.json();if(!r.ok){alert(d.error||"Could not remove friend");return;}await loadFriends();await loadUsers();}catch(e){console.error(e)}
+}
+
+/* =====================================================
+   TYPING
+===================================================== */
+
+function typingStart(){
+
+  if(
+    !socket ||
+    !selectedUser
+  )
+    return;
+
+  if(!currentlyTyping){
+
+    currentlyTyping=true;
+
+    socket.emit(
+      "typing",
+      {
+        receiverId:
+          selectedUser.id,
+        typing:true
+      }
+    );
+
+  }
+
+  clearTimeout(
+    typingTimer
+  );
+
+  typingTimer =
+    setTimeout(
+      stopTyping,
+      1200
+    );
+
+}
+
+
+function stopTyping(){
+
+  clearTimeout(
+    typingTimer
+  );
+
+  if(
+    !currentlyTyping ||
+    !selectedUser
+  )
+    return;
+
+  currentlyTyping=false;
+
+  socket.emit(
+    "typing",
+    {
+      receiverId:
+        selectedUser.id,
+      typing:false
+    }
+  );
+
+  document
+    .getElementById(
+      "typingIndicator"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+}
+
+
+/* =====================================================
+   CALL
+===================================================== */
+
+async function startAudioCall(){
+
+  await startCall(
+    "audio"
+  );
+
+}
+
+
+async function startVideoCall(){
+
+  await startCall(
+    "video"
+  );
+
+}
+
+
+async function startCall(
+  callType
+){
+
+  if(!selectedUser){
+
+    alert(
+      "Select a user first"
+    );
+
+    return;
+  }
+
+  try{
+
+    localStream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+          audio:true,
+          video:
+            callType ===
+            "video"
+        });
+
+    showLocalStream();
+
+    peerConnection =
+      createPeerConnection(
+        selectedUser.id
+      );
+
+    localStream
+      .getTracks()
+      .forEach(
+        track=>{
+          peerConnection.addTrack(
+            track,
+            localStream
+          );
+        }
+      );
+
+    const offer =
+      await peerConnection
+        .createOffer();
+
+    await peerConnection
+      .setLocalDescription(
+        offer
+      );
+
+    socket.emit(
+      "start-call",
+      {
+        receiverId:
+          selectedUser.id,
+
+        callerId:
+          currentUser.id,
+
+        callerName:
+          currentUser.username,
+
+        callType
+      }
+    );
+
+    socket.emit(
+      "call-offer",
+      {
+        receiverId:
+          selectedUser.id,
+
+        callerId:
+          currentUser.id,
+
+        callerName:
+          currentUser.username,
+
+        callType,
+
+        offer
+      }
+    );
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      "Microphone/camera permission is required."
+    );
+
+    closeCall();
+
+  }
+
+}
+
+
+/* =====================================================
+   PEER CONNECTION
+===================================================== */
+
+function createPeerConnection(
+  remoteUserId
+){
+
+  const pc =
+    new RTCPeerConnection(
+      rtcConfig
+    );
+
+  pc.onicecandidate =
+    event=>{
+
+      if(
+        event.candidate &&
+        socket
+      ){
+
+        socket.emit(
+          "ice-candidate",
+          {
+            receiverId:
+              remoteUserId,
+
+            candidate:
+              event.candidate
+          }
+        );
+
+      }
+
+    };
+
+
+  pc.ontrack =
+    event=>{
+
+      const remote =
+        document.getElementById(
+          "remoteVideo"
+        );
+
+      if(
+        event.streams &&
+        event.streams[0]
+      ){
+
+        remote.srcObject =
+          event.streams[0];
+
+      }
+
+    };
+
+
+  pc.onconnectionstatechange =
+    ()=>{
+
+      if(
+        pc.connectionState ===
+        "failed" ||
+        pc.connectionState ===
+        "closed"
+      ){
+
+        closeCall();
+
+      }
+
+    };
+
+
+  return pc;
+
+}
+
+
+/* =====================================================
+   ACCEPT CALL
+===================================================== */
+
+async function acceptCall(){
+
+  document
+    .getElementById(
+      "incomingCall"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  if(!incomingCallData)
+    return;
+
+  const data =
+    incomingCallData;
+
+  selectedUser = {
+    id:
+      data.callerId,
+
+    username:
+      data.callerName ||
+      "Caller"
+  };
+
+  document.getElementById(
+    "chatUserName"
+  ).textContent =
+    selectedUser.username;
+
+  try{
+
+    localStream =
+      await navigator
+        .mediaDevices
+        .getUserMedia({
+          audio:true,
+
+          video:
+            data.callType ===
+            "video"
+        });
+
+    showLocalStream();
+
+    peerConnection =
+      createPeerConnection(
+        data.callerId
+      );
+
+    localStream
+      .getTracks()
+      .forEach(
+        track=>{
+          peerConnection.addTrack(
+            track,
+            localStream
+          );
+        }
+      );
+
+    const offer =
+      data.offer ||
+      pendingOffer;
+
+    if(offer){
+
+      await acceptRemoteOffer({
+        ...data,
+        offer
+      });
+
+    }
+
+  }catch(error){
+
+    console.error(
+      error
+    );
+
+    alert(
+      "Could not access microphone/camera."
+    );
+
+    closeCall();
+
+  }
+
+}
+
+
+/* =====================================================
+   REMOTE OFFER
+===================================================== */
+
+async function acceptRemoteOffer(
+  data
+){
+
+  if(!peerConnection)
+    return;
+
+  try{
+
+    await peerConnection
+      .setRemoteDescription(
+        new RTCSessionDescription(
+          data.offer
+        )
+      );
+
+    const answer =
+      await peerConnection
+        .createAnswer();
+
+    await peerConnection
+      .setLocalDescription(
+        answer
+      );
+
+    socket.emit(
+      "call-answer",
+      {
+        receiverId:
+          data.callerId,
+
+        answer
+      }
+    );
+
+    pendingOffer =
+      null;
+
+    await flushIce();
+
+  }catch(error){
+
+    console.error(
+      "Remote offer:",
+      error
+    );
+
+  }
+
+}
+
+
+async function flushIce(){
+
+  if(
+    !peerConnection ||
+    !peerConnection.remoteDescription
+  )
+    return;
+
+  while(
+    iceQueue.length
+  ){
+
+    const candidate =
+      iceQueue.shift();
+
+    try{
+
+      await peerConnection
+        .addIceCandidate(
+          new RTCIceCandidate(
+            candidate
+          )
+        );
+
+    }catch(error){
+
+      console.error(
+        error
+      );
+
+    }
+
+  }
+
+}
+
+
+/* =====================================================
+   REJECT
+===================================================== */
+
+function rejectCall(){
+
+  document
+    .getElementById(
+      "incomingCall"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  incomingCallData =
+    null;
+
+  pendingOffer =
+    null;
+
+}
+
+
+/* =====================================================
+   VIDEO
+===================================================== */
+
+function showLocalStream(){
+
+  document.getElementById(
+    "localVideo"
+  ).srcObject =
+    localStream;
+
+  document
+    .getElementById(
+      "videoPanel"
+    )
+    .classList.remove(
+      "hidden"
+    );
+
+}
+
+
+function toggleMute(){
+
+  if(!localStream)
+    return;
+
+  localStream
+    .getAudioTracks()
+    .forEach(
+      track=>{
+        track.enabled =
+          !track.enabled;
+      }
+    );
+
+}
+
+
+function toggleCamera(){
+
+  if(!localStream)
+    return;
+
+  localStream
+    .getVideoTracks()
+    .forEach(
+      track=>{
+        track.enabled =
+          !track.enabled;
+      }
+    );
+
+}
+
+
+/* =====================================================
+   SCREEN SHARE
+===================================================== */
+
+async function shareScreen(){
+
+  if(!selectedUser){
+
+    alert(
+      "Select a user first"
+    );
+
+    return;
+  }
+
+  if(!peerConnection){
+
+    alert(
+      "Start a video call first."
+    );
+
+    return;
+  }
+
+  try{
+
+    const screenStream =
+      await navigator
+        .mediaDevices
+        .getDisplayMedia({
+          video:true,
+          audio:true
+        });
+
+    const screenTrack =
+      screenStream
+        .getVideoTracks()[0];
+
+    const sender =
+      peerConnection
+        .getSenders()
+        .find(
+          s =>
+            s.track &&
+            s.track.kind ===
+            "video"
+        );
+
+    if(sender){
+
+      await sender
+        .replaceTrack(
+          screenTrack
+        );
+
+    }
+
+    document.getElementById(
+      "localVideo"
+    ).srcObject =
+      screenStream;
+
+    screenTrack.onended =
+      async ()=>{
+
+        const camera =
+          localStream
+            ?.getVideoTracks()[0];
+
+        if(
+          camera &&
+          sender
+        ){
+
+          await sender
+            .replaceTrack(
+              camera
+            );
+
+        }
+
+        if(localStream){
+
+          document.getElementById(
+            "localVideo"
+          ).srcObject =
+            localStream;
+
+        }
+
+      };
+
+  }catch(error){
+
+    console.error(
+      "Screen share:",
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   END CALL
+===================================================== */
+
+function endCall(){
+
+  if(
+    selectedUser &&
+    socket
+  ){
+
+    socket.emit(
+      "end-call",
+      {
+        receiverId:
+          selectedUser.id
+      }
+    );
+
+  }
+
+  closeCall();
+
+}
+
+
+function closeCall(){
+
+  if(peerConnection){
+
+    peerConnection.close();
+
+    peerConnection =
+      null;
+
+  }
+
+  if(localStream){
+
+    localStream
+      .getTracks()
+      .forEach(
+        track=>{
+          track.stop();
+        }
+      );
+
+    localStream =
+      null;
+
+  }
+
+  iceQueue=[];
+
+  pendingOffer=null;
+
+  document.getElementById(
+    "localVideo"
+  ).srcObject=null;
+
+  document.getElementById(
+    "remoteVideo"
+  ).srcObject=null;
+
+  document
+    .getElementById(
+      "videoPanel"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+}
+
+
+/* =====================================================
+   LOGOUT
+===================================================== */
+
+function logout(){
+
+  closeCall();
+
+  if(socket){
+
+    socket.disconnect();
+
+    socket=null;
+
+  }
+
+  localStorage.removeItem(
+    "rtc_token"
+  );
+
+  localStorage.removeItem(
+    "rtc_user"
+  );
+
+  currentUser=null;
+  selectedUser=null;
+
+  document
+    .getElementById(
+      "appScreen"
+    )
+    .classList.add(
+      "hidden"
+    );
+
+  document
+    .getElementById(
+      "authScreen"
+    )
+    .classList.remove(
+      "hidden"
+    );
+
+}
+
+
+/* =====================================================
+   SCROLL
+===================================================== */
+
+function scrollMessages(){
+
+  const box =
+    document.getElementById(
+      "messages"
+    );
+
+  setTimeout(
+    ()=>{
+      box.scrollTop =
+        box.scrollHeight;
+    },
+    20
+  );
+
+}
+
+
+/* =====================================================
+   ESCAPE
+===================================================== */
+
+function escapeHtml(
+  text
+){
+
+  const div =
+    document.createElement(
+      "div"
+    );
+
+  div.textContent =
+    String(
+      text ?? ""
+    );
+
+  return div.innerHTML;
+
+}
+
+
+function escapeAttribute(
+  text
+){
+
+  return String(
+    text ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    );
+
+}
+
+
+/* =====================================================
+   AUTO LOGIN
+===================================================== */
+
+async function autoLogin(){
+
+  const token =
+    localStorage.getItem(
+      "rtc_token"
+    );
+
+  const saved =
+    localStorage.getItem(
+      "rtc_user"
+    );
+
+  if(
+    !token ||
+    !saved
+  )
+    return;
+
+  try{
+
+    currentUser =
+      JSON.parse(
+        saved
+      );
+
+    const response =
+      await fetch(
+        "/api/me",
+        {
+          headers:
+            authHeaders()
+        }
+      );
+
+    if(!response.ok){
+
+      logout();
+
+      return;
+    }
+
+    currentUser =
+      await response.json();
+
+    localStorage.setItem(
+      "rtc_user",
+      JSON.stringify(
+        currentUser
+      )
+    );
+
+    openApp();
+
+  }catch(error){
+
+    console.error(
+      "Auto login:",
+      error
+    );
+
+    localStorage.removeItem(
+      "rtc_token"
+    );
+
+    localStorage.removeItem(
+      "rtc_user"
+    );
+
+    currentUser=null;
+
+  }
+
+}
+
+
+/* =====================================================
+   START
+===================================================== */
+
+window.addEventListener(
+  "load",
+  ()=>{
+    autoLogin();
+  }
+);
+
+
+/* =====================================================
+   SERVICE WORKER
+===================================================== */
+
+if(
+  "serviceWorker" in
+  navigator
+){
+
+  window.addEventListener(
+    "load",
+    ()=>{
+      navigator.serviceWorker
+        .register(
+          "/service-worker.js"
+        )
+        .catch(
+          error =>
+            console.error(
+              "Service Worker:",
+              error
+            )
+        );
+    }
+  );
+
+}
+
+</script>
+
+</body>
+</html>

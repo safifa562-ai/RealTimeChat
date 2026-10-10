@@ -1,16 +1,19 @@
 {
-  "name": "realtime-communication-app",
-  "version": "3.0.0",
-  "main": "server.js",
+  "name": "realtimechat",
+  "version": "1.1.0",
+  "private": true,
   "scripts": {
     "start": "node server.js"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.57.4",
-    "bcryptjs": "^3.0.2",
-    "express": "^5.1.0",
+    "@supabase/supabase-js": "^2.49.1",
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.2",
+    "multer": "^1.4.5-lts.1",
     "socket.io": "^4.8.1"
   }
 }
