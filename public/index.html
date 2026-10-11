@@ -1,0 +1,135 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RealTimeChat</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#111111">
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#0f0f0f;color:white}
+button,input{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+/* AUTH */
+#authScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#101010}
+.authBox{width:100%;max-width:420px;background:#1d1d1d;padding:30px;border-radius:18px;box-shadow:0 15px 50px rgba(0,0,0,.5)}
+.authBox h1{text-align:center;margin-top:0}
+.authBox h2{margin-bottom:8px}
+.authBox input{width:100%;padding:13px;margin:7px 0;border:1px solid #444;border-radius:9px;background:#292929;color:white;outline:none}
+.authBox button{border:0;border-radius:9px;padding:13px}
+.primaryBtn{background:#2563eb;color:white}
+.secondaryBtn{background:#333;color:white}
+.authButtons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+#authMessage{text-align:center;min-height:20px;margin-top:15px}
+
+/* APP */
+#appScreen{height:100vh;display:flex;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:320px;background:#181818;border-right:1px solid #333;padding:16px;overflow-y:auto}
+.logo{font-size:24px;font-weight:bold;margin-bottom:18px}
+.profile{background:#242424;padding:14px;border-radius:12px;margin-bottom:12px}
+.profileName{font-size:18px;font-weight:bold}
+.userId{color:#999;font-size:13px;margin-top:4px}
+.searchBox input,.connectBox input{width:100%;padding:11px;margin-bottom:7px;border:1px solid #444;border-radius:8px;background:#292929;color:white;outline:none}
+.connectBtn,.searchBtn{width:100%;padding:11px;border:0;border-radius:8px;background:#2563eb;color:white}
+.sectionTitle{font-weight:bold;margin:18px 0 9px;display:flex;align-items:center;justify-content:space-between}
+.badge{background:#ef4444;color:white;min-width:22px;height:22px;padding:2px 6px;border-radius:20px;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.userItem,.friendItem,.requestItem{background:#242424;padding:11px;border-radius:9px;margin-bottom:7px}
+.userItem{cursor:pointer}
+.userItem:hover,.friendItem:hover{background:#303030}
+.onlineDot,.offlineDot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}
+.onlineDot{background:#22c55e}
+.offlineDot{background:#777}
+.itemButtons{display:flex;gap:5px;margin-top:8px}
+.smallBtn{border:0;border-radius:7px;padding:7px 9px;color:white;font-size:12px}
+.addBtn{background:#2563eb}
+.acceptBtn{background:#16a34a}
+.rejectBtn{background:#dc2626}
+.chatFriendBtn{background:#7c3aed}
+.emptySide{color:#777;font-size:13px;padding:8px 2px}
+.logoutBtn{width:100%;margin-top:20px;padding:11px;border:0;border-radius:8px;background:#7f1d1d;color:white}
+
+/* EXTRA CHAT FEATURES */
+.messageTools{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.reactionBtn{border:0;background:#333;color:white;border-radius:12px;padding:3px 7px;font-size:12px}
+.reactionBtn:hover{background:#555}
+.chatSearch{display:flex;gap:5px;width:min(320px,45vw)}
+.chatSearch input{min-width:0;flex:1;background:#292929;border:1px solid #444;color:white;border-radius:8px;padding:8px}
+.chatSearch button{border:0;border-radius:8px;background:#444;color:white;padding:8px}
+.groupItem{background:#242424;padding:10px;border-radius:9px;margin-bottom:7px;cursor:pointer}
+.groupItem:hover{background:#303030}
+.createGroup{display:flex;gap:5px}
+.createGroup input{min-width:0;flex:1;background:#292929;border:1px solid #444;color:white;border-radius:8px;padding:8px}
+.createGroup button{border:0;border-radius:8px;background:#16a34a;color:white;padding:8px}
+
+/* CHAT */
+.chatArea{flex:1;min-width:0;display:flex;flex-direction:column}
+.chatHeader{min-height:70px;padding:12px 18px;background:#181818;border-bottom:1px solid #333;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chatUserName{font-size:19px;font-weight:bold}
+.callButtons{display:flex;gap:7px}
+.callBtn{border:0;border-radius:8px;padding:10px 13px;color:white}
+.audioBtn{background:#16a34a}
+.videoBtn{background:#2563eb}
+.screenBtn{background:#7c3aed}
+#messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:9px;background:#101010}
+.message{max-width:75%;padding:10px 13px;border-radius:13px;word-break:break-word}
+.mine{align-self:flex-end;background:#2563eb}
+.theirs{align-self:flex-start;background:#292929}
+.messageTime{font-size:10px;opacity:.7;margin-top:5px}
+.readMark{margin-left:3px}
+.messageActions{margin-top:5px}
+.deleteMessage{border:0;background:transparent;color:#ffb4b4;font-size:11px}
+.emptyChat{margin:auto;text-align:center;color:#777}
+.messageBar{padding:10px;background:#181818;border-top:1px solid #333;display:flex;gap:7px}
+.messageBar input{flex:1;min-width:0;padding:12px;background:#292929;border:1px solid #444;border-radius:9px;color:white}
+.fileBtn,.sendBtn{border:0;border-radius:9px;padding:10px 14px;color:white}
+.fileBtn{background:#444}
+.sendBtn{background:#2563eb}
+#fileInput{display:none}
+.typing{color:#777;font-size:12px;padding:0 14px}
+
+/* CALL UI */
+#callOverlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;padding:16px}
+.callPanel{width:100%;max-width:850px;background:#1c1c1c;border:1px solid #444;border-radius:16px;padding:16px}
+.callVideos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.callVideos video{width:100%;max-height:55vh;background:#050505;border-radius:12px;object-fit:contain}
+.callControls{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:14px}
+.callControls button{border:0;border-radius:8px;padding:10px 14px;color:white;background:#444}
+.callControls .endCallBtn{background:#dc2626}
+#incomingCall{position:fixed;z-index:120;left:50%;top:20px;transform:translateX(-50%);background:#222;border:1px solid #555;border-radius:12px;padding:18px;width:min(420px,94vw);box-shadow:0 10px 40px #000}
+#incomingCall button{border:0;border-radius:8px;padding:10px;color:white;margin:5px}
+#acceptCallBtn{background:#16a34a}
+#rejectCallBtn{background:#dc2626}
+
+/* NEW FEATURES */
+.featurePanel{background:#222;border:1px solid #444;border-radius:10px;padding:12px;margin-top:10px}
+.featurePanel button{border:0;border-radius:7px;padding:8px;background:#444;color:white;margin:3px}
+.featurePanel input{max-width:100%;padding:8px;background:#292929;border:1px solid #444;color:white;border-radius:7px}
+#lockOverlay{position:fixed;inset:0;background:#101010;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.lockBox{width:100%;max-width:360px;background:#222;padding:24px;border-radius:14px}
+.lockBox input{width:100%;padding:12px;margin:10px 0;background:#111;color:white;border:1px solid #555;border-radius:8px}
+.lockBox button{padding:11px;border:0;border-radius:8px;background:#2563eb;color:white;width:100%}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;padding:12px 18px;border-radius:9px;z-index:250;max-width:90vw}
+@media(max-width:700px){
+  #appScreen{height:100dvh;flex-direction:column}
+  .sidebar{width:100%;max-height:42vh;border-right:0;border-bottom:1px solid #333}
+  .chatArea{flex:1;min-height:0}
+  .chatSearch{width:100%}
+  .chatHeader{gap:8px;padding:10px}
+  .messageBar{position:sticky;bottom:0;z-index:20;display:flex;align-items:center}
+  .messageBar input{font-size:16px}
+  .fileBtn,.sendBtn{flex:0 0 auto}
+  .groupItem{font-size:14px}
+  .callVideos{grid-template-columns:1fr}
+  .callVideos video{max-height:32vh}
+  .message{max-width:90%}
+}
+</style>
+</head>
+<body>
