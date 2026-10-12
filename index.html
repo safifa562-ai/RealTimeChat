@@ -568,6 +568,80 @@ button:hover{filter:brightness(1.12)}button:active{transform:scale(.98)}
 #incomingCall .callPopup{background:#102139;border:1px solid var(--line);box-shadow:0 25px 80px rgba(0,0,0,.5)}#videoPanel{background:#0e1b2d;border:1px solid var(--line);border-radius:20px}video{border:1px solid var(--line)}.videoControls button{background:#1b3048;border:1px solid var(--line);border-radius:10px}
 @media(max-width:700px){#appScreen{padding:7px;gap:7px;height:100dvh}.sidebar{width:100%;flex:0 0 auto;max-height:40dvh;border-radius:17px;padding:12px}.logo{font-size:20px;margin-bottom:10px}.profile{padding:10px}.sectionTitle{margin:12px 0 7px}.chatArea{min-height:0;border-radius:17px;flex:1}.chatHeader{padding:11px;align-items:flex-start}.chatUserName{font-size:16px}.callButtons{flex-wrap:wrap}.callBtn{padding:8px 10px;font-size:12px}.chatSearch{max-width:100%}#messages{padding:13px}.message{max-width:88%;font-size:14px}.messageBar{padding:8px;gap:5px}.fileBtn,.sendBtn{padding:9px 10px}.messageBar input{padding:11px 12px}.authBox{padding:25px 20px;border-radius:22px}}
 
+
+
+/* ================= REDESIGNED CHAT UI ================= */
+:root{
+  --ui-bg:#090f1e; --ui-panel:#111a2d; --ui-card:#18243a;
+  --ui-line:rgba(173,194,230,.13); --ui-text:#f3f6ff; --ui-muted:#93a2bd;
+  --ui-purple:#8b5cf6; --ui-blue:#3978f6; --ui-teal:#18c7a3;
+}
+html,body{height:100%;}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 0% 0%,rgba(70,90,180,.18),transparent 38%),var(--ui-bg);color:var(--ui-text)}
+#appScreen{height:100dvh;gap:0;background:transparent}
+.sidebar{width:310px;flex:0 0 310px;padding:20px 15px;background:rgba(13,21,38,.96);border-right:1px solid var(--ui-line);box-shadow:8px 0 28px rgba(0,0,0,.12);scrollbar-width:thin;scrollbar-color:#34415d transparent}
+.logo{display:flex;align-items:center;gap:10px;font-size:22px;letter-spacing:-.5px;margin:2px 6px 22px}
+.logo:before{content:"";width:10px;height:28px;border-radius:8px;background:linear-gradient(180deg,var(--ui-teal),var(--ui-purple));box-shadow:0 0 20px rgba(139,92,246,.35)}
+.profile,.userItem,.friendItem,.requestItem,.groupItem{background:linear-gradient(145deg,rgba(28,42,67,.98),rgba(19,30,49,.98));border:1px solid var(--ui-line);border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.12);transition:border-color .18s,transform .18s,background .18s}
+.profile{padding:15px;margin-bottom:14px}
+.userItem,.friendItem,.requestItem,.groupItem{padding:13px;margin-bottom:9px}
+.userItem:hover,.friendItem:hover,.groupItem:hover{background:#22324e;border-color:rgba(139,92,246,.5);transform:translateY(-1px)}
+.profileName,.chatUserName{letter-spacing:-.25px}
+.userId,.emptySide,.typing{color:var(--ui-muted)}
+.sectionTitle{margin:20px 5px 11px;color:#dfe8fb;font-size:13px;text-transform:uppercase;letter-spacing:1px}
+.searchBox input,.connectBox input,.createGroup input,.chatSearch input,.messageBar input,.authBox input{background:#101a2c;border:1px solid #2a3853;color:var(--ui-text);border-radius:12px;transition:border-color .18s,box-shadow .18s}
+.searchBox input:focus,.connectBox input:focus,.createGroup input:focus,.chatSearch input:focus,.messageBar input:focus,.authBox input:focus{outline:none;border-color:var(--ui-purple);box-shadow:0 0 0 3px rgba(139,92,246,.14)}
+button,.smallBtn,.callBtn,.fileBtn,.sendBtn,.connectBtn,.searchBtn,.logoutBtn{border:1px solid rgba(255,255,255,.08);border-radius:10px;font-weight:600;transition:transform .15s,filter .15s,box-shadow .15s}
+button:hover{filter:brightness(1.1);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.primaryBtn,.addBtn,.connectBtn,.searchBtn,.sendBtn{background:linear-gradient(135deg,#3978f6,#6659ed);color:#fff}
+.chatFriendBtn{background:linear-gradient(135deg,#8b5cf6,#6d45df);color:white}
+.acceptBtn,.audioBtn{background:linear-gradient(135deg,#11b98c,#0f967d);color:white}
+.rejectBtn,.logoutBtn{background:linear-gradient(135deg,#d9435f,#a92342);color:white}
+.chatArea{background:linear-gradient(140deg,#0a1221,#0b1020)}
+.chatHeader{min-height:78px;padding:15px 22px;background:rgba(15,25,43,.95);border-bottom:1px solid var(--ui-line);backdrop-filter:blur(14px)}
+.chatHeader .chatUserName{font-size:20px}
+.callButtons{gap:9px}
+.callBtn{padding:11px 15px;min-height:43px}
+.videoBtn{background:linear-gradient(135deg,#3978f6,#315de0)}
+.screenBtn{background:linear-gradient(135deg,#8b5cf6,#6937df)}
+#messages{padding:24px clamp(14px,3vw,38px);gap:14px;background:radial-gradient(ellipse at 50% 0%,rgba(47,71,120,.10),transparent 55%),#0b1220;scrollbar-width:thin;scrollbar-color:#34415d transparent}
+.message{max-width:min(72%,680px);padding:12px 15px;border-radius:18px;line-height:1.45;border:1px solid rgba(255,255,255,.055);box-shadow:0 5px 15px rgba(0,0,0,.12)}
+.mine{background:linear-gradient(135deg,#3978f6,#584ee8);border-bottom-right-radius:5px}
+.theirs{background:#1b2940;border-bottom-left-radius:5px}
+.messageTime{font-size:11px;color:rgba(255,255,255,.75)}
+.reactionBtn{background:#26354e;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:4px 8px}
+.emptyChat{color:var(--ui-muted);padding:30px}
+.emptyChat:before{content:"✦";display:block;color:var(--ui-purple);font-size:35px;margin-bottom:10px}
+.messageBar{padding:13px 16px;background:rgba(15,25,43,.98);border-top:1px solid var(--ui-line);gap:9px}
+.messageBar input{padding:14px 16px;border-radius:14px}
+.fileBtn{background:#24334d;color:#eaf0ff;min-width:48px}
+.sendBtn{padding:12px 19px;min-width:74px}
+.chatSearch{width:min(370px,42vw)}
+.chatSearch button{background:#263650;color:#f3f6ff;border:1px solid var(--ui-line)}
+#authScreen{background:radial-gradient(ellipse at 20% 10%,rgba(57,120,246,.22),transparent 40%),radial-gradient(ellipse at 85% 85%,rgba(139,92,246,.20),transparent 40%),var(--ui-bg)}
+.authBox{background:rgba(17,26,45,.94);border:1px solid var(--ui-line);border-radius:24px;box-shadow:0 24px 70px rgba(0,0,0,.35);backdrop-filter:blur(18px)}
+.authBox h1{letter-spacing:-1px}
+#incomingCall .callPopup{background:#152139;border:1px solid var(--ui-line);box-shadow:0 25px 70px rgba(0,0,0,.45)}
+#videoPanel{background:#111a2d;border:1px solid var(--ui-line);border-radius:18px}
+@media(max-width:700px){
+  #appScreen{height:100dvh;min-height:0}
+  .sidebar{width:100%;flex:0 0 auto;max-height:38dvh;padding:12px;border-bottom:1px solid var(--ui-line)}
+  .logo{font-size:19px;margin-bottom:12px}
+  .sectionTitle{margin:12px 4px 8px}
+  .userItem,.friendItem,.requestItem,.groupItem{padding:10px;margin-bottom:7px}
+  .chatHeader{padding:12px;gap:10px}
+  .chatSearch{width:100%;max-width:none}
+  .callButtons{display:flex;width:100%;gap:6px}
+  .callBtn{flex:1;padding:10px 5px;font-size:12px}
+  #messages{padding:14px 10px;min-height:0}
+  .message{max-width:88%;padding:10px 12px}
+  .messageBar{padding:9px;gap:6px}
+  .messageBar input{padding:12px 10px}
+  .fileBtn,.sendBtn{padding:10px}
+  .sidebar{scrollbar-width:thin}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;scroll-behavior:auto!important}}
+
 </style>
 </head>
 
