@@ -540,6 +540,34 @@ video{
     grid-template-columns:1fr;
   }
 }
+
+
+/* ================= MODERN DESIGN REFRESH ================= */
+:root{color-scheme:dark;--bg:#07111f;--panel:#0e1b2d;--panel2:#12243a;--line:rgba(159,184,211,.15);--text:#eaf3ff;--muted:#91a4bd;--accent:#21c7a8;--accent2:#12a98d;--blue:#4c8dff}
+body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 12% 0%,#14304a 0,transparent 38%),var(--bg);color:var(--text)}
+button{transition:transform .16s ease,filter .16s ease,background .16s ease;}
+button:hover{filter:brightness(1.12)}button:active{transform:scale(.98)}
+#authScreen{background:radial-gradient(circle at 15% 15%,rgba(33,199,168,.15),transparent 30%),radial-gradient(circle at 85% 80%,rgba(76,141,255,.18),transparent 32%),var(--bg)}
+.authBox{background:rgba(14,27,45,.92);border:1px solid var(--line);border-radius:26px;padding:34px;box-shadow:0 28px 90px rgba(0,0,0,.42);backdrop-filter:blur(18px)}
+.authBox h1{font-size:30px;letter-spacing:-1px;margin-bottom:24px;background:linear-gradient(90deg,#f3fbff,#21c7a8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.authBox h2{font-size:22px;letter-spacing:-.4px}.authBox input,.searchBox input,.connectBox input,.createGroup input,.chatSearch input,.messageBar input{background:#091525;border:1px solid #253951;color:var(--text);border-radius:12px;transition:border-color .18s,box-shadow .18s}
+.authBox input:focus,.searchBox input:focus,.connectBox input:focus,.createGroup input:focus,.chatSearch input:focus,.messageBar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(33,199,168,.12)}
+.primaryBtn,.connectBtn,.searchBtn,.sendBtn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#041b1a;font-weight:750;border:0;border-radius:12px;box-shadow:0 7px 20px rgba(33,199,168,.13)}
+.secondaryBtn{background:#1b2d43;border:1px solid var(--line);color:var(--text);border-radius:10px}
+#appScreen{padding:14px;gap:14px;height:100dvh;background:transparent}
+.sidebar{width:315px;flex:0 0 315px;background:rgba(14,27,45,.94);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:0 14px 45px rgba(0,0,0,.18)}
+.logo{font-size:23px;letter-spacing:-.7px;margin:3px 0 20px}.profile{background:linear-gradient(135deg,#17334a,#12253a);border:1px solid var(--line);padding:15px;border-radius:16px}.profileName{color:#f1f8ff}.userId,.emptySide{color:var(--muted)}
+.sectionTitle{font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:#91a9c2;margin:20px 0 10px}
+.userItem,.friendItem,.requestItem,.groupItem{background:#11243a;border:1px solid transparent;border-radius:13px;padding:12px;margin-bottom:8px;transition:background .15s,border-color .15s}.userItem:hover,.friendItem:hover,.groupItem:hover{background:#17314b;border-color:rgba(33,199,168,.28)}
+.addBtn,.chatFriendBtn{background:#235e78}.acceptBtn{background:#0b8d78}.rejectBtn{background:#873d51}.smallBtn{border-radius:9px}.badge{background:var(--accent);color:#04201b;font-weight:800}
+.logoutBtn{background:#542b3a;border:1px solid rgba(255,120,150,.2);border-radius:11px}
+.chatArea{background:rgba(14,27,45,.94);border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 14px 45px rgba(0,0,0,.18)}
+.chatHeader{background:rgba(17,36,58,.94);border-bottom:1px solid var(--line);padding:15px 20px}.chatUserName{font-size:18px;letter-spacing:-.25px}.callBtn{border-radius:11px;font-weight:650}.audioBtn{background:#087f70}.videoBtn{background:#2867bb}.screenBtn{background:#6445a6}
+#messages{background:radial-gradient(ellipse at 50% 0%,rgba(37,78,110,.12),transparent 55%),#091525;padding:22px}.message{border-radius:17px;padding:11px 14px;line-height:1.45;box-shadow:0 4px 12px rgba(0,0,0,.1)}.mine{background:linear-gradient(135deg,#087e75,#0a665f);border-bottom-right-radius:5px}.theirs{background:#172a40;border:1px solid rgba(159,184,211,.1);border-bottom-left-radius:5px}.messageTime{color:#d3e5f5}.messageBar{background:#0e1b2d;border-top:1px solid var(--line);padding:13px}.messageBar input{padding:13px 15px}.fileBtn{background:#1b3048;border:1px solid var(--line);border-radius:12px}.sendBtn{padding-inline:19px;border-radius:12px}.typing{color:var(--muted)}
+.chatSearch button,.reactionBtn{background:#1d344d;border:1px solid var(--line);border-radius:10px}.chatSearch input{padding:9px 11px}
+#incomingCall .callPopup{background:#102139;border:1px solid var(--line);box-shadow:0 25px 80px rgba(0,0,0,.5)}#videoPanel{background:#0e1b2d;border:1px solid var(--line);border-radius:20px}video{border:1px solid var(--line)}.videoControls button{background:#1b3048;border:1px solid var(--line);border-radius:10px}
+@media(max-width:700px){#appScreen{padding:7px;gap:7px;height:100dvh}.sidebar{width:100%;flex:0 0 auto;max-height:40dvh;border-radius:17px;padding:12px}.logo{font-size:20px;margin-bottom:10px}.profile{padding:10px}.sectionTitle{margin:12px 0 7px}.chatArea{min-height:0;border-radius:17px;flex:1}.chatHeader{padding:11px;align-items:flex-start}.chatUserName{font-size:16px}.callButtons{flex-wrap:wrap}.callBtn{padding:8px 10px;font-size:12px}.chatSearch{max-width:100%}#messages{padding:13px}.message{max-width:88%;font-size:14px}.messageBar{padding:8px;gap:5px}.fileBtn,.sendBtn{padding:9px 10px}.messageBar input{padding:11px 12px}.authBox{padding:25px 20px;border-radius:22px}}
+
 </style>
 </head>
 
