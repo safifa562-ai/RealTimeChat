@@ -852,3 +852,82 @@ button:disabled {
     scroll-behavior: auto !important;
   }
 }
+
+/* REALTIMECHAT DESIGN FIX */
+#appScreen {
+  background: #0b1020 !important;
+  color: #f3f6ff;
+}
+
+.sidebar {
+  background: #111a2e !important;
+  border-right: 1px solid #303b55;
+}
+
+.chatArea {
+  background: #0b1020 !important;
+  color: #f3f6ff;
+}
+
+.chatHeader,
+.messageBar {
+  background: #111a2e !important;
+  border-color: #303b55 !important;
+}
+
+.profile,
+#usersList > *,
+#friendsList > *,
+#requestsList > * {
+  background: #17223a;
+  border: 1px solid #303b55;
+  border-radius: 14px;
+  color: #f3f6ff;
+  padding: 12px;
+}
+
+#messageInput,
+#loginUsername,
+#loginPassword,
+#registerUsername,
+#registerEmail,
+#registerPassword {
+  background: #17223a !important;
+  color: white !important;
+  border: 1px solid #3b4968 !important;
+  border-radius: 12px !important;
+}
+
+#messages > * {
+  border-radius: 15px;
+}
+
+button {
+  border-radius: 10px;
+  transition: .2s ease;
+}
+
+button:hover {
+  filter: brightness(1.15);
+}
+
+@media (max-width: 650px) {
+  #appScreen {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .chatArea {
+    min-height: 0;
+    flex: 1;
+  }
+
+  .messageBar {
+    padding: 8px;
+    gap: 6px;
+  }
+}
