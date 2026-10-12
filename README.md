@@ -24,3 +24,12 @@ Keep `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `JWT_SECRET` set in Render
 6. For calls, test with both users on different networks and valid HTTPS camera/microphone permissions; configure TURN for reliable connectivity.
 
 This patch has not been deployed. It cannot restore history if messages were never saved to Supabase or fix schema/credentials without the exact logs.
+
+
+## Separate source files
+- `public/index.html`: page structure
+- `public/style.css`: styles
+- `public/app.js`: frontend JavaScript
+- `server.js`: Node.js backend
+
+The HTML references `/style.css` and `/app.js`. Keep all three files in the `public` folder.
