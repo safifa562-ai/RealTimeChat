@@ -1,25 +1,26 @@
-# RealTimeChat — Modern Upgrade Bundle
+# RealTimeChat — Full Source Code
 
-This bundle preserves the supplied Five-Features backend and frontend logic while splitting the frontend into separate files and applying a modern responsive visual redesign.
+This ZIP contains the whole project source: backend, frontend HTML/CSS/JavaScript, PWA shell, and the included Supabase migration. It is based on the existing RealTimeChat project and includes the chat-panel layout/scrolling fix. It is source code, not a claim that the live Render deployment has been updated or production-tested.
 
 ## Files
-- `server.js` — existing Express / Socket.IO / Supabase backend
-- `public/index.html` — app markup and script/style references
-- `public/style.css` — complete base CSS plus modern redesign overrides
-- `public/app.js` — existing frontend JavaScript extracted from supplied source
-- `public/manifest.json` and `public/service-worker.js` — basic PWA shell support
-- `supabase-migration.sql` — migration supplied with the source
+- `server.js` — Express + Socket.IO + Supabase backend
+- `package.json` — dependencies and start script
+- `public/index.html` — app markup
+- `public/style.css` — visual design and responsive layout
+- `public/app.js` — client-side app logic
+- `public/manifest.json` and `public/service-worker.js` — basic PWA support
+- `supabase-migration.sql` — small message-column migration included with this source
+- `.env.example` — environment variable names only (no secrets)
 
-## Deploy
-1. Back up your GitHub repo first.
-2. Replace the deployed project files with this bundle, keeping your Render environment variables unchanged.
-3. Render start command: `node server.js`.
-4. Keep `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `JWT_SECRET` in Render Environment only. Never commit secrets.
-5. Run the included SQL migration in Supabase if the README/migration requires it.
-6. After deployment, hard refresh the page (`Ctrl+Shift+R`).
+## Deploy to the existing Render app
+1. Back up your GitHub repository before replacing files.
+2. Extract the ZIP. Upload the project files/folders to the root of your GitHub repository, preserving `public/` as a folder.
+3. Keep Render's start command as `node server.js` (or use `npm start`).
+4. In Render → Environment, set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `JWT_SECRET`. Keep the service-role key and JWT secret private; do not commit them to GitHub.
+5. Commit/push and wait for Render deploy to finish. Then use `Ctrl+Shift+R` to refresh the page.
+6. If required by your existing database schema, review `supabase-migration.sql` and run it in the Supabase SQL Editor after taking a database backup.
 
-## Important
-This is a source update, not a verified deployment. I have not tested it against your live Supabase project or Render instance. Video calling may still need a properly configured TURN service for some networks. The existing app is not end-to-end encrypted. The existing backend was preserved rather than rewritten to avoid breaking working auth/chat behavior.
-
-## 100-improvement plan
-A checklist of 100 proposed improvements is in `IMPROVEMENTS-100.md`. Not all items are implemented in this bundle; security-critical and infrastructure-dependent features require separate implementation and testing.
+## Notes
+- `node --check server.js` and `node --check public/app.js` check JavaScript syntax only; they do not test live database permissions, authentication, messages, or calls.
+- Audio/video calling can require a TURN server on some networks; this bundle does not configure one.
+- The existing app is not end-to-end encrypted. Do not advertise it as E2E-encrypted without a separate, reviewed implementation.
