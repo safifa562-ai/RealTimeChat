@@ -27,17 +27,15 @@ const messageCache = new Map();
 let mediaRecorder = null;
 let voiceChunks = [];
 
-// STUN can discover public addresses, but TURN is needed on many mobile/Wi-Fi networks.
-// Configure TURN_URLS, TURN_USERNAME and TURN_CREDENTIAL in Render for reliable calls.
 const rtcConfig = {
+
   iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    ...(window.RTC_TURN_CONFIG && window.RTC_TURN_CONFIG.urls ? [{
-      urls: window.RTC_TURN_CONFIG.urls,
-      username: window.RTC_TURN_CONFIG.username || "",
-      credential: window.RTC_TURN_CONFIG.credential || ""
-    }] : [])
+    {
+      urls:
+        "stun:stun.l.google.com:19302"
+    }
   ]
+
 };
 
 
@@ -1042,15 +1040,8 @@ async function loadChatHistory(){
       return;
     }
 
-    const messages = await response.json();
-    if (!response.ok) {
-      console.error("Chat history request failed:", response.status, messages);
-      throw new Error(messages.error || `Could not load messages (HTTP ${response.status})`);
-    }
-    if (!Array.isArray(messages)) {
-      console.error("Unexpected chat history response:", messages);
-      throw new Error("The server returned an invalid message-history response.");
-    }
+    const messages =
+      await response.json();
 
     box.innerHTML="";
 
@@ -1090,7 +1081,7 @@ async function loadChatHistory(){
 
     box.innerHTML =
       `<div class="emptyChat">
-        Could not load messages. Check Render logs and Supabase messages table.
+        Could not load messages.
       </div>`;
 
   }

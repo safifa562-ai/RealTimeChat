@@ -1,35 +1,25 @@
-# RealTimeChat diagnostic patch
+# RealTimeChat — Modern Upgrade Bundle
 
-## Included
-- `server.js`: existing backend source, unchanged except bundled from the current project snapshot.
-- `public/index.html`: same frontend plus clearer HTTP/history error handling and optional TURN configuration.
-- `index.html`: duplicate root copy for reference only; serve `public/index.html`.
-- `package.json`, `supabase-migration.sql`.
+This bundle preserves the supplied Five-Features backend and frontend logic while splitting the frontend into separate files and applying a modern responsive visual redesign.
 
-## Important: existing messages
-The app's history endpoint reads `public.messages` using `sender_id`, `receiver_id`, and `created_at`. In Render logs, check for `HISTORY:` or `HISTORY ERROR:`. If you see a missing-column/table or permission error, fix the existing Supabase schema/policies. Do not delete the messages table or run destructive SQL. Confirm that the logged-in user's IDs match the IDs stored in `messages`.
-
-## Video calls
-The current WebRTC configuration has Google STUN only. That is not enough on some mobile networks, NATs, or restricted Wi-Fi. Configure a trusted TURN service, then expose its credentials safely to the frontend using a server-generated short-lived TURN credential or a private config endpoint. Do NOT put a long-lived TURN password directly in a public HTML file. `window.RTC_TURN_CONFIG` is an optional client config hook in this patch; only use short-lived credentials.
-
-## Render env vars
-Keep `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `JWT_SECRET` set in Render. Never put the service-role key in HTML or commit it to GitHub.
+## Files
+- `server.js` — existing Express / Socket.IO / Supabase backend
+- `public/index.html` — app markup and script/style references
+- `public/style.css` — complete base CSS plus modern redesign overrides
+- `public/app.js` — existing frontend JavaScript extracted from supplied source
+- `public/manifest.json` and `public/service-worker.js` — basic PWA shell support
+- `supabase-migration.sql` — migration supplied with the source
 
 ## Deploy
-1. Back up the current GitHub repo.
-2. Replace `server.js` and `package.json` only with files from this project snapshot if they match your current deployed code.
-3. Upload `public/index.html` (ensure path is exactly `public/index.html`).
-4. Commit changes; Render should deploy the new commit.
-5. Test history with two users and inspect Render logs.
-6. For calls, test with both users on different networks and valid HTTPS camera/microphone permissions; configure TURN for reliable connectivity.
+1. Back up your GitHub repo first.
+2. Replace the deployed project files with this bundle, keeping your Render environment variables unchanged.
+3. Render start command: `node server.js`.
+4. Keep `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `JWT_SECRET` in Render Environment only. Never commit secrets.
+5. Run the included SQL migration in Supabase if the README/migration requires it.
+6. After deployment, hard refresh the page (`Ctrl+Shift+R`).
 
-This patch has not been deployed. It cannot restore history if messages were never saved to Supabase or fix schema/credentials without the exact logs.
+## Important
+This is a source update, not a verified deployment. I have not tested it against your live Supabase project or Render instance. Video calling may still need a properly configured TURN service for some networks. The existing app is not end-to-end encrypted. The existing backend was preserved rather than rewritten to avoid breaking working auth/chat behavior.
 
-
-## Separate source files
-- `public/index.html`: page structure
-- `public/style.css`: styles
-- `public/app.js`: frontend JavaScript
-- `server.js`: Node.js backend
-
-The HTML references `/style.css` and `/app.js`. Keep all three files in the `public` folder.
+## 100-improvement plan
+A checklist of 100 proposed improvements is in `IMPROVEMENTS-100.md`. Not all items are implemented in this bundle; security-critical and infrastructure-dependent features require separate implementation and testing.
