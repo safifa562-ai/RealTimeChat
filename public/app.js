@@ -303,6 +303,10 @@ function openApp(){
   if(!currentUser)
     return;
 
+  setSidebarTab("chats");
+  document.getElementById("appScreen")?.classList.remove("mobile-chat-open");
+  setAvatarInitial("profileAvatar", currentUser.username);
+
   document
     .getElementById(
       "authScreen"
@@ -761,15 +765,45 @@ async function loadUsers(
    SEARCH
 ===================================================== */
 
+function setSidebarTab(tab){
+  const allowed = ["chats", "requests", "groups", "users"];
+  const target = allowed.includes(tab) ? tab : "chats";
+
+  document.querySelectorAll(".sideTab[data-tab]").forEach(button => {
+    const active = button.dataset.tab === target;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+  });
+
+  allowed.forEach(name => {
+    const panel = document.getElementById(`sidebarPanel${name[0].toUpperCase()}${name.slice(1)}`);
+    if (panel) panel.classList.toggle("active", name === target);
+  });
+}
+
+function showMobileSidebar(){
+  const app = document.getElementById("appScreen");
+  if (app) app.classList.remove("mobile-chat-open");
+  setSidebarTab("chats");
+}
+
+function enterConversationView(){
+  if (window.matchMedia && window.matchMedia("(max-width: 760px)").matches) {
+    document.getElementById("appScreen")?.classList.add("mobile-chat-open");
+  }
+}
+
+function setAvatarInitial(elementId, label){
+  const avatar = document.getElementById(elementId);
+  if (!avatar) return;
+  const text = String(label || "?").trim();
+  avatar.textContent = text ? Array.from(text)[0].toUpperCase() : "?";
+}
+
 function searchUsers(){
-
-  const search =
-    document.getElementById(
-      "searchInput"
-    ).value.trim();
-
+  const search = document.getElementById("searchInput").value.trim();
+  if (search) setSidebarTab("users");
   loadUsers(search);
-
 }
 
 
@@ -825,55 +859,19 @@ function renderUsers(){
         );
 
       div.innerHTML = `
-        <div>
-          <span class="${
-            online
-              ? "onlineDot"
-              : "offlineDot"
-          }"></span>
-          <strong>
-            ${escapeHtml(
-              user.username
-            )}
-          </strong>
+        <div class="contactRow">
+          <span class="contactAvatar" aria-hidden="true">${escapeHtml(String(user.username || "?").trim().charAt(0).toUpperCase())}</span>
+          <span class="contactText">
+            <strong>${escapeHtml(user.username)}</strong>
+            <small>ID: ${user.id} · ${online ? "Online" : "Offline"}</small>
+          </span>
+          <span class="contactPresence ${online ? "isOnline" : "isOffline"}" title="${online ? "Online" : "Offline"}"></span>
         </div>
-
-        <small style="color:#777;">
-          ID: ${user.id}
-          • ${online?"Online":"Offline"}
-        </small>
-
         <div class="itemButtons">
-
-          <button
-            class="smallBtn chatFriendBtn"
-            onclick="event.stopPropagation();selectUserById(${user.id})"
-          >
-            Chat
-          </button>
-
-          ${
-            alreadyFriend
-              ? `<span style="
-                    color:#22c55e;
-                    font-size:12px;
-                    padding:7px;
-                  ">
-                    ✓ Friend
-                 </span>`
-              : `
-                <button
-                  class="smallBtn addBtn"
-                  onclick="
-                    event.stopPropagation();
-                    sendFriendRequest(${user.id})
-                  "
-                >
-                  + Add
-                </button>
-              `
-          }
-
+          <button class="smallBtn chatFriendBtn" onclick="event.stopPropagation();selectUserById(${user.id})">Chat</button>
+          ${alreadyFriend
+            ? `<span class="friendStatusTag">✓ Friend</span>`
+            : `<button class="smallBtn addBtn" onclick="event.stopPropagation();sendFriendRequest(${user.id})">＋ Add</button>`}
         </div>
       `;
 
@@ -962,6 +960,8 @@ async function selectUser(
       ? "Online"
       : "Offline";
 
+  setAvatarInitial("chatAvatar", user.username);
+  enterConversationView();
   await loadChatHistory();
 
 }
@@ -1522,6 +1522,12 @@ function filterVisibleMessages(kind) {
     const file = node.dataset.messageKind === "file";
     node.style.display = kind === "all" || (kind === "files" && file) || (kind === "text" && !file) ? "" : "none";
   });
+  document.querySelectorAll(".filterChip").forEach(button => button.classList.remove("active"));
+  const clicked = Array.from(document.querySelectorAll(".filterChip")).find(button => {
+    const text = button.textContent.toLowerCase();
+    return kind === "all" ? text.includes("all") : kind === "text" ? text === "text" : text.includes("files");
+  });
+  if (clicked) clicked.classList.add("active");
 }
 
 /* =====================================================
@@ -1656,7 +1662,7 @@ async function loadGroups(){
     const groups=await r.json();
     const list=document.getElementById("groupsList"); list.innerHTML="";
     if(!groups.length){list.innerHTML='<div class="emptySide">No groups yet</div>';return;}
-    groups.forEach(g=>{const d=document.createElement("div");d.className="groupItem";d.textContent="👥 "+g.name;d.onclick=()=>selectGroup(g);list.appendChild(d);});
+    groups.forEach(g=>{const d=document.createElement("div");d.className="groupItem";d.innerHTML=`<div class="contactRow"><span class="contactAvatar groupAvatar" aria-hidden="true">♧</span><span class="contactText"><strong>${escapeHtml(g.name)}</strong><small>Group conversation</small></span><span class="groupChevron">›</span></div>`;d.onclick=()=>selectGroup(g);list.appendChild(d);});
   }catch(e){console.error("Groups:",e)}
 }
 
@@ -1674,6 +1680,8 @@ async function selectGroup(group){
   chatMode="group"; selectedGroup=group; selectedUser=null;
   document.getElementById("chatUserName").textContent="👥 "+group.name;
   document.getElementById("chatUserStatus").textContent="Group chat";
+  setAvatarInitial("chatAvatar", group.name);
+  enterConversationView();
   socket.emit("join-group",{groupId:group.id});
   const box=document.getElementById("messages"); box.innerHTML='<div class="emptyChat">Loading group messages...</div>';
   try{
@@ -1851,37 +1859,13 @@ function renderRequests(){
         "requestItem";
 
       div.innerHTML = `
-        <div>
-          👤 User ID:
-          ${request.sender_id}
+        <div class="requestRow">
+          <span class="contactAvatar" aria-hidden="true">${escapeHtml(String(request.sender_name || "U").charAt(0).toUpperCase())}</span>
+          <span class="contactText"><strong>User ID: ${request.sender_id}</strong><small>Wants to connect with you</small></span>
         </div>
-
         <div class="itemButtons">
-
-          <button
-            class="smallBtn acceptBtn"
-            onclick="
-              respondRequest(
-                ${request.id},
-                'accept'
-              )
-            "
-          >
-            ✓ Accept
-          </button>
-
-          <button
-            class="smallBtn rejectBtn"
-            onclick="
-              respondRequest(
-                ${request.id},
-                'reject'
-              )
-            "
-          >
-            ✕ Reject
-          </button>
-
+          <button class="smallBtn acceptBtn" onclick="respondRequest(${request.id}, 'accept')">✓ Accept</button>
+          <button class="smallBtn rejectBtn" onclick="respondRequest(${request.id}, 'reject')">✕ Reject</button>
         </div>
       `;
 
@@ -2020,30 +2004,13 @@ function renderFriends(){
         "friendItem";
 
       div.innerHTML = `
-        <div
-          onclick="selectUserById(${friend.id})"
-          style="cursor:pointer;"
-        >
-
-          <span class="${
-            friend.online
-              ? "onlineDot"
-              : "offlineDot"
-          }"></span>
-
-          <strong>
-            ${escapeHtml(
-              friend.username
-            )}
-          </strong>
-
+        <div class="contactRow" onclick="selectUserById(${friend.id})" style="cursor:pointer;">
+          <span class="contactAvatar" aria-hidden="true">${escapeHtml(String(friend.username || "?").trim().charAt(0).toUpperCase())}</span>
+          <span class="contactText"><strong>${escapeHtml(friend.username)}</strong><small>${friend.online ? "Online now" : "Offline"}</small></span>
+          <span class="contactPresence ${friend.online ? "isOnline" : "isOffline"}" title="${friend.online ? "Online" : "Offline"}"></span>
         </div>
-
-        <small style="color:#777;">
-          ${friend.online ? "Online" : "Offline"}
-        </small>
         <div class="itemButtons">
-          <button class="smallBtn rejectBtn" onclick="event.stopPropagation();removeFriend(${friend.id})">Remove</button>
+          <button class="smallBtn rejectBtn" onclick="event.stopPropagation();removeFriend(${friend.id})">Remove friend</button>
         </div>
       `;
 
