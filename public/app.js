@@ -386,6 +386,20 @@ function connectSocket(){
     }
   );
 
+  socket.on("account-deleted", data => {
+    const deletedId = Number(data && data.userId);
+    if (currentUser && Number(currentUser.id) === deletedId) {
+      closeDeleteAccountDialog();
+      logout();
+      showAuthMessage("This account has been permanently deleted.", true);
+      return;
+    }
+    if (currentUser) {
+      loadUsers();
+      loadFriends();
+    }
+  });
+
 
   socket.on(
     "private-message",
@@ -2753,6 +2767,130 @@ function closeCall(){
 
 }
 
+
+/* =====================================================
+   ACCOUNT OPTIONS + PERMANENT DELETION
+===================================================== */
+
+function toggleAccountMenu(event) {
+  if (event) event.stopPropagation();
+  const menu = document.getElementById("accountMenu");
+  const trigger = document.getElementById("accountMenuToggle");
+  if (!menu || !trigger) return;
+  const willOpen = menu.classList.contains("hidden");
+  menu.classList.toggle("hidden", !willOpen);
+  trigger.setAttribute("aria-expanded", willOpen ? "true" : "false");
+}
+
+document.addEventListener("click", event => {
+  const menu = document.getElementById("accountMenu");
+  const trigger = document.getElementById("accountMenuToggle");
+  if (menu && trigger && !event.target.closest(".profileActions")) {
+    menu.classList.add("hidden");
+    trigger.setAttribute("aria-expanded", "false");
+  }
+});
+
+function openDeleteAccountDialog() {
+  const menu = document.getElementById("accountMenu");
+  const trigger = document.getElementById("accountMenuToggle");
+  if (menu) menu.classList.add("hidden");
+  if (trigger) trigger.setAttribute("aria-expanded", "false");
+
+  const dialog = document.getElementById("deleteAccountDialog");
+  const password = document.getElementById("deleteAccountPassword");
+  const confirmText = document.getElementById("deleteAccountConfirmText");
+  const error = document.getElementById("deleteAccountError");
+  if (!dialog) return;
+
+  if (password) password.value = "";
+  if (confirmText) confirmText.value = "";
+  if (error) {
+    error.textContent = "";
+    error.classList.add("hidden");
+  }
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "open");
+  window.setTimeout(() => password && password.focus(), 50);
+}
+
+function closeDeleteAccountDialog() {
+  const dialog = document.getElementById("deleteAccountDialog");
+  if (!dialog) return;
+  if (typeof dialog.close === "function" && dialog.open) dialog.close();
+  else dialog.removeAttribute("open");
+}
+
+async function deleteAccountSubmit() {
+  const passwordField = document.getElementById("deleteAccountPassword");
+  const confirmField = document.getElementById("deleteAccountConfirmText");
+  const errorBox = document.getElementById("deleteAccountError");
+  const submitButton = document.getElementById("confirmDeleteAccountBtn");
+  const password = passwordField ? passwordField.value : "";
+  const confirmation = confirmField ? confirmField.value.trim().toUpperCase() : "";
+
+  const showError = message => {
+    if (!errorBox) return;
+    errorBox.textContent = message;
+    errorBox.classList.remove("hidden");
+  };
+
+  if (!currentUser || !getToken()) {
+    showError("Your session has expired. Please log in again.");
+    return;
+  }
+  if (!password) {
+    showError("Enter your current password to continue.");
+    if (passwordField) passwordField.focus();
+    return;
+  }
+  if (confirmation !== "DELETE") {
+    showError('Type DELETE exactly in the confirmation box.');
+    if (confirmField) confirmField.focus();
+    return;
+  }
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Deleting account…";
+  }
+  if (errorBox) errorBox.classList.add("hidden");
+
+  try {
+    const response = await fetch("/api/account", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders()
+      },
+      body: JSON.stringify({ password })
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || !data.success) {
+      showError(data.error || "Account deletion failed. Please try again.");
+      return;
+    }
+
+    closeDeleteAccountDialog();
+    if (passwordField) passwordField.value = "";
+    if (confirmField) confirmField.value = "";
+    const loginUsername = document.getElementById("loginUsername");
+    const loginPassword = document.getElementById("loginPassword");
+    if (loginUsername) loginUsername.value = "";
+    if (loginPassword) loginPassword.value = "";
+    logout();
+    showAuthMessage("Your account and associated data have been permanently deleted.", true);
+  } catch (error) {
+    console.error("ACCOUNT DELETE REQUEST:", error);
+    showError("Could not connect to the server. Your account has not been confirmed as deleted; please try again.");
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = "Delete permanently";
+    }
+  }
+}
 
 /* =====================================================
    LOGOUT

@@ -1,5 +1,5 @@
-const CACHE_NAME = "realtimechat-whatsapp-full-v3";
-const APP_SHELL = ["/", "/style.css?v=20261014-wa-full-3", "/app.js?v=20261014-wa-full-3", "/manifest.json"];
+const CACHE_NAME = "realtimechat-whatsapp-full-v4-account-delete";
+const APP_SHELL = ["/", "/style.css?v=20261014-account-delete-1", "/app.js?v=20261014-account-delete-1", "/manifest.json"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });

@@ -7,7 +7,7 @@
   <meta name="description" content="RealTimeChat — real-time messaging, groups and calls.">
   <title>RealTimeChat</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/style.css?v=20261014-wa-full-3">
+  <link rel="stylesheet" href="/style.css?v=20261014-account-delete-1">
 </head>
 <body>
   <section id="authScreen" aria-label="Login and registration">
@@ -58,7 +58,13 @@
       <div class="profile">
         <div class="avatar profileAvatar" id="profileAvatar" aria-hidden="true">U</div>
         <div class="profileDetails"><div id="profileName" class="profileName">User</div><div id="profileId" class="userId">ID: -</div></div>
-        <span class="profileOnline" title="Account active"></span>
+        <div class="profileActions">
+          <span class="profileOnline" title="Account active"></span>
+          <button type="button" id="accountMenuToggle" class="accountMenuToggle" onclick="toggleAccountMenu(event)" aria-label="Account options" aria-expanded="false" title="Account options">⋯</button>
+          <div id="accountMenu" class="accountMenu hidden" role="menu">
+            <button type="button" class="accountMenuDelete" role="menuitem" onclick="openDeleteAccountDialog()">♲ Delete account</button>
+          </div>
+        </div>
       </div>
 
       <div class="searchBox sidebarSearch">
@@ -136,6 +142,27 @@
     </main>
   </section>
 
+  <dialog id="deleteAccountDialog" class="accountDialog" aria-labelledby="deleteAccountTitle">
+    <form class="accountDialogForm" onsubmit="event.preventDefault(); deleteAccountSubmit();">
+      <div class="accountDialogInner">
+        <button type="button" class="accountDialogClose" onclick="closeDeleteAccountDialog()" aria-label="Close delete account dialog">×</button>
+        <div class="deleteWarningIcon" aria-hidden="true">!</div>
+        <h2 id="deleteAccountTitle">Delete account permanently?</h2>
+        <p class="deleteWarningText">This action cannot be undone. Your profile, direct chat history, contacts, friend requests and uploaded files will be removed. Groups with other members will be kept and ownership transferred where possible.</p>
+        <label class="fieldLabel" for="deleteAccountPassword">Current password</label>
+        <input id="deleteAccountPassword" type="password" autocomplete="current-password" required placeholder="Enter your password">
+        <label class="fieldLabel" for="deleteAccountConfirmText">Type DELETE to confirm</label>
+        <input id="deleteAccountConfirmText" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" required placeholder="DELETE">
+        <p id="deleteAccountError" class="deleteAccountError hidden" role="status" aria-live="polite"></p>
+        <div class="accountDialogActions">
+          <button type="button" class="secondaryBtn" onclick="closeDeleteAccountDialog()">Cancel</button>
+          <button type="submit" id="confirmDeleteAccountBtn" class="dangerBtn">Delete permanently</button>
+        </div>
+        <p class="deleteSmallPrint">Your password is checked by the server and is not stored by this form.</p>
+      </div>
+    </form>
+  </dialog>
+
   <div id="incomingCall" class="hidden" role="dialog" aria-modal="true" aria-label="Incoming call">
     <div class="callPopup"><div class="callPopupAvatar">☎</div><h2>Incoming call</h2><p id="callerText">Someone is calling…</p><div class="callPopupActions"><button class="acceptCall" type="button" onclick="acceptCall()">Accept</button><button class="rejectCall" type="button" onclick="rejectCall()">Decline</button></div></div>
   </div>
@@ -150,6 +177,6 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js?v=20261014-wa-full-3"></script>
+  <script src="/app.js?v=20261014-account-delete-1"></script>
 </body>
 </html>

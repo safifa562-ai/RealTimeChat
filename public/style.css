@@ -265,3 +265,38 @@ input { color: var(--text); }
 .groupChevron { color: #6f828a; font-size: 22px; }
 .requestRow { margin-bottom: 9px; }
 .requestItem .contactAvatar { color: #f5e9f1; background: #684d62; }
+
+
+/* Account options and secure permanent-delete confirmation */
+.profile { position: relative; }
+.profileActions { position: relative; display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: auto; }
+.accountMenuToggle { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border: 1px solid transparent; border-radius: 50%; color: #cbd5d9; background: transparent; font-size: 23px; line-height: 1; }
+.accountMenuToggle:hover, .accountMenuToggle[aria-expanded="true"] { border-color: #34454e; background: #2a3942; }
+.accountMenu { position: absolute; top: calc(100% + 9px); right: 0; z-index: 80; width: 190px; padding: 5px; border: 1px solid #34454e; border-radius: 10px; background: #202c33; box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+.accountMenuDelete { width: 100%; min-height: 40px; padding: 9px 11px; border: 0; border-radius: 7px; color: #ffb8b8; background: transparent; text-align: left; font-size: 12px; }
+.accountMenuDelete:hover { background: #3a252b; }
+.accountDialog { width: min(460px, calc(100vw - 28px)); max-width: none; max-height: min(90dvh, 780px); padding: 0; overflow: auto; border: 1px solid #3a4b53; border-radius: 17px; color: var(--text); background: #111b21; box-shadow: 0 24px 90px rgba(0,0,0,.5); }
+.accountDialog::backdrop { background: rgba(2,8,12,.76); backdrop-filter: blur(4px); }
+.accountDialogForm { margin: 0; }
+.accountDialogInner { position: relative; padding: 25px; }
+.accountDialogClose { position: absolute; top: 13px; right: 14px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 50%; color: #aebac1; background: transparent; font-size: 24px; }
+.accountDialogClose:hover { background: #2a3942; }
+.deleteWarningIcon { display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; margin-bottom: 16px; border: 1px solid #6d353b; border-radius: 13px; color: #ffb9b9; background: #392229; font-size: 27px; font-weight: 800; }
+.accountDialog h2 { max-width: calc(100% - 20px); margin: 0 0 10px; color: #f4f7f8; font-size: 21px; letter-spacing: -.3px; }
+.deleteWarningText { margin: 0; color: #b7c4c9; font-size: 13px; line-height: 1.6; }
+.accountDialog .fieldLabel { display: block; margin-top: 16px; }
+.accountDialog input { display: block; width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #34454e; border-radius: 9px; outline: 0; color: var(--text); background: #202c33; }
+.accountDialog input:focus { border-color: var(--green); }
+.deleteAccountError { margin: 13px 0 0; padding: 10px 11px; border: 1px solid #71383e; border-radius: 8px; color: #ffd0d0; background: #321e24; font-size: 12px; line-height: 1.45; }
+.accountDialogActions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
+.accountDialogActions button { min-height: 42px; }
+.dangerBtn { min-height: 42px; padding: 10px 14px; border: 1px solid #b44750; border-radius: 9px; color: #fff; background: #b42332; font-weight: 750; }
+.dangerBtn:hover:not(:disabled) { background: #cf293b; }
+.dangerBtn:disabled { cursor: wait; opacity: .65; }
+.deleteSmallPrint { margin: 16px 0 0; color: #75858d; font-size: 10px; line-height: 1.45; }
+@media (max-width: 520px) {
+  .accountDialogInner { padding: 21px 18px; }
+  .accountDialog h2 { font-size: 19px; }
+  .accountDialogActions { flex-direction: column-reverse; }
+  .accountDialogActions button { width: 100%; }
+}
