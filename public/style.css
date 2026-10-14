@@ -1110,3 +1110,72 @@ button:hover { filter: brightness(1.08); }
   .messageBar .fileBtn { min-width: 34px; min-height: 34px; }
   .messageBar .sendBtn { padding: 8px 10px !important; }
 }
+
+
+/* ===== Stable chat layout: controls stay visible with long conversations ===== */
+#appScreen {
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  align-items: stretch !important;
+}
+
+/* Use fixed grid rows for the header and composer, with only the history scrolling. */
+.chatArea {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  align-content: stretch !important;
+}
+.chatHeader { grid-row: 1; min-width: 0; flex-shrink: 0 !important; }
+#typingIndicator { grid-row: 2; min-width: 0; }
+.messageFilters { grid-row: 3; min-width: 0; flex-shrink: 0 !important; }
+#messages {
+  grid-row: 4;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+}
+#messages .message { flex: 0 0 auto; }
+.messageBar {
+  grid-row: 5;
+  position: relative !important;
+  inset: auto !important;
+  align-self: stretch;
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 58px;
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  z-index: 20 !important;
+}
+.messageBar .fileBtn,
+.messageBar .sendBtn,
+#messageInput { flex-shrink: 0; }
+#messageInput { flex: 1 1 auto; min-width: 0; }
+
+@media (max-width: 760px) {
+  #appScreen { min-height: 0 !important; }
+  .chatArea {
+    flex: 1 1 0% !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+  .chatHeader { min-height: 0; }
+  .messageBar { min-height: 54px; padding-bottom: max(7px, env(safe-area-inset-bottom)) !important; }
+}
