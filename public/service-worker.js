@@ -1,5 +1,5 @@
-const CACHE_NAME = "realtimechat-whatsapp-full-v4-account-delete";
-const APP_SHELL = ["/", "/style.css?v=20261014-account-delete-1", "/app.js?v=20261014-account-delete-1", "/manifest.json"];
+const CACHE_NAME = "realtimechat-whatsapp-full-v5-notifications";
+const APP_SHELL = ["/", "/style.css?v=20261014-notifications-1", "/app.js?v=20261014-notifications-1", "/manifest.json"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
@@ -17,4 +17,20 @@ self.addEventListener("fetch", event => {
     }
     return response;
   }).catch(() => caches.match(event.request).then(cached => cached || caches.match("/"))));
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  event.waitUntil((async () => {
+    const windows = await clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of windows) {
+      if (client.url.startsWith(self.location.origin) && "focus" in client) {
+        await client.focus();
+        client.postMessage({ type: "RTC_OPEN_APP_NOTIFICATION", notificationId: data.id });
+        return;
+      }
+    }
+    if (clients.openWindow) await clients.openWindow("/");
+  })());
 });

@@ -300,3 +300,40 @@ input { color: var(--text); }
   .accountDialogActions { flex-direction: column-reverse; }
   .accountDialogActions button { width: 100%; }
 }
+
+
+/* In-app and browser notifications */
+.sidebarTopActions { position: relative; }
+.notificationBell { position: relative; }
+.notificationBell[aria-expanded="true"] { background: #2a3942; border-color: #40545e; }
+.notificationBadge { position: absolute; top: -1px; right: -2px; display: inline-flex; align-items: center; justify-content: center; min-width: 17px; height: 17px; padding: 0 4px; border: 2px solid var(--header); border-radius: 11px; color: #061e19; background: #25d366; font-size: 9px; font-weight: 850; line-height: 1; }
+.notificationPanel { position: absolute; top: calc(100% + 12px); right: 0; z-index: 120; width: min(350px, calc(100vw - 24px)); max-height: min(540px, calc(100dvh - 100px)); overflow: hidden; border: 1px solid #34454e; border-radius: 14px; background: #111b21; box-shadow: 0 18px 55px rgba(0,0,0,.48); color: var(--text); }
+.notificationPanelHeader { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 13px 14px; border-bottom: 1px solid #2a3942; background: #202c33; }
+.notificationPanelHeader > div:first-child { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.notificationPanelHeader strong { font-size: 14px; }
+.notificationPanelHeader small { color: #8696a0; font-size: 10px; line-height: 1.4; }
+.notificationPanelActions { display: flex; flex: 0 0 auto; gap: 5px; }
+.notificationPanelActions button { min-height: 29px; padding: 5px 8px; border: 1px solid #40545e; border-radius: 7px; color: #d7e2e6; background: #2a3942; font-size: 10px; }
+.notificationPanelActions button:first-child { border-color: transparent; color: #06251d; background: #25d366; }
+.notificationList { max-height: min(440px, calc(100dvh - 175px)); overflow: auto; overscroll-behavior: contain; }
+.notificationEmpty { padding: 30px 16px; color: #8696a0; font-size: 12px; text-align: center; }
+.notificationItem { display: flex; width: 100%; gap: 10px; align-items: flex-start; padding: 12px 13px; border: 0; border-bottom: 1px solid rgba(134,150,160,.12); color: #e9edef; background: transparent; text-align: left; }
+.notificationItem:hover { background: #202c33; }
+.notificationItem.unread { background: rgba(0,168,132,.08); }
+.notificationItemIcon { display: flex; flex: 0 0 34px; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 50%; background: #164e43; font-size: 16px; }
+.notificationItemCopy { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.notificationItemCopy strong { font-size: 12px; font-weight: 700; }
+.notificationItemCopy span { color: #aebac1; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.notificationItemCopy small { color: #70828b; font-size: 10px; }
+.notificationUnreadDot { flex: 0 0 7px; width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; background: #25d366; }
+.notificationUnreadDot.read { opacity: 0; }
+.notificationToasts { position: fixed; top: 14px; right: 14px; z-index: 250; display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: min(360px, calc(100vw - 28px)); pointer-events: none; }
+.appToast { display: flex; align-items: stretch; gap: 8px; overflow: hidden; border: 1px solid #34454e; border-left: 3px solid #25d366; border-radius: 12px; color: #e9edef; background: #202c33; box-shadow: 0 10px 35px rgba(0,0,0,.35); pointer-events: auto; animation: rtcToastIn .18s ease-out; }
+.appToastMain { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 4px; padding: 11px 10px 11px 12px; border: 0; color: inherit; background: transparent; text-align: left; }
+.appToastMain strong { font-size: 12px; }
+.appToastMain span { color: #b8c6cc; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.appToastClose { align-self: flex-start; margin: 5px 5px 0 0; padding: 3px 6px; border: 0; border-radius: 6px; color: #aebac1; background: transparent; font-size: 16px; }
+.appToastClose:hover { background: #2a3942; }
+@keyframes rtcToastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 760px) { .notificationPanel { position: fixed; top: 65px; right: 12px; } .notificationToasts { top: 8px; right: 8px; width: calc(100vw - 16px); } }
+@media (prefers-reduced-motion: reduce) { .appToast { animation: none; } }

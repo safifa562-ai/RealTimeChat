@@ -7,7 +7,7 @@
   <meta name="description" content="RealTimeChat — real-time messaging, groups and calls.">
   <title>RealTimeChat</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/style.css?v=20261014-account-delete-1">
+  <link rel="stylesheet" href="/style.css?v=20261014-notifications-1">
 </head>
 <body>
   <section id="authScreen" aria-label="Login and registration">
@@ -52,6 +52,19 @@
             <input id="muteUnknownCalls" type="checkbox" onchange="saveMuteUnknownCalls()">
             <span>🔕</span>
           </label>
+          <button type="button" id="notificationBell" class="iconAction notificationBell" onclick="toggleNotificationPanel(event)" title="Notifications" aria-label="Notifications" aria-expanded="false">
+            <span aria-hidden="true">🔔</span><span id="notificationBadge" class="notificationBadge hidden">0</span>
+          </button>
+          <section id="notificationPanel" class="notificationPanel hidden" role="dialog" aria-label="Notifications">
+            <div class="notificationPanelHeader">
+              <div><strong>Notifications</strong><small id="notificationPermissionStatus">Browser notifications are off</small></div>
+              <div class="notificationPanelActions">
+                <button type="button" id="notificationPermissionButton" onclick="enableBrowserNotifications(event)">Enable</button>
+                <button type="button" onclick="clearNotifications(event)" title="Clear notification history">Clear</button>
+              </div>
+            </div>
+            <div id="notificationList" class="notificationList"><div class="notificationEmpty">No notifications yet.</div></div>
+          </section>
         </div>
       </header>
 
@@ -176,7 +189,9 @@
     <div class="lockCard"><div class="lockIcon">🔒</div><h2>RealTimeChat is locked</h2><p>Enter your passcode to continue.</p><input id="chatUnlockPin" type="password" inputmode="numeric" maxlength="32" placeholder="Passcode"><button type="button" class="primaryBtn" onclick="unlockChatApp()">Unlock</button><div id="chatUnlockError" role="status"></div></div>
   </div>
 
+  <div id="notificationToasts" class="notificationToasts" aria-live="polite" aria-relevant="additions"></div>
+
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js?v=20261014-account-delete-1"></script>
+  <script src="/app.js?v=20261014-notifications-1"></script>
 </body>
 </html>

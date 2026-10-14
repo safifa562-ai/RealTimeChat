@@ -12,6 +12,9 @@ let chatMode = "private";
 let allUsers = [];
 let friends = [];
 let requests = [];
+let knownGroups = [];
+let appNotifications = [];
+let toastTimers = new Map();
 
 let localStream = null;
 let peerConnection = null;
@@ -66,6 +69,316 @@ function authHeaders(){
 
 }
 
+
+/* =====================================================
+   IN-APP + BROWSER NOTIFICATIONS
+===================================================== */
+
+function notificationStorageKey() {
+  return `rtc_notifications_${currentUser ? currentUser.id : "guest"}`;
+}
+
+function loadAppNotifications() {
+  if (!currentUser) {
+    appNotifications = [];
+    renderNotificationUI();
+    return;
+  }
+  try {
+    const saved = JSON.parse(localStorage.getItem(notificationStorageKey()) || "[]");
+    appNotifications = Array.isArray(saved) ? saved.slice(0, 40) : [];
+  } catch (_) {
+    appNotifications = [];
+  }
+  renderNotificationUI();
+}
+
+function saveAppNotifications() {
+  if (!currentUser) return;
+  try {
+    localStorage.setItem(notificationStorageKey(), JSON.stringify(appNotifications.slice(0, 40)));
+  } catch (error) {
+    console.warn("Could not save notifications:", error);
+  }
+}
+
+function notificationTime(timestamp) {
+  const date = new Date(Number(timestamp) || Date.now());
+  if (Number.isNaN(date.getTime())) return "Now";
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function renderNotificationUI() {
+  const badge = document.getElementById("notificationBadge");
+  const list = document.getElementById("notificationList");
+  const status = document.getElementById("notificationPermissionStatus");
+  const enableButton = document.getElementById("notificationPermissionButton");
+  const unreadCount = appNotifications.filter(item => item && item.unread).length;
+
+  if (badge) {
+    badge.textContent = unreadCount > 99 ? "99+" : String(unreadCount);
+    badge.classList.toggle("hidden", unreadCount === 0);
+  }
+  if (status || enableButton) {
+    const supported = "Notification" in window;
+    const permission = supported ? Notification.permission : "unsupported";
+    if (status) {
+      status.textContent = permission === "granted"
+        ? "Browser notifications are enabled"
+        : permission === "denied"
+          ? "Blocked in browser settings"
+          : permission === "unsupported"
+            ? "Browser notifications not supported"
+            : "Enable notifications on this device";
+    }
+    if (enableButton) {
+      enableButton.textContent = permission === "granted" ? "Enabled" : permission === "denied" ? "Blocked" : "Enable";
+      enableButton.disabled = permission === "granted" || permission === "denied" || permission === "unsupported";
+      enableButton.title = permission === "denied" ? "Allow notifications in your browser site settings" : "Ask permission for browser notifications";
+    }
+  }
+  if (!list) return;
+  list.replaceChildren();
+  if (!appNotifications.length) {
+    const empty = document.createElement("div");
+    empty.className = "notificationEmpty";
+    empty.textContent = "No notifications yet.";
+    list.appendChild(empty);
+    return;
+  }
+
+  appNotifications.forEach(item => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `notificationItem${item.unread ? " unread" : ""}`;
+    const icon = document.createElement("span");
+    icon.className = "notificationItemIcon";
+    icon.textContent = item.type === "friend-request" ? "👋" : item.type === "friend-accepted" ? "✅" : item.type === "group-message" ? "👥" : item.type === "call" ? "📞" : "💬";
+    const copy = document.createElement("span");
+    copy.className = "notificationItemCopy";
+    const title = document.createElement("strong");
+    title.textContent = item.title || "Notification";
+    const body = document.createElement("span");
+    body.textContent = item.body || "";
+    const time = document.createElement("small");
+    time.textContent = notificationTime(item.createdAt);
+    copy.append(title, body, time);
+    const dot = document.createElement("span");
+    dot.className = `notificationUnreadDot${item.unread ? "" : " read"}`;
+    button.append(icon, copy, dot);
+    button.addEventListener("click", () => openAppNotification(item.id));
+    list.appendChild(button);
+  });
+}
+
+function toggleNotificationPanel(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const panel = document.getElementById("notificationPanel");
+  const button = document.getElementById("notificationBell");
+  if (!panel || !button) return;
+  const willOpen = panel.classList.contains("hidden");
+  panel.classList.toggle("hidden", !willOpen);
+  button.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  if (willOpen) renderNotificationUI();
+}
+
+async function enableBrowserNotifications(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  if (!("Notification" in window)) {
+    showAppToast({ title: "Notifications unavailable", body: "This browser does not support system notifications." });
+    return;
+  }
+  if (Notification.permission === "denied") {
+    showAppToast({ title: "Notifications are blocked", body: "Allow notifications in your browser's site settings, then refresh RealTimeChat." });
+    renderNotificationUI();
+    return;
+  }
+  try {
+    const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+    renderNotificationUI();
+    showAppToast({ title: permission === "granted" ? "Notifications enabled" : "Notifications not enabled", body: permission === "granted" ? "New messages and friend requests can alert you while this app is open in the background." : "You can enable notifications later from the browser's site settings." });
+  } catch (error) {
+    console.warn("Notification permission:", error);
+    showAppToast({ title: "Could not enable notifications", body: "Check your browser's notification settings and try again." });
+  }
+}
+
+function showAppToast(item) {
+  const container = document.getElementById("notificationToasts");
+  if (!container) return;
+  const toastId = String(item.id || `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  const toast = document.createElement("div");
+  toast.className = "appToast";
+  toast.dataset.toastId = toastId;
+  const main = document.createElement("button");
+  main.type = "button";
+  main.className = "appToastMain";
+  const title = document.createElement("strong");
+  title.textContent = item.title || "Notification";
+  const body = document.createElement("span");
+  body.textContent = item.body || "";
+  main.append(title, body);
+  main.addEventListener("click", () => {
+    toast.remove();
+    dismissToastTimer(toastId);
+    if (item.id) openAppNotification(item.id);
+    else toggleNotificationPanel();
+  });
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "appToastClose";
+  close.setAttribute("aria-label", "Dismiss notification");
+  close.textContent = "×";
+  close.addEventListener("click", event => {
+    event.stopPropagation();
+    toast.remove();
+    dismissToastTimer(toastId);
+  });
+  toast.append(main, close);
+  container.prepend(toast);
+  while (container.children.length > 4) container.lastElementChild.remove();
+  const timer = window.setTimeout(() => {
+    toast.remove();
+    toastTimers.delete(toastId);
+  }, 6500);
+  toastTimers.set(toastId, timer);
+}
+
+function dismissToastTimer(id) {
+  const timer = toastTimers.get(String(id));
+  if (timer) window.clearTimeout(timer);
+  toastTimers.delete(String(id));
+}
+
+function maybeShowSystemNotification(item) {
+  if (!document.hidden || !("Notification" in window) || Notification.permission !== "granted") return;
+  const options = {
+    body: String(item.body || "You have a new notification").slice(0, 180),
+    tag: `realtimechat-${item.type || "notification"}-${item.id}`,
+    data: {
+      id: item.id,
+      targetUserId: item.targetUserId || null,
+      targetGroupId: item.targetGroupId || null,
+      targetTab: item.targetTab || null
+    }
+  };
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.ready
+      .then(registration => {
+        if (registration && typeof registration.showNotification === "function") return registration.showNotification(item.title || "RealTimeChat", options);
+        const nativeNotification = new Notification(item.title || "RealTimeChat", options);
+        nativeNotification.onclick = () => { window.focus(); if (item.id) openAppNotification(item.id); nativeNotification.close(); };
+      })
+      .catch(error => console.warn("System notification failed:", error));
+  } else {
+    try {
+      const nativeNotification = new Notification(item.title || "RealTimeChat", options);
+      nativeNotification.onclick = () => { window.focus(); if (item.id) openAppNotification(item.id); nativeNotification.close(); };
+    } catch (error) {
+      console.warn("System notification failed:", error);
+    }
+  }
+}
+
+function addAppNotification(data) {
+  if (!currentUser || !data) return;
+  const item = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    type: data.type || "message",
+    title: String(data.title || "RealTimeChat"),
+    body: String(data.body || "You have a new notification").slice(0, 240),
+    targetUserId: data.targetUserId ? Number(data.targetUserId) : null,
+    targetGroupId: data.targetGroupId ? Number(data.targetGroupId) : null,
+    targetTab: data.targetTab || null,
+    createdAt: Date.now(),
+    unread: true
+  };
+  appNotifications.unshift(item);
+  appNotifications = appNotifications.slice(0, 40);
+  saveAppNotifications();
+  renderNotificationUI();
+  showAppToast(item);
+  maybeShowSystemNotification(item);
+}
+
+async function openAppNotification(id) {
+  const item = appNotifications.find(notification => String(notification.id) === String(id));
+  if (!item) return;
+  item.unread = false;
+  saveAppNotifications();
+  renderNotificationUI();
+  const panel = document.getElementById("notificationPanel");
+  const button = document.getElementById("notificationBell");
+  if (panel) panel.classList.add("hidden");
+  if (button) button.setAttribute("aria-expanded", "false");
+
+  if (item.targetTab === "requests") {
+    setSidebarTab("requests");
+    await loadRequests();
+    return;
+  }
+  if (item.targetGroupId) {
+    if (!knownGroups.length) await loadGroups();
+    const group = knownGroups.find(entry => Number(entry.id) === Number(item.targetGroupId));
+    if (group) await selectGroup(group);
+    else { setSidebarTab("groups"); await loadGroups(); }
+    return;
+  }
+  if (item.targetUserId) await selectUserById(item.targetUserId);
+}
+
+function clearNotifications(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  appNotifications = [];
+  saveAppNotifications();
+  renderNotificationUI();
+}
+
+function markTargetNotificationsRead(targetType, targetId) {
+  const id = Number(targetId);
+  let changed = false;
+  appNotifications.forEach(item => {
+    const matches = targetType === "group"
+      ? Number(item.targetGroupId) === id
+      : Number(item.targetUserId) === id;
+    if (matches && item.unread) { item.unread = false; changed = true; }
+  });
+  if (changed) {
+    saveAppNotifications();
+    renderNotificationUI();
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return;
+  if (chatMode === "private" && selectedUser) markTargetNotificationsRead("user", selectedUser.id);
+  if (chatMode === "group" && selectedGroup) markTargetNotificationsRead("group", selectedGroup.id);
+});
+
+document.addEventListener("click", event => {
+  const panel = document.getElementById("notificationPanel");
+  const button = document.getElementById("notificationBell");
+  if (panel && button && !event.target.closest(".sidebarTopActions")) {
+    panel.classList.add("hidden");
+    button.setAttribute("aria-expanded", "false");
+  }
+});
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", event => {
+    const data = event.data || {};
+    if (data.type === "RTC_OPEN_APP_NOTIFICATION") openAppNotification(data.notificationId);
+  });
+}
 
 /* =====================================================
    AUTH MESSAGE
@@ -303,6 +616,7 @@ function openApp(){
   if(!currentUser)
     return;
 
+  loadAppNotifications();
   setSidebarTab("chats");
   document.getElementById("appScreen")?.classList.remove("mobile-chat-open");
   setAvatarInitial("profileAvatar", currentUser.username);
@@ -403,33 +717,29 @@ function connectSocket(){
 
   socket.on(
     "private-message",
-    message=>{
+    message => {
+      if (!message || !currentUser) return;
 
-      if(
-        selectedUser &&
-        (
-          (
-            Number(message.sender_id) ===
-            Number(currentUser.id) &&
-            Number(message.receiver_id) ===
-            Number(selectedUser.id)
-          )
-          ||
-          (
-            Number(message.sender_id) ===
-            Number(selectedUser.id) &&
-            Number(message.receiver_id) ===
-            Number(currentUser.id)
-          )
-        )
-      ){
+      const senderId = Number(message.sender_id);
+      const receiverId = Number(message.receiver_id);
+      const mine = senderId === Number(currentUser.id);
+      const isIncoming = !mine && receiverId === Number(currentUser.id);
+      const sameOpenPrivateChat = chatMode === "private" && selectedUser &&
+        (Number(selectedUser.id) === senderId || Number(selectedUser.id) === receiverId);
 
-        displayMessage(
-          message
-        );
-
+      if (isIncoming && (!sameOpenPrivateChat || document.hidden)) {
+        const sender = friends.find(user => Number(user.id) === senderId) || allUsers.find(user => Number(user.id) === senderId);
+        const isFile = message.message_type === "file" || Boolean(message.file_url);
+        const preview = isFile ? `📎 ${message.file_name || "Sent a file or voice note"}` : (message.message || "New message");
+        addAppNotification({
+          type: "message",
+          title: sender ? sender.username : "New message",
+          body: String(preview).slice(0, 180),
+          targetUserId: senderId
+        });
       }
 
+      if (sameOpenPrivateChat) displayMessage(message);
     }
   );
 
@@ -510,32 +820,54 @@ function connectSocket(){
 
   socket.on(
     "friend-request",
-    ()=>{
-
+    request => {
       loadRequests();
-
-      alert(
-        "📩 New friend request"
-      );
-
+      const senderId = Number(request && request.sender_id);
+      const sender = friends.find(user => Number(user.id) === senderId) || allUsers.find(user => Number(user.id) === senderId);
+      addAppNotification({
+        type: "friend-request",
+        title: "New friend request",
+        body: sender ? `${sender.username} wants to connect with you.` : `User ID ${senderId || "unknown"} wants to connect with you.`,
+        targetUserId: senderId || null,
+        targetTab: "requests"
+      });
     }
   );
 
 
   socket.on(
     "friend-accepted",
-    ()=>{
-
+    data => {
       loadFriends();
-
       loadUsers();
-
+      const acceptedId = Number(data && data.userId);
+      const friend = allUsers.find(user => Number(user.id) === acceptedId) || friends.find(user => Number(user.id) === acceptedId);
+      addAppNotification({
+        type: "friend-accepted",
+        title: "Friend request accepted",
+        body: friend ? `${friend.username} is now connected with you.` : `User ID ${acceptedId || "unknown"} is now your friend.`,
+        targetUserId: acceptedId || null
+      });
     }
   );
 
 
-  socket.on("group-message", message=>{
-    if(chatMode==="group" && selectedGroup && Number(message.group_id)===Number(selectedGroup.id)) displayGroupMessage(message);
+  socket.on("group-message", message => {
+    if (!message || !currentUser) return;
+    const senderId = Number(message.sender_id);
+    const groupId = Number(message.group_id);
+    const mine = senderId === Number(currentUser.id);
+    const activeGroup = chatMode === "group" && selectedGroup && Number(selectedGroup.id) === groupId;
+    if (!mine && (!activeGroup || document.hidden)) {
+      const group = knownGroups.find(entry => Number(entry.id) === groupId);
+      addAppNotification({
+        type: "group-message",
+        title: group ? group.name : "New group message",
+        body: `User ${senderId}: ${message.message || "Sent a message"}`,
+        targetGroupId: groupId
+      });
+    }
+    if (activeGroup) displayGroupMessage(message);
   });
 
   socket.on("reaction-updated", ()=>{
@@ -562,6 +894,15 @@ function connectSocket(){
 
       incomingCallData =
         data;
+
+      if (document.hidden) {
+        addAppNotification({
+          type: "call",
+          title: `Incoming ${data.callType === "audio" ? "audio" : "video"} call`,
+          body: `${data.callerName || "Someone"} is calling you.`,
+          targetUserId: callerId || null
+        });
+      }
 
       document.getElementById(
         "callerText"
@@ -961,6 +1302,7 @@ async function selectUser(
   selectedGroup = null;
   selectedUser =
     user;
+  markTargetNotificationsRead("user", user.id);
 
   document.getElementById(
     "chatUserName"
@@ -1674,6 +2016,7 @@ async function loadGroups(){
     const r=await fetch("/api/groups",{headers:authHeaders()});
     if(!r.ok) return;
     const groups=await r.json();
+    knownGroups = Array.isArray(groups) ? groups : [];
     const list=document.getElementById("groupsList"); list.innerHTML="";
     if(!groups.length){list.innerHTML='<div class="emptySide">No groups yet</div>';return;}
     groups.forEach(g=>{const d=document.createElement("div");d.className="groupItem";d.innerHTML=`<div class="contactRow"><span class="contactAvatar groupAvatar" aria-hidden="true">♧</span><span class="contactText"><strong>${escapeHtml(g.name)}</strong><small>Group conversation</small></span><span class="groupChevron">›</span></div>`;d.onclick=()=>selectGroup(g);list.appendChild(d);});
@@ -1692,6 +2035,7 @@ async function createGroup(){
 
 async function selectGroup(group){
   chatMode="group"; selectedGroup=group; selectedUser=null;
+  markTargetNotificationsRead("group", group.id);
   document.getElementById("chatUserName").textContent="👥 "+group.name;
   document.getElementById("chatUserStatus").textContent="Group chat";
   setAvatarInitial("chatAvatar", group.name);
@@ -2873,6 +3217,8 @@ async function deleteAccountSubmit() {
     }
 
     closeDeleteAccountDialog();
+    try { localStorage.removeItem(notificationStorageKey()); } catch (_) {}
+    appNotifications = [];
     if (passwordField) passwordField.value = "";
     if (confirmField) confirmField.value = "";
     const loginUsername = document.getElementById("loginUsername");
