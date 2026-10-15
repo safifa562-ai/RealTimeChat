@@ -1259,9 +1259,15 @@ async function uploadProfileAvatar(event) {
       headers: authHeaders(),
       body: form
     });
-    const data = await response.json().catch(() => ({}));
+    const responseText = await response.text();
+    let data = {};
+    try { data = responseText ? JSON.parse(responseText) : {}; }
+    catch (_) {
+      throw new Error(`Upload endpoint returned a non-JSON response (HTTP ${response.status}). Check that the latest server.js is deployed.`);
+    }
     if (!response.ok || !data.user || !data.user.avatar_url) {
-      throw new Error(data.error || "Could not save profile picture.");
+      const detail = data.error || `Upload failed with HTTP ${response.status}.`;
+      throw new Error(detail);
     }
 
     currentUser = { ...currentUser, ...data.user };
