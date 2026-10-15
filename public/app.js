@@ -619,7 +619,7 @@ function openApp(){
   loadAppNotifications();
   setSidebarTab("chats");
   document.getElementById("appScreen")?.classList.remove("mobile-chat-open");
-  setAvatarInitial("profileAvatar", currentUser.username);
+  setAvatarInitial("profileAvatar", currentUser.username, currentUser.avatar_url);
 
   document
     .getElementById(
@@ -699,6 +699,34 @@ function connectSocket(){
       loadFriends();
     }
   );
+
+  socket.on("profile-updated", data => {
+    if (!data || !data.userId) return;
+    const id = Number(data.userId);
+    const applyAvatar = user => Number(user && user.id) === id
+      ? { ...user, avatar_url: data.avatar_url || null }
+      : user;
+    allUsers = allUsers.map(applyAvatar);
+    friends = friends.map(applyAvatar);
+    requests = requests.map(request => ({
+      ...request,
+      sender: request.sender && Number(request.sender.id) === id
+        ? { ...request.sender, avatar_url: data.avatar_url || null }
+        : request.sender
+    }));
+    if (currentUser && Number(currentUser.id) === id) {
+      currentUser.avatar_url = data.avatar_url || null;
+      setAvatarInitial("profileAvatar", currentUser.username, currentUser.avatar_url);
+      try { localStorage.setItem("rtc_user", JSON.stringify(currentUser)); } catch (_) {}
+    }
+    if (selectedUser && Number(selectedUser.id) === id) {
+      selectedUser.avatar_url = data.avatar_url || null;
+      setAvatarInitial("chatAvatar", selectedUser.username, selectedUser.avatar_url);
+    }
+    renderUsers();
+    renderFriends();
+    renderRequests();
+  });
 
   socket.on("account-deleted", data => {
     const deletedId = Number(data && data.userId);
@@ -1148,11 +1176,118 @@ function enterConversationView(){
   }
 }
 
-function setAvatarInitial(elementId, label){
+function safeAvatarUrl(value) {
+  if (!value || typeof value !== "string") return "";
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" && url.hostname !== "localhost") return "";
+    if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+    return url.href;
+  } catch (_) {
+    return "";
+  }
+}
+
+function avatarMarkup(label, avatarUrl, className = "contactAvatar") {
+  const text = String(label || "?").trim();
+  const initial = text ? Array.from(text)[0].toUpperCase() : "?";
+  const src = safeAvatarUrl(avatarUrl);
+  return `<span class="${className} avatarWithPhoto" aria-hidden="true"><span class="avatarInitial">${escapeHtml(initial)}</span>${src ? `<img class="avatarPhoto" src="${escapeHtml(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>`;
+}
+
+function setAvatarInitial(elementId, label, avatarUrl = "") {
   const avatar = document.getElementById(elementId);
   if (!avatar) return;
   const text = String(label || "?").trim();
-  avatar.textContent = text ? Array.from(text)[0].toUpperCase() : "?";
+  const initial = text ? Array.from(text)[0].toUpperCase() : "?";
+  const src = safeAvatarUrl(avatarUrl);
+  avatar.replaceChildren();
+  const initialNode = document.createElement("span");
+  initialNode.className = "avatarInitial";
+  initialNode.textContent = initial;
+  avatar.appendChild(initialNode);
+  if (src) {
+    const image = document.createElement("img");
+    image.className = "avatarPhoto";
+    image.src = src;
+    image.alt = "";
+    image.loading = "lazy";
+    image.referrerPolicy = "no-referrer";
+    image.onerror = () => image.remove();
+    avatar.appendChild(image);
+  }
+}
+
+function openAvatarPicker() {
+  const menu = document.getElementById("accountMenu");
+  const trigger = document.getElementById("accountMenuToggle");
+  if (menu) menu.classList.add("hidden");
+  if (trigger) trigger.setAttribute("aria-expanded", "false");
+  const input = document.getElementById("avatarFileInput");
+  if (input) {
+    input.value = "";
+    input.click();
+  }
+}
+
+async function uploadProfileAvatar(event) {
+  const input = event && event.target;
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) {
+    showAppToast({ title: "Unsupported image", body: "Choose a JPG, PNG, or WebP image." });
+    input.value = "";
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showAppToast({ title: "Image is too large", body: "Profile pictures must be 5 MB or smaller." });
+    input.value = "";
+    return;
+  }
+  if (!currentUser || !getToken()) {
+    showAppToast({ title: "Please log in", body: "Log in again before changing your profile picture." });
+    input.value = "";
+    return;
+  }
+
+  const form = new FormData();
+  form.append("avatar", file, file.name);
+  showAppToast({ title: "Uploading profile photo", body: "Please wait…" });
+  try {
+    const response = await fetch("/api/profile/avatar", {
+      method: "POST",
+      headers: authHeaders(),
+      body: form
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.user || !data.user.avatar_url) {
+      throw new Error(data.error || "Could not save profile picture.");
+    }
+
+    currentUser = { ...currentUser, ...data.user };
+    try { localStorage.setItem("rtc_user", JSON.stringify(currentUser)); } catch (_) {}
+    setAvatarInitial("profileAvatar", currentUser.username, currentUser.avatar_url);
+
+    const updateAvatar = user => Number(user && user.id) === Number(currentUser.id)
+      ? { ...user, avatar_url: currentUser.avatar_url }
+      : user;
+    allUsers = allUsers.map(updateAvatar);
+    friends = friends.map(updateAvatar);
+    if (selectedUser && Number(selectedUser.id) === Number(currentUser.id)) selectedUser = updateAvatar(selectedUser);
+
+    renderUsers();
+    renderFriends();
+    renderRequests();
+    if (selectedUser && chatMode === "private") {
+      setAvatarInitial("chatAvatar", selectedUser.username, selectedUser.avatar_url);
+    }
+    showAppToast({ title: "Profile picture updated", body: "Your DP is saved to your account." });
+  } catch (error) {
+    console.error("PROFILE AVATAR UPLOAD:", error);
+    showAppToast({ title: "DP upload failed", body: error.message || "Please try again." });
+  } finally {
+    input.value = "";
+  }
 }
 
 function searchUsers(){
@@ -1215,7 +1350,7 @@ function renderUsers(){
 
       div.innerHTML = `
         <div class="contactRow">
-          <span class="contactAvatar" aria-hidden="true">${escapeHtml(String(user.username || "?").trim().charAt(0).toUpperCase())}</span>
+          ${avatarMarkup(user.username, user.avatar_url, "contactAvatar")}
           <span class="contactText">
             <strong>${escapeHtml(user.username)}</strong>
             <small>ID: ${user.id} · ${online ? "Online" : "Offline"}</small>
@@ -1316,7 +1451,7 @@ async function selectUser(
       ? "Online"
       : "Offline";
 
-  setAvatarInitial("chatAvatar", user.username);
+  setAvatarInitial("chatAvatar", user.username, user.avatar_url);
   enterConversationView();
   await loadChatHistory();
 
@@ -2218,8 +2353,8 @@ function renderRequests(){
 
       div.innerHTML = `
         <div class="requestRow">
-          <span class="contactAvatar" aria-hidden="true">${escapeHtml(String(request.sender_name || "U").charAt(0).toUpperCase())}</span>
-          <span class="contactText"><strong>User ID: ${request.sender_id}</strong><small>Wants to connect with you</small></span>
+          ${avatarMarkup((request.sender && request.sender.username) || request.sender_name || `User ${request.sender_id}`, (request.sender && request.sender.avatar_url) || request.avatar_url, "contactAvatar")}
+          <span class="contactText"><strong>${escapeHtml((request.sender && request.sender.username) || request.sender_name || `User ID: ${request.sender_id}`)}</strong><small>Wants to connect with you</small></span>
         </div>
         <div class="itemButtons">
           <button class="smallBtn acceptBtn" onclick="respondRequest(${request.id}, 'accept')">✓ Accept</button>
@@ -2363,7 +2498,7 @@ function renderFriends(){
 
       div.innerHTML = `
         <div class="contactRow" onclick="selectUserById(${friend.id})" style="cursor:pointer;">
-          <span class="contactAvatar" aria-hidden="true">${escapeHtml(String(friend.username || "?").trim().charAt(0).toUpperCase())}</span>
+          ${avatarMarkup(friend.username, friend.avatar_url, "contactAvatar")}
           <span class="contactText"><strong>${escapeHtml(friend.username)}</strong><small>${friend.online ? "Online now" : "Offline"}</small></span>
           <span class="contactPresence ${friend.online ? "isOnline" : "isOffline"}" title="${friend.online ? "Online" : "Offline"}"></span>
         </div>

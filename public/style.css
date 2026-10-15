@@ -337,3 +337,16 @@ input { color: var(--text); }
 @keyframes rtcToastIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 760px) { .notificationPanel { position: fixed; top: 65px; right: 12px; } .notificationToasts { top: 8px; right: 8px; width: calc(100vw - 16px); } }
 @media (prefers-reduced-motion: reduce) { .appToast { animation: none; } }
+
+
+/* Profile display-picture upload */
+.profileAvatarShell { position: relative; flex: 0 0 auto; width: 39px; height: 39px; }
+.profileAvatarButton { display: inline-flex; position: relative; width: 39px; height: 39px; padding: 0; overflow: hidden; border: 0; border-radius: 50%; cursor: pointer; }
+.avatarInitial { display: inline-flex; position: relative; z-index: 0; align-items: center; justify-content: center; width: 100%; height: 100%; overflow: hidden; text-transform: uppercase; }
+.avatarPhoto { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
+.profileAvatarCamera { position: absolute; right: -2px; bottom: -2px; z-index: 2; display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 2px solid #182229; border-radius: 50%; background: #00a884; font-size: 9px; line-height: 1; pointer-events: none; }
+.changeAvatarText { display: block; margin: 3px 0 0; padding: 0; border: 0; color: #25d366; background: transparent; font-size: 10px; cursor: pointer; }
+.changeAvatarText:hover { text-decoration: underline; }
+.profileAvatarButton:focus-visible { outline: 2px solid #25d366; outline-offset: 3px; }
+.contactAvatar, .avatar { position: relative; overflow: hidden; }
+.contactAvatar .avatarInitial { font-size: inherit; font-weight: inherit; }

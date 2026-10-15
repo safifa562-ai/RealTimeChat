@@ -7,7 +7,7 @@
   <meta name="description" content="RealTimeChat — real-time messaging, groups and calls.">
   <title>RealTimeChat</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/style.css?v=20261014-notifications-1">
+  <link rel="stylesheet" href="/style.css?v=20261015-profile-dp-1">
 </head>
 <body>
   <section id="authScreen" aria-label="Login and registration">
@@ -69,12 +69,17 @@
       </header>
 
       <div class="profile">
-        <div class="avatar profileAvatar" id="profileAvatar" aria-hidden="true">U</div>
-        <div class="profileDetails"><div id="profileName" class="profileName">User</div><div id="profileId" class="userId">ID: -</div></div>
+        <div class="profileAvatarShell">
+          <button type="button" class="avatar profileAvatar profileAvatarButton" id="profileAvatar" onclick="openAvatarPicker()" aria-label="Change profile picture" title="Change profile picture">U</button>
+          <span class="profileAvatarCamera" aria-hidden="true">📷</span>
+          <input id="avatarFileInput" class="hidden" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfileAvatar(event)" aria-label="Choose profile picture">
+        </div>
+        <div class="profileDetails"><div id="profileName" class="profileName">User</div><div id="profileId" class="userId">ID: -</div><button type="button" class="changeAvatarText" onclick="openAvatarPicker()">Change DP</button></div>
         <div class="profileActions">
           <span class="profileOnline" title="Account active"></span>
           <button type="button" id="accountMenuToggle" class="accountMenuToggle" onclick="toggleAccountMenu(event)" aria-label="Account options" aria-expanded="false" title="Account options">⋯</button>
           <div id="accountMenu" class="accountMenu hidden" role="menu">
+            <button type="button" class="accountMenuDelete" role="menuitem" onclick="openAvatarPicker()">📷 Change profile photo</button>
             <button type="button" class="accountMenuDelete" role="menuitem" onclick="openDeleteAccountDialog()">♲ Delete account</button>
           </div>
         </div>
@@ -192,6 +197,6 @@
   <div id="notificationToasts" class="notificationToasts" aria-live="polite" aria-relevant="additions"></div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js?v=20261014-notifications-1"></script>
+  <script src="/app.js?v=20261015-profile-dp-1"></script>
 </body>
 </html>
