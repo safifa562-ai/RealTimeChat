@@ -13,6 +13,9 @@ let allUsers = [];
 let friends = [];
 let requests = [];
 let knownGroups = [];
+let statusItems = [];
+let pinnedMessageIds = new Set();
+let blockedUserIds = new Set();
 let appNotifications = [];
 let toastTimers = new Map();
 
@@ -41,6 +44,147 @@ const rtcConfig = {
 
 };
 
+
+/* =====================================================
+   SUPPORTER CHECKOUT (optional Razorpay website checkout)
+===================================================== */
+let supporterState = { enabled: false, isPremium: false, loaded: false };
+let razorpayScriptPromise = null;
+
+function setPremiumMessage(message, kind = "info") {
+  const node = document.getElementById("premiumStatusMessage");
+  if (!node) return;
+  node.textContent = message;
+  node.dataset.kind = kind;
+}
+
+function applyPremiumStatus(data = {}) {
+  supporterState = { ...supporterState, ...data, loaded: true };
+  const badge = document.getElementById("premiumStatusBadge");
+  if (badge) badge.classList.toggle("hidden", !supporterState.isPremium);
+  const button = document.getElementById("buySupporterBtn");
+  if (!button) return;
+  if (supporterState.isPremium) {
+    button.disabled = true;
+    button.textContent = "Supporter active ✓";
+    setPremiumMessage("Thank you! The Supporter badge is active on this account.", "success");
+  } else if (!supporterState.enabled) {
+    button.disabled = true;
+    button.textContent = "Checkout not configured";
+    setPremiumMessage(data.error || "Online checkout is not enabled yet. The app owner must configure a verified merchant account and run the SQL migration.", "error");
+  } else {
+    button.disabled = false;
+    button.textContent = "Pay ₹49 once";
+    setPremiumMessage("One-time payment only. No subscription or automatic renewal.");
+  }
+}
+
+async function loadPremiumStatus() {
+  if (!currentUser || !getToken()) return;
+  try {
+    const response = await fetch("/api/premium/status", { headers: authHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      applyPremiumStatus({ enabled: false, isPremium: false, error: data.error || "Premium setup is not ready yet." });
+      return;
+    }
+    applyPremiumStatus(data);
+  } catch (error) {
+    console.warn("SUPPORTER STATUS:", error);
+    applyPremiumStatus({ enabled: false, isPremium: false, error: "Could not check the payment setup. Try again later." });
+  }
+}
+
+async function openPremiumDialog() {
+  const menu = document.getElementById("accountMenu");
+  const trigger = document.getElementById("accountMenuToggle");
+  if (menu) menu.classList.add("hidden");
+  if (trigger) trigger.setAttribute("aria-expanded", "false");
+  const dialog = document.getElementById("premiumDialog");
+  if (!dialog) return;
+  setPremiumMessage("Checking payment setup…");
+  const button = document.getElementById("buySupporterBtn");
+  if (button) { button.disabled = true; button.textContent = "Please wait…"; }
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "open");
+  await loadPremiumStatus();
+}
+
+function closePremiumDialog() {
+  const dialog = document.getElementById("premiumDialog");
+  if (!dialog) return;
+  if (typeof dialog.close === "function") dialog.close();
+  else dialog.removeAttribute("open");
+}
+
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve(true);
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+  razorpayScriptPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => reject(new Error("Secure checkout could not load. Check your connection and try again."));
+    document.head.appendChild(script);
+  });
+  return razorpayScriptPromise;
+}
+
+async function startSupporterCheckout() {
+  const button = document.getElementById("buySupporterBtn");
+  if (!currentUser || !getToken()) {
+    setPremiumMessage("Log in before starting checkout.", "error");
+    return;
+  }
+  if (!supporterState.enabled || supporterState.isPremium) return;
+  if (button) { button.disabled = true; button.textContent = "Starting checkout…"; }
+  setPremiumMessage("Creating a secure payment order…");
+  try {
+    const response = await fetch("/api/billing/razorpay/order", {
+      method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({})
+    });
+    const order = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(order.error || "Could not start checkout.");
+    await loadRazorpayCheckout();
+    const checkout = new window.Razorpay({
+      key: order.keyId,
+      amount: order.amount,
+      currency: order.currency,
+      name: order.name || "RealTimeChat",
+      description: order.description || "One-time Supporter pass",
+      order_id: order.orderId,
+      prefill: { name: String(currentUser.username || "").slice(0, 80) },
+      theme: { color: "#00a884" },
+      modal: { ondismiss: () => { if (button && !supporterState.isPremium) { button.disabled = false; button.textContent = "Pay ₹49 once"; } setPremiumMessage("Checkout closed. You have not been charged by this app unless your payment provider confirms it."); } },
+      handler: async function (paymentResponse) {
+        setPremiumMessage("Payment received by checkout. Verifying securely…");
+        try {
+          const verifyResponse = await fetch("/api/billing/razorpay/verify", {
+            method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" },
+            body: JSON.stringify(paymentResponse)
+          });
+          const verified = await verifyResponse.json().catch(() => ({}));
+          if (!verifyResponse.ok || !verified.success) throw new Error(verified.error || "Payment verification failed. Do not pay again; contact support with your payment ID.");
+          applyPremiumStatus({ enabled: true, isPremium: true, plan: "supporter" });
+          setPremiumMessage("Thank you for supporting RealTimeChat! Your Supporter badge is active.", "success");
+          showAppToast({ title: "Supporter badge active", body: "Thank you for supporting RealTimeChat!" });
+        } catch (error) {
+          setPremiumMessage(error.message || "Payment verification did not finish. Do not retry payment yet; contact support.", "error");
+          if (button) { button.disabled = true; button.textContent = "Check payment status"; }
+        }
+      }
+    });
+    checkout.on("payment.failed", function () {
+      setPremiumMessage("Payment did not complete. You have not received the Supporter badge. Check payment status before trying again.", "error");
+      if (button) { button.disabled = false; button.textContent = "Try checkout again"; }
+    });
+    checkout.open();
+  } catch (error) {
+    setPremiumMessage(error.message || "Could not open checkout.", "error");
+    if (button) { button.disabled = false; button.textContent = "Try checkout again"; }
+  }
+}
 
 /* =====================================================
    TOKEN
@@ -268,7 +412,20 @@ function maybeShowSystemNotification(item) {
       targetTab: item.targetTab || null
     }
   };
-  if ("serviceWorker" in navigator) {
+  const statusMediaInput = document.getElementById("statusMediaInput");
+if (statusMediaInput) statusMediaInput.addEventListener("change", () => {
+  const name = document.getElementById("statusMediaName");
+  if (name) name.textContent = statusMediaInput.files && statusMediaInput.files[0] ? `${statusMediaInput.files[0].name} · ${(statusMediaInput.files[0].size / 1024 / 1024).toFixed(1)} MB` : "No media selected · max 20 MB";
+});
+
+document.addEventListener("click", event => {
+  if (!event.target.closest(".contactOptionsWrap")) {
+    document.getElementById("contactOptionsMenu")?.classList.add("hidden");
+    document.getElementById("contactOptionsToggle")?.setAttribute("aria-expanded", "false");
+  }
+});
+
+if ("serviceWorker" in navigator) {
     navigator.serviceWorker.ready
       .then(registration => {
         if (registration && typeof registration.showNotification === "function") return registration.showNotification(item.title || "RealTimeChat", options);
@@ -617,7 +774,10 @@ function openApp(){
     return;
 
   loadAppNotifications();
+  loadPremiumStatus();
   setSidebarTab("chats");
+  loadBlockedUsers();
+  loadStatuses();
   document.getElementById("appScreen")?.classList.remove("mobile-chat-open");
   setAvatarInitial("profileAvatar", currentUser.username, currentUser.avatar_url);
 
@@ -672,6 +832,7 @@ function connectSocket(){
 
   socket =
     io({
+      auth: { token: getToken() },
       transports:[
         "websocket",
         "polling"
@@ -690,6 +851,14 @@ function connectSocket(){
 
     }
   );
+
+  socket.on("connect_error", error => {
+    console.warn("SOCKET CONNECT ERROR:", error && error.message);
+    if (error && /session|authentication|account no longer exists/i.test(error.message || "")) {
+      const hint = document.getElementById("authMessage");
+      if (hint && document.getElementById("appScreen")?.classList.contains("hidden")) hint.textContent = "Please log in again to connect.";
+    }
+  });
 
 
   socket.on(
@@ -903,6 +1072,16 @@ function connectSocket(){
   });
 
   socket.on("friend-removed", ()=>{ loadFriends(); loadUsers(); });
+
+  socket.on("status-created", () => { loadStatuses(); });
+  socket.on("status-viewed", data => {
+    if (data && currentUser && Number(data.viewerId) !== Number(currentUser.id)) loadStatuses();
+  });
+  socket.on("contact-blocked", data => {
+    if (selectedUser && Number(data && data.userId) === Number(selectedUser.id)) {
+      alert("This user has blocked you. You may not be able to send messages or calls.");
+    }
+  });
 
   /* CALL */
 
@@ -1149,7 +1328,7 @@ async function loadUsers(
 ===================================================== */
 
 function setSidebarTab(tab){
-  const allowed = ["chats", "requests", "groups", "users"];
+  const allowed = ["chats", "status", "requests", "groups", "users"];
   const target = allowed.includes(tab) ? tab : "chats";
 
   document.querySelectorAll(".sideTab[data-tab]").forEach(button => {
@@ -1162,6 +1341,7 @@ function setSidebarTab(tab){
     const panel = document.getElementById(`sidebarPanel${name[0].toUpperCase()}${name.slice(1)}`);
     if (panel) panel.classList.toggle("active", name === target);
   });
+  if (target === "status") { loadStatuses(); loadBlockedUsers(); }
 }
 
 function showMobileSidebar(){
@@ -1440,6 +1620,12 @@ async function selectUser(
 ){
 
   chatMode = "private";
+  const groupButton = document.getElementById("groupManageBtn");
+  if (groupButton) groupButton.classList.add("hidden");
+  const callButtons = document.querySelector(".callButtons");
+  if (callButtons) callButtons.classList.remove("hidden");
+  const contactMenu = document.querySelector(".contactOptionsWrap");
+  if (contactMenu) contactMenu.classList.remove("hidden");
   selectedGroup = null;
   selectedUser =
     user;
@@ -1458,7 +1644,10 @@ async function selectUser(
       : "Offline";
 
   setAvatarInitial("chatAvatar", user.username, user.avatar_url);
+  selectedUser.isBlocked = blockedUserIds.has(Number(user.id));
+  applyContactBlockState();
   enterConversationView();
+  await loadPinnedMessages();
   await loadChatHistory();
 
 }
@@ -1540,6 +1729,7 @@ async function loadChatHistory(){
     const messages =
       await response.json();
 
+    await loadPinnedMessages();
     box.innerHTML="";
 
     if(
@@ -1594,6 +1784,7 @@ function sendMessage(){
 
   const input = document.getElementById("messageInput");
   const message = input.value.trim();
+  if (selectedUser && selectedUser.isBlocked) { alert("You must unblock this user before sending messages."); return; }
   if(!message) return;
 
   if(chatMode==="group" && selectedGroup){
@@ -1775,8 +1966,11 @@ function displayMessage(
           : "✓"
       )
       : "";
+  const isPinned = message.id != null && pinnedMessageIds.has(String(message.id));
 
   div.innerHTML = `
+    ${message.is_forwarded ? '<div class="messagePinnedLabel">↪ Forwarded</div>' : ''}
+    ${isPinned ? '<div class="messagePinnedLabel">📌 Pinned for you</div>' : ''}
     ${content}
     ${message.id && !message.is_deleted ? `<div class="messageTools">
       <button class="reactionBtn" onclick="reactMessage(${message.id},'👍')">👍</button>
@@ -1784,6 +1978,8 @@ function displayMessage(
       <button class="reactionBtn" onclick="reactMessage(${message.id},'😂')">😂</button>
       <button class="reactionBtn" onclick="reactMessage(${message.id},'😮')">😮</button>
       <button class="reactionBtn" onclick="reactMessage(${message.id},'👏')">👏</button>
+      <button class="reactionBtn" onclick="togglePinMessage(${message.id})" title="Pin for you">${isPinned ? '📌 Unpin' : '📌 Pin'}</button>
+      <button class="reactionBtn" onclick="forwardMessage(${message.id})" title="Forward message">↗ Forward</button>
     </div>` : ""}
 
     <div class="messageTime">
@@ -1910,8 +2106,8 @@ async function toggleVoiceNote() {
     button.style.background = "#2b2b2b";
     return;
   }
-  if (chatMode !== "private" || !selectedUser) {
-    alert("Open a private chat before recording a voice note.");
+  if (!((chatMode === "private" && selectedUser) || (chatMode === "group" && selectedGroup))) {
+    alert("Open a private chat or group before recording a voice note.");
     return;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
@@ -1941,22 +2137,21 @@ async function toggleVoiceNote() {
 }
 
 async function uploadVoiceBlob(blob) {
-  if (!selectedUser) return;
+  if (!((chatMode === "private" && selectedUser) || (chatMode === "group" && selectedGroup))) return;
+  const recordedMode = chatMode;
+  const recipient = selectedUser;
+  const group = selectedGroup;
   try {
     const form = new FormData();
     form.append("file", blob, `voice-note-${Date.now()}.webm`);
     const r = await fetch("/api/upload", { method: "POST", headers: authHeaders(), body: form });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || "Upload failed");
-    socket.emit("private-message", {
-      senderId: currentUser.id,
-      receiverId: selectedUser.id,
-      message: "🎙️ Voice note",
-      messageType: "file",
-      fileName: d.file.name,
-      fileUrl: d.file.url,
-      fileSize: d.file.size
-    });
+    if (recordedMode === "group" && group) {
+      socket.emit("group-message", { groupId: group.id, message: "🎙️ Voice note", messageType: "file", fileName: d.file.name, fileUrl: d.file.url, filePath: d.file.path, fileSize: d.file.size });
+    } else if (recordedMode === "private" && recipient) {
+      socket.emit("private-message", { senderId: currentUser.id, receiverId: recipient.id, message: "🎙️ Voice note", messageType: "file", fileName: d.file.name, fileUrl: d.file.url, filePath: d.file.path, fileSize: d.file.size });
+    }
   } catch (e) {
     console.error(e);
     alert(e.message || "Could not send voice note.");
@@ -2044,14 +2239,11 @@ async function uploadFile(){
   if(!file)
     return;
 
-  if(!selectedUser){
-
-    alert(
-      "Select a user first"
-    );
-
+  const privateTarget = chatMode === "private" && selectedUser;
+  const groupTarget = chatMode === "group" && selectedGroup;
+  if(!privateTarget && !groupTarget){
+    alert("Open a private chat or group first.");
     input.value="";
-
     return;
   }
 
@@ -2103,32 +2295,28 @@ async function uploadFile(){
       return;
     }
 
-    socket.emit(
-      "private-message",
-      {
-        senderId:
-          currentUser.id,
-
-        receiverId:
-          selectedUser.id,
-
-        message:
-          "📎 " +
-          data.file.name,
-
-        messageType:
-          "file",
-
-        fileName:
-          data.file.name,
-
-        fileUrl:
-          data.file.url,
-
-        fileSize:
-          data.file.size
-      }
-    );
+    if (groupTarget) {
+      socket.emit("group-message", {
+        groupId: selectedGroup.id,
+        message: "📎 " + data.file.name,
+        messageType: "file",
+        fileName: data.file.name,
+        fileUrl: data.file.url,
+        filePath: data.file.path,
+        fileSize: data.file.size
+      });
+    } else {
+      socket.emit("private-message", {
+        senderId: currentUser.id,
+        receiverId: selectedUser.id,
+        message: "📎 " + data.file.name,
+        messageType: "file",
+        fileName: data.file.name,
+        fileUrl: data.file.url,
+        filePath: data.file.path,
+        fileSize: data.file.size
+      });
+    }
 
   }catch(error){
 
@@ -2174,8 +2362,29 @@ async function createGroup(){
   }catch(e){console.error(e)}
 }
 
+async function addGroupMember(){
+  if(chatMode!=="group" || !selectedGroup) return;
+  const text=prompt(`Enter the user ID to add to “${selectedGroup.name}”. Only the group creator can add members.`);
+  if(text===null) return;
+  const userId=Number(String(text).trim());
+  if(!Number.isInteger(userId)||userId<1) return alert("Enter a valid user ID.");
+  try {
+    const r=await fetch(`/api/groups/${selectedGroup.id}/members`,{method:"POST",headers:{...authHeaders(),"Content-Type":"application/json"},body:JSON.stringify({userId})});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.error||"Could not add member.");
+    alert("Member added to group.");
+    socket.emit("join-group",{groupId:selectedGroup.id});
+  } catch(e) { alert(e.message||"Could not add member."); }
+}
+
 async function selectGroup(group){
-  chatMode="group"; selectedGroup=group; selectedUser=null;
+  chatMode="group"; selectedGroup=group; selectedUser=null; applyContactBlockState(); pinnedMessageIds = new Set();
+  const groupButton = document.getElementById("groupManageBtn");
+  if (groupButton) groupButton.classList.remove("hidden");
+  const callButtons = document.querySelector(".callButtons");
+  if (callButtons) callButtons.classList.add("hidden");
+  const contactMenu = document.querySelector(".contactOptionsWrap");
+  if (contactMenu) contactMenu.classList.add("hidden");
   markTargetNotificationsRead("group", group.id);
   document.getElementById("chatUserName").textContent="👥 "+group.name;
   document.getElementById("chatUserStatus").textContent="Group chat";
@@ -2193,8 +2402,15 @@ async function selectGroup(group){
 function displayGroupMessage(message){
   const box=document.getElementById("messages"); const empty=box.querySelector(".emptyChat"); if(empty) empty.remove();
   const div=document.createElement("div"); const mine=Number(message.sender_id)===Number(currentUser.id); div.className="message "+(mine?"mine":"theirs");
+  div.dataset.messageKind = message.message_type === "file" || message.file_url ? "file" : "text";
   const time=message.created_at?new Date(message.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";
-  div.innerHTML=`<div style="font-size:11px;opacity:.75;margin-bottom:3px;">User ${message.sender_id}</div><div style="white-space:pre-wrap;">${escapeHtml(message.message||"")}</div><div class="messageTime">${time}</div>`;
+  let body = `<div style="white-space:pre-wrap;">${escapeHtml(message.message||"")}</div>`;
+  if (message.message_type === "file" && message.file_url && /\.(webm|ogg|mp3|wav|m4a|aac)(\?|$)/i.test(message.file_url)) {
+    body = `<div>🎙️ ${escapeHtml(message.file_name || "Voice / audio")}</div><audio controls preload="none" src="${escapeAttribute(message.file_url)}" style="display:block;max-width:240px;margin-top:8px;"></audio>`;
+  } else if (message.message_type === "file" && message.file_url) {
+    body = `<div>📎 <a href="${escapeAttribute(message.file_url)}" target="_blank" rel="noopener">${escapeHtml(message.file_name || "File")}</a></div>`;
+  }
+  div.innerHTML=`<div style="font-size:11px;opacity:.75;margin-bottom:3px;">User ${Number(message.sender_id)}</div>${body}<div class="messageTime">${time}</div>`;
   box.appendChild(div); scrollMessages();
 }
 
@@ -2207,17 +2423,342 @@ async function reactMessage(messageId,emoji){
 }
 
 async function searchMessages(){
-  if(chatMode!=="private" || !selectedUser) return;
   const q=document.getElementById("messageSearchInput").value.trim();
+  if(chatMode==="group" && selectedGroup){
+    try {
+      const route = q ? `/api/groups/${selectedGroup.id}/messages/search?q=${encodeURIComponent(q)}` : `/api/groups/${selectedGroup.id}/messages`;
+      const r=await fetch(route,{headers:authHeaders()}); const data=await r.json(); const box=document.getElementById("messages"); box.innerHTML="";
+      if(!r.ok) throw new Error(data.error||"Group search failed");
+      if(!data.length){box.innerHTML='<div class="emptyChat">No matching messages.</div>';return;}
+      data.forEach(displayGroupMessage); scrollMessages();
+    } catch (e) { console.error(e); alert(e.message||"Group search failed."); }
+    return;
+  }
+  if(chatMode!=="private" || !selectedUser) return;
   if(!q){await loadChatHistory();return;}
   try{
     const r=await fetch(`/api/messages/search?q=${encodeURIComponent(q)}&userId=${selectedUser.id}`,{headers:authHeaders()});
     const data=await r.json(); const box=document.getElementById("messages"); box.innerHTML="";
+    if(!r.ok) throw new Error(data.error||"Search failed");
     if(!data.length){box.innerHTML='<div class="emptyChat">No matching messages.</div>';return;}
     data.reverse().forEach(displayMessage); scrollMessages();
-  }catch(e){console.error(e)}
+  }catch(e){console.error(e); alert(e.message||"Search failed.")}
 }
 function handleMessageSearch(event){if(event.key==="Enter"){event.preventDefault();searchMessages();}}
+
+/* =====================================================
+   STATUSES / STORIES, BLOCK & REPORT, PIN, FORWARD, EXPORT
+===================================================== */
+function setStatusComposerMessage(message, kind = "info") {
+  const node = document.getElementById("statusComposerMessage");
+  if (!node) return;
+  node.textContent = message || "";
+  node.dataset.kind = kind;
+}
+
+function statusAge(value) {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return "just now";
+  const seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+  if (seconds < 60) return "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return new Date(value).toLocaleString();
+}
+
+async function loadStatuses() {
+  const ownList = document.getElementById("myStatusesList");
+  const friendsList = document.getElementById("friendStatusesList");
+  if (!ownList || !friendsList || !currentUser || !getToken()) return;
+  try {
+    const response = await fetch("/api/statuses", { headers: authHeaders() });
+    const data = await response.json().catch(() => []);
+    if (!response.ok) {
+      ownList.innerHTML = `<div class="emptySide">${escapeHtml(data.error || "Could not load statuses")}</div>`;
+      friendsList.innerHTML = "";
+      return;
+    }
+    statusItems = Array.isArray(data) ? data : [];
+    renderStatuses();
+  } catch (error) {
+    console.warn("LOAD STATUSES:", error);
+    ownList.innerHTML = '<div class="emptySide">Could not connect to status service.</div>';
+  }
+}
+
+function renderStatuses() {
+  const ownList = document.getElementById("myStatusesList");
+  const friendsList = document.getElementById("friendStatusesList");
+  if (!ownList || !friendsList) return;
+  const own = statusItems.filter(item => Number(item.user_id) === Number(currentUser && currentUser.id));
+  const others = statusItems.filter(item => Number(item.user_id) !== Number(currentUser && currentUser.id));
+  ownList.innerHTML = own.length ? "" : '<div class="emptySide">You have not shared a status yet.</div>';
+  friendsList.innerHTML = others.length ? "" : '<div class="emptySide">No friends have shared a status yet.</div>';
+  const createRow = (item, isOwn) => {
+    const row = document.createElement("div");
+    row.className = `statusRow ${item.viewed_by_me ? "statusSeen" : ""}`;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "statusOpenButton";
+    const ring = document.createElement("span");
+    ring.className = "statusRing";
+    ring.innerHTML = avatarMarkup(item.username || "?", item.avatar_url, "contactAvatar");
+    const info = document.createElement("span");
+    info.className = "statusInfo";
+    const name = document.createElement("strong");
+    name.textContent = isOwn ? "My status" : (item.username || "Friend");
+    const summary = document.createElement("small");
+    summary.textContent = `${item.media_type && item.media_type !== "text" ? "Photo/video · " : ""}${statusAge(item.created_at)}${isOwn ? ` · ${Number(item.view_count || 0)} views` : (item.viewed_by_me ? " · Viewed" : " · New")}`;
+    info.append(name, summary);
+    button.append(ring, info);
+    button.addEventListener("click", () => openStatusViewer(item.id));
+    row.appendChild(button);
+    if (isOwn) {
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "statusDeleteBtn"; del.textContent = "Delete";
+      del.addEventListener("click", event => { event.stopPropagation(); deleteStatus(item.id); });
+      row.appendChild(del);
+    }
+    return row;
+  };
+  own.forEach(item => ownList.appendChild(createRow(item, true)));
+  others.forEach(item => friendsList.appendChild(createRow(item, false)));
+}
+
+async function publishStatus() {
+  const textInput = document.getElementById("statusText");
+  const fileInput = document.getElementById("statusMediaInput");
+  const button = document.getElementById("publishStatusBtn");
+  if (!currentUser || !getToken()) return setStatusComposerMessage("Log in before posting a status.", "error");
+  const content = String(textInput && textInput.value || "").trim();
+  const file = fileInput && fileInput.files && fileInput.files[0];
+  if (!content && !file) return setStatusComposerMessage("Write something or choose a photo/video.", "error");
+  if (content.length > 700) return setStatusComposerMessage("Keep status text under 700 characters.", "error");
+  if (file && file.size > 20 * 1024 * 1024) return setStatusComposerMessage("Photo/video must be 20 MB or smaller.", "error");
+  const form = new FormData();
+  form.append("content", content);
+  if (file) form.append("media", file);
+  if (button) { button.disabled = true; button.textContent = "Posting…"; }
+  setStatusComposerMessage("Uploading status…");
+  try {
+    const response = await fetch("/api/statuses", { method: "POST", headers: authHeaders(), body: form });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Status could not be posted.");
+    if (textInput) textInput.value = "";
+    if (fileInput) fileInput.value = "";
+    const mediaName = document.getElementById("statusMediaName");
+    if (mediaName) mediaName.textContent = "No media selected · max 20 MB";
+    setStatusComposerMessage("Status shared. It expires after 24 hours.", "success");
+    await loadStatuses();
+  } catch (error) {
+    setStatusComposerMessage(error.message || "Status upload failed.", "error");
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "Share status"; }
+  }
+}
+
+async function openStatusViewer(statusId) {
+  const item = statusItems.find(status => Number(status.id) === Number(statusId));
+  if (!item) return;
+  const name = document.getElementById("statusViewerName");
+  const time = document.getElementById("statusViewerTime");
+  const avatar = document.getElementById("statusViewerAvatar");
+  const content = document.getElementById("statusViewerContent");
+  const views = document.getElementById("statusViewerViews");
+  if (name) name.textContent = Number(item.user_id) === Number(currentUser.id) ? "My status" : item.username;
+  if (time) time.textContent = `${statusAge(item.created_at)} · expires ${new Date(item.expires_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}`;
+  if (avatar) { avatar.className = "avatar"; avatar.innerHTML = avatarMarkup(item.username || "?", item.avatar_url, "contactAvatar"); }
+  if (content) {
+    content.innerHTML = "";
+    if (item.media_url && String(item.media_type).startsWith("image/")) {
+      const img = document.createElement("img"); img.className = "statusViewerMedia"; img.src = safeAvatarUrl(item.media_url); img.alt = "Status photo"; content.appendChild(img);
+    } else if (item.media_url && String(item.media_type).startsWith("video/")) {
+      const video = document.createElement("video"); video.className = "statusViewerMedia video"; video.src = safeAvatarUrl(item.media_url); video.controls = true; video.playsInline = true; content.appendChild(video);
+    }
+    if (item.content) { const txt = document.createElement("div"); txt.className = "statusViewerText"; txt.textContent = item.content; content.appendChild(txt); }
+  }
+  if (views) views.textContent = Number(item.user_id) === Number(currentUser.id) ? `${Number(item.view_count || 0)} views` : "Visible to friends only";
+  const dialog = document.getElementById("statusViewerDialog");
+  if (dialog && typeof dialog.showModal === "function") dialog.showModal(); else dialog?.setAttribute("open", "open");
+  if (Number(item.user_id) !== Number(currentUser.id) && !item.viewed_by_me) {
+    try {
+      const r = await fetch(`/api/statuses/${item.id}/view`, { method: "POST", headers: authHeaders() });
+      if (r.ok) { item.viewed_by_me = true; }
+    } catch (error) { console.warn("STATUS VIEW:", error); }
+  }
+  if (Number(item.user_id) === Number(currentUser.id)) await loadStatuses();
+}
+
+function closeStatusViewer() {
+  const dialog = document.getElementById("statusViewerDialog");
+  if (dialog && typeof dialog.close === "function") dialog.close(); else dialog?.removeAttribute("open");
+  const content = document.getElementById("statusViewerContent");
+  if (content) content.innerHTML = "";
+}
+
+async function deleteStatus(statusId) {
+  if (!confirm("Delete this status for everyone?")) return;
+  try {
+    const response = await fetch(`/api/statuses/${statusId}`, { method: "DELETE", headers: authHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not delete status.");
+    await loadStatuses();
+  } catch (error) { alert(error.message || "Could not delete status."); }
+}
+
+async function loadBlockedUsers() {
+  const list = document.getElementById("blockedUsersList");
+  if (!list || !currentUser || !getToken()) return;
+  try {
+    const response = await fetch("/api/blocks", { headers: authHeaders() });
+    const data = await response.json().catch(() => []);
+    if (!response.ok) { list.innerHTML = `<div class="emptySide">${escapeHtml(data.error || "Block list unavailable")}</div>`; return; }
+    const rows = Array.isArray(data) ? data : [];
+    blockedUserIds = new Set(rows.map(row => Number(row.blocked_id)));
+    list.innerHTML = rows.length ? "" : '<div class="emptySide">No blocked users</div>';
+    rows.forEach(row => {
+      const user = row.user || {};
+      const line = document.createElement("div"); line.className = "statusRow";
+      line.innerHTML = `${avatarMarkup(user.username || `User ${row.blocked_id}`, user.avatar_url, "contactAvatar")}<span class="statusInfo"><strong>${escapeHtml(user.username || `User ${row.blocked_id}`)}</strong><small>Blocked contact</small></span><button class="unblockBtn" type="button">Unblock</button>`;
+      line.querySelector("button").addEventListener("click", () => unblockUser(row.blocked_id));
+      list.appendChild(line);
+    });
+    if (selectedUser) { selectedUser.isBlocked = blockedUserIds.has(Number(selectedUser.id)); applyContactBlockState(); }
+  } catch (error) { console.warn("BLOCK LIST:", error); list.innerHTML = '<div class="emptySide">Could not load block list.</div>'; }
+}
+
+function applyContactBlockState() {
+  const blocked = Boolean(selectedUser && selectedUser.isBlocked && chatMode === "private");
+  ["messageInput", "fileInput", "voiceNoteBtn"].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = blocked; });
+  document.querySelectorAll(".messageBar .sendBtn").forEach(el => { el.disabled = blocked; });
+  document.querySelectorAll(".callBtn").forEach(el => { el.disabled = blocked; el.title = blocked ? "Unblock this contact before calling" : el.title; });
+  const menuItem = document.getElementById("blockContactMenuItem");
+  if (menuItem) menuItem.textContent = blocked ? "✅ Unblock contact" : "🚫 Block contact";
+  const status = document.getElementById("chatUserStatus");
+  if (blocked && status) status.textContent = "Blocked · unblock to message or call";
+  else if (selectedUser && status) status.textContent = selectedUser.online ? "Online" : "Offline";
+}
+
+function toggleContactOptions(event) {
+  event?.stopPropagation();
+  if (!selectedUser || chatMode !== "private") return alert("Open a private chat first.");
+  const menu = document.getElementById("contactOptionsMenu");
+  const button = document.getElementById("contactOptionsToggle");
+  menu?.classList.toggle("hidden");
+  button?.setAttribute("aria-expanded", menu && !menu.classList.contains("hidden") ? "true" : "false");
+}
+
+async function toggleBlockSelectedUser() {
+  if (!selectedUser || chatMode !== "private") return;
+  const target = selectedUser;
+  const blocked = blockedUserIds.has(Number(target.id));
+  const actionText = blocked ? "Unblock" : "Block";
+  if (!confirm(`${actionText} @${target.username}? ${blocked ? "They may be able to message and call you again." : "This removes the friend connection and prevents new messages and calls between you."}`)) return;
+  try {
+    const response = await fetch(blocked ? `/api/blocks/${target.id}` : "/api/blocks", {
+      method: blocked ? "DELETE" : "POST",
+      headers: { ...authHeaders(), ...(blocked ? {} : {"Content-Type":"application/json"}) },
+      ...(blocked ? {} : { body: JSON.stringify({ blockedUserId: target.id }) })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `${actionText} failed.`);
+    if (blocked) blockedUserIds.delete(Number(target.id)); else blockedUserIds.add(Number(target.id));
+    selectedUser.isBlocked = !blocked;
+    applyContactBlockState();
+    document.getElementById("contactOptionsMenu")?.classList.add("hidden");
+    await Promise.all([loadBlockedUsers(), loadFriends(), loadUsers(), loadRequests()]);
+    alert(blocked ? "Contact unblocked." : "Contact blocked.");
+  } catch (error) { alert(error.message || `${actionText} failed.`); }
+}
+
+async function unblockUser(userId) {
+  const id = Number(userId);
+  try {
+    const response = await fetch(`/api/blocks/${id}`, { method: "DELETE", headers: authHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not unblock user.");
+    blockedUserIds.delete(id);
+    if (selectedUser && Number(selectedUser.id) === id) { selectedUser.isBlocked = false; applyContactBlockState(); }
+    await Promise.all([loadBlockedUsers(), loadUsers(), loadFriends()]);
+  } catch (error) { alert(error.message || "Could not unblock user."); }
+}
+
+async function reportSelectedUser() {
+  if (!selectedUser || chatMode !== "private") return;
+  const target = selectedUser;
+  const reasonText = prompt("Report reason: spam, harassment, impersonation, inappropriate-content, other", "other");
+  if (reasonText === null) return;
+  const reason = reasonText.trim().toLowerCase();
+  const details = prompt("Add optional details (do not include private passwords or secrets):", "") || "";
+  try {
+    const response = await fetch("/api/reports", {
+      method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ reportedUserId: target.id, reason, details })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Report failed.");
+    document.getElementById("contactOptionsMenu")?.classList.add("hidden");
+    alert("Report submitted. Thanks for helping keep RealTimeChat safer.");
+  } catch (error) { alert(error.message || "Report failed."); }
+}
+
+async function loadPinnedMessages() {
+  if (!selectedUser || !currentUser || chatMode !== "private") { pinnedMessageIds = new Set(); return; }
+  try {
+    const response = await fetch(`/api/pins/${selectedUser.id}`, { headers: authHeaders() });
+    const data = await response.json().catch(() => []);
+    if (response.ok && Array.isArray(data)) pinnedMessageIds = new Set(data.map(id => String(id)));
+  } catch (error) { console.warn("PIN LIST:", error); }
+}
+
+async function togglePinMessage(messageId) {
+  const isPinned = pinnedMessageIds.has(String(messageId));
+  try {
+    const response = await fetch(`/api/messages/${messageId}/pin`, { method: isPinned ? "DELETE" : "POST", headers: authHeaders() });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not update pin.");
+    if (isPinned) pinnedMessageIds.delete(String(messageId)); else pinnedMessageIds.add(String(messageId));
+    await loadChatHistory();
+  } catch (error) { alert(error.message || "Could not update pin."); }
+}
+
+async function forwardMessage(messageId) {
+  const message = messageCache.get(String(messageId));
+  if (!message) return;
+  const recipientText = prompt("Enter the recipient's User ID (shown in their profile):");
+  if (recipientText === null) return;
+  const receiverId = Number(recipientText.trim());
+  if (!Number.isInteger(receiverId) || receiverId < 1 || receiverId === Number(currentUser.id)) return alert("Enter a valid recipient User ID.");
+  if (!confirm(`Forward this message to User ID ${receiverId}?`)) return;
+  try {
+    const response = await fetch(`/api/messages/${messageId}/forward`, {
+      method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ receiverId })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not forward message.");
+    alert("Message forwarded.");
+  } catch (error) { alert(error.message || "Could not forward message."); }
+}
+
+async function exportCurrentChat() {
+  if (!selectedUser || chatMode !== "private") return alert("Open a private chat first.");
+  try {
+    const response = await fetch(`/api/messages/${currentUser.id}/${selectedUser.id}`, { headers: authHeaders() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not export chat.");
+    const lines = (Array.isArray(data) ? data : []).map(message => {
+      const time = message.created_at ? new Date(message.created_at).toLocaleString() : "";
+      const sender = Number(message.sender_id) === Number(currentUser.id) ? "You" : selectedUser.username;
+      const body = message.is_deleted ? "[Message deleted]" : (message.message || message.file_name || message.file_url || "[Attachment]");
+      return `[${time}] ${sender}: ${body}${message.is_edited ? " (edited)" : ""}${message.is_forwarded ? " (forwarded)" : ""}`;
+    });
+    const blob = new Blob([`RealTimeChat conversation with ${selectedUser.username}\n\n${lines.join("\n")}`], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob); const link = document.createElement("a");
+    link.href = url; link.download = `RealTimeChat-${String(selectedUser.username).replace(/[^a-z0-9_-]/gi,"_")}-chat.txt`;
+    document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+    document.getElementById("contactOptionsMenu")?.classList.add("hidden");
+  } catch (error) { alert(error.message || "Could not export chat."); }
+}
 
 /* =====================================================
    FRIEND REQUEST

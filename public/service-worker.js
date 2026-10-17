@@ -1,5 +1,5 @@
-const CACHE_NAME = "realtimechat-whatsapp-full-v5-notifications";
-const APP_SHELL = ["/", "/style.css?v=20261014-notifications-1", "/app.js?v=20261014-notifications-1", "/manifest.json"];
+const CACHE_NAME = "realtimechat-ultimate-features-v8";
+const APP_SHELL = ["/", "/style.css?v=20261017-ultimate-features-2", "/app.js?v=20261017-ultimate-features-2", "/manifest.json", "/privacy.html", "/terms.html", "/support.html"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });

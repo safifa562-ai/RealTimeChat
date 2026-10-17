@@ -7,7 +7,7 @@
   <meta name="description" content="RealTimeChat — real-time messaging, groups and calls.">
   <title>RealTimeChat</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/style.css?v=20261015-profile-dp-1">
+  <link rel="stylesheet" href="/style.css?v=20261017-ultimate-features-2">
 </head>
 <body>
   <section id="authScreen" aria-label="Login and registration">
@@ -39,6 +39,7 @@
         </div>
       </form>
       <div id="authMessage" role="status" aria-live="polite"></div>
+      <nav class="authLegalLinks" aria-label="Legal and support"><a href="/privacy.html" target="_blank" rel="noopener">Privacy</a><a href="/terms.html" target="_blank" rel="noopener">Terms</a><a href="/support.html" target="_blank" rel="noopener">Support</a></nav>
     </div>
   </section>
 
@@ -74,12 +75,13 @@
           <span class="profileAvatarCamera" aria-hidden="true">📷</span>
           <input id="avatarFileInput" class="hidden" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfileAvatar(event)" aria-label="Choose profile picture">
         </div>
-        <div class="profileDetails"><div id="profileName" class="profileName">User</div><div id="profileId" class="userId">ID: -</div><button type="button" class="changeAvatarText" onclick="openAvatarPicker()">Change DP</button></div>
+        <div class="profileDetails"><div id="profileName" class="profileName">User</div><div id="premiumStatusBadge" class="premiumStatusBadge hidden" title="This account supports RealTimeChat">✦ Supporter</div><div id="profileId" class="userId">ID: -</div><button type="button" class="changeAvatarText" onclick="openAvatarPicker()">Change DP</button></div>
         <div class="profileActions">
           <span class="profileOnline" title="Account active"></span>
           <button type="button" id="accountMenuToggle" class="accountMenuToggle" onclick="toggleAccountMenu(event)" aria-label="Account options" aria-expanded="false" title="Account options">⋯</button>
           <div id="accountMenu" class="accountMenu hidden" role="menu">
             <button type="button" class="accountMenuDelete" role="menuitem" onclick="openAvatarPicker()">📷 Change profile photo</button>
+            <button type="button" class="accountMenuPremium" role="menuitem" onclick="openPremiumDialog()">⭐ Support RealTimeChat</button>
             <button type="button" class="accountMenuDelete" role="menuitem" onclick="openDeleteAccountDialog()">♲ Delete account</button>
           </div>
         </div>
@@ -93,6 +95,7 @@
 
       <nav class="sideTabs" aria-label="Sidebar sections">
         <button type="button" class="sideTab active" data-tab="chats" onclick="setSidebarTab('chats')"><span class="tabGlyph">▤</span><span>Chats</span></button>
+        <button type="button" class="sideTab" data-tab="status" onclick="setSidebarTab('status')"><span class="tabGlyph">◉</span><span>Status</span></button>
         <button type="button" class="sideTab" data-tab="requests" onclick="setSidebarTab('requests')"><span class="tabGlyph">♧</span><span>Requests</span><span id="requestBadge" class="badge hidden">0</span></button>
         <button type="button" class="sideTab" data-tab="groups" onclick="setSidebarTab('groups')"><span class="tabGlyph">♧</span><span>Groups</span></button>
         <button type="button" class="sideTab" data-tab="users" onclick="setSidebarTab('users')"><span class="tabGlyph">＋</span><span>People</span></button>
@@ -103,6 +106,25 @@
           <div class="panelHeading"><span>YOUR CHATS</span><span class="panelCaption">Friends</span></div>
           <div id="friendsList" class="contactList"></div>
         </section>
+        <section id="sidebarPanelStatus" class="sidebarPanel" aria-label="Status updates">
+          <div class="panelHeading"><span>STATUS</span><span class="panelCaption">Expires in 24 hours</span></div>
+          <form id="statusComposerForm" class="statusComposer" onsubmit="event.preventDefault(); publishStatus();">
+            <label class="fieldLabel" for="statusText">Share an update</label>
+            <textarea id="statusText" maxlength="700" placeholder="What's on your mind? (optional if adding a photo/video)" rows="3"></textarea>
+            <label class="statusMediaPicker" for="statusMediaInput">＋ Add photo or video</label>
+            <input id="statusMediaInput" class="hidden" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+            <div id="statusMediaName" class="statusMediaName">No media selected · max 20 MB</div>
+            <button id="publishStatusBtn" class="primaryBtn statusPublishBtn" type="submit">Share status</button>
+            <p id="statusComposerMessage" class="statusComposerMessage" role="status" aria-live="polite"></p>
+          </form>
+          <div class="panelHeading"><span>MY STATUS</span><span class="panelCaption">Your updates</span></div>
+          <div id="myStatusesList" class="statusList"><div class="emptySide">Loading your status…</div></div>
+          <div class="panelHeading"><span>RECENT UPDATES</span><span class="panelCaption">Friends</span></div>
+          <div id="friendStatusesList" class="statusList"><div class="emptySide">No recent updates</div></div>
+          <div class="panelHeading"><span>BLOCKED USERS</span><span class="panelCaption">Privacy</span></div>
+          <div id="blockedUsersList" class="statusList"><div class="emptySide">No blocked users</div></div>
+        </section>
+
         <section id="sidebarPanelRequests" class="sidebarPanel" aria-label="Friend requests">
           <div class="panelHeading"><span>FRIEND REQUESTS</span><span class="panelCaption">Connect</span></div>
           <div id="requestsList" class="contactList"></div>
@@ -136,6 +158,15 @@
             <button type="button" class="callBtn videoBtn" onclick="startVideoCall()" title="Video call"><span aria-hidden="true">▣</span><span class="callLabel">Video</span></button>
             <button type="button" class="callBtn screenBtn" onclick="shareScreen()" title="Share screen"><span aria-hidden="true">▤</span><span class="callLabel">Share</span></button>
           </div>
+          <button type="button" id="groupManageBtn" class="groupManageBtn hidden" onclick="addGroupMember()" title="Add a group member">＋ Member</button>
+          <div class="contactOptionsWrap">
+            <button type="button" id="contactOptionsToggle" class="contactOptionsToggle" onclick="toggleContactOptions(event)" aria-label="Conversation options" aria-expanded="false" title="Conversation options">⋯</button>
+            <div id="contactOptionsMenu" class="contactOptionsMenu hidden" role="menu">
+              <button type="button" role="menuitem" onclick="toggleBlockSelectedUser()" id="blockContactMenuItem">🚫 Block contact</button>
+              <button type="button" role="menuitem" onclick="reportSelectedUser()">⚑ Report contact</button>
+              <button type="button" role="menuitem" onclick="exportCurrentChat()">⇩ Export chat</button>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -160,6 +191,23 @@
     </main>
   </section>
 
+  <dialog id="premiumDialog" class="accountDialog premiumDialog" aria-labelledby="premiumDialogTitle">
+    <div class="accountDialogInner">
+      <button type="button" class="accountDialogClose" onclick="closePremiumDialog()" aria-label="Close supporter dialog">×</button>
+      <div class="premiumCrown" aria-hidden="true">✦</div>
+      <h2 id="premiumDialogTitle">Support RealTimeChat</h2>
+      <p class="premiumIntro">Help cover hosting and development costs. Checkout is a one-time payment—no auto-renewal.</p>
+      <div class="premiumPrice"><strong>₹49</strong><span>one-time Supporter pass</span></div>
+      <ul class="premiumBenefits"><li>Supporter badge on your profile</li><li>Help fund reliability, privacy and new features</li><li>No recurring charges</li></ul>
+      <p id="premiumStatusMessage" class="premiumStatusMessage" role="status" aria-live="polite">Checking payment setup…</p>
+      <div class="accountDialogActions">
+        <button type="button" class="secondaryBtn" onclick="closePremiumDialog()">Close</button>
+        <button type="button" id="buySupporterBtn" class="premiumBuyBtn" onclick="startSupporterCheckout()" disabled>Checkout not configured</button>
+      </div>
+      <p class="deleteSmallPrint">Payments run through the configured provider. Only continue if the amount and terms are clear to you.</p>
+    </div>
+  </dialog>
+
   <dialog id="deleteAccountDialog" class="accountDialog" aria-labelledby="deleteAccountTitle">
     <form class="accountDialogForm" onsubmit="event.preventDefault(); deleteAccountSubmit();">
       <div class="accountDialogInner">
@@ -181,6 +229,15 @@
     </form>
   </dialog>
 
+  <dialog id="statusViewerDialog" class="statusViewerDialog" aria-labelledby="statusViewerName">
+    <div class="statusViewerInner">
+      <button type="button" class="statusViewerClose" onclick="closeStatusViewer()" aria-label="Close status">×</button>
+      <div class="statusViewerAuthor"><div id="statusViewerAvatar" class="avatar">?</div><div><strong id="statusViewerName">Status</strong><small id="statusViewerTime"></small></div></div>
+      <div id="statusViewerContent" class="statusViewerContent"></div>
+      <div id="statusViewerViews" class="statusViewerViews"></div>
+    </div>
+  </dialog>
+
   <div id="incomingCall" class="hidden" role="dialog" aria-modal="true" aria-label="Incoming call">
     <div class="callPopup"><div class="callPopupAvatar">☎</div><h2>Incoming call</h2><p id="callerText">Someone is calling…</p><div class="callPopupActions"><button class="acceptCall" type="button" onclick="acceptCall()">Accept</button><button class="rejectCall" type="button" onclick="rejectCall()">Decline</button></div></div>
   </div>
@@ -197,6 +254,6 @@
   <div id="notificationToasts" class="notificationToasts" aria-live="polite" aria-relevant="additions"></div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js?v=20261015-profile-dp-1"></script>
+  <script src="/app.js?v=20261017-ultimate-features-2"></script>
 </body>
 </html>
