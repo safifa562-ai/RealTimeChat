@@ -1440,10 +1440,15 @@ async function uploadProfileAvatar(event) {
       body: form
     });
     const responseText = await response.text();
+    const contentType = String(response.headers.get("content-type") || "").toLowerCase();
     let data = {};
     try { data = responseText ? JSON.parse(responseText) : {}; }
     catch (_) {
-      throw new Error(`Upload endpoint returned a non-JSON response (HTTP ${response.status}). Check that the latest server.js is deployed.`);
+      const preview = responseText.replace(/\s+/g, " ").trim().slice(0, 100);
+      const responseKind = contentType.includes("text/html") || /^<!doctype html|^<html/i.test(responseText.trim())
+        ? "HTML page"
+        : (contentType || "unknown content type");
+      throw new Error(`DP API did not return JSON (HTTP ${response.status}; ${responseKind}). This usually means the backend is older than the frontend or Render is starting a different server.js. Open /api/version and redeploy the matching project. ${preview ? `Response: ${preview}` : ""}`);
     }
     if (!response.ok || !data.user || !data.user.avatar_url) {
       const detail = data.error || `Upload failed with HTTP ${response.status}.`;
