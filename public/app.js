@@ -1803,7 +1803,7 @@ async function loadOlderChatHistory() {
 
   const button = box.querySelector("#loadOlderMessages");
   const beforeId = String(box.dataset.oldestMessageId || "");
-  if (!button || !/^\\d+$/.test(beforeId)) return;
+  if (!button || !/^\d+$/.test(beforeId)) return;
 
   const userId = Number(currentUser.id);
   const otherUserId = Number(selectedUser.id);
