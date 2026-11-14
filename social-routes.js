@@ -17,6 +17,16 @@ function validPostMedia(file) {
 }
 
 function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
+  async function areBlocked(userA, userB) {
+    const a = Number(userA), b = Number(userB);
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 1 || b < 1 || a === b) return false;
+    const result = await supabase.from("user_blocks").select("blocker_id").or(
+      `and(blocker_id.eq.${a},blocked_id.eq.${b}),and(blocker_id.eq.${b},blocked_id.eq.${a})`
+    ).limit(1);
+    if (result.error) throw result.error;
+    return Boolean(result.data && result.data.length);
+  }
+
   const postUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: POST_LIMIT, files: 1 },
@@ -221,7 +231,7 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
       const post = await supabase.from("social_posts").select("id,user_id").eq("id", postId).maybeSingle();
       if (post.error) throw post.error;
       if (!post.data) return res.status(404).json({ error: "Post not found." });
-      if (await areUsersBlocked(userId, Number(post.data.user_id))) return res.status(403).json({ error: "You cannot interact with this account." });
+      if (await areBlocked(userId, Number(post.data.user_id))) return res.status(403).json({ error: "You cannot interact with this account." });
       const existing = await supabase.from("social_post_likes").select("id").eq("post_id", postId).eq("user_id", userId).maybeSingle();
       if (existing.error) throw existing.error;
       let liked;
@@ -248,7 +258,7 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
       const post = await supabase.from("social_posts").select("id,user_id").eq("id", postId).maybeSingle();
       if (post.error) throw post.error;
       if (!post.data) return res.status(404).json({ error: "Post not found." });
-      if (await areUsersBlocked(Number(req.user.id), Number(post.data.user_id))) return res.status(403).json({ error: "You cannot view this post." });
+      if (await areBlocked(Number(req.user.id), Number(post.data.user_id))) return res.status(403).json({ error: "You cannot view this post." });
       const result = await supabase.from("social_post_comments").select("id,post_id,user_id,body,created_at")
         .eq("post_id", postId).order("id", { ascending: true }).limit(100);
       if (result.error) throw result.error;
@@ -281,7 +291,7 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
       const post = await supabase.from("social_posts").select("id,user_id").eq("id", postId).maybeSingle();
       if (post.error) throw post.error;
       if (!post.data) return res.status(404).json({ error: "Post not found." });
-      if (await areUsersBlocked(userId, Number(post.data.user_id))) return res.status(403).json({ error: "You cannot comment on this post." });
+      if (await areBlocked(userId, Number(post.data.user_id))) return res.status(403).json({ error: "You cannot comment on this post." });
       const saved = await supabase.from("social_post_comments").insert({ post_id: postId, user_id: userId, body })
         .select("id,post_id,user_id,body,created_at").single();
       if (saved.error) throw saved.error;
@@ -301,7 +311,7 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
     try {
       const userId = Number(req.params.userId), viewerId = Number(req.user.id);
       if (!Number.isInteger(userId) || userId < 1) return res.status(400).json({ error: "Invalid profile." });
-      if (await areUsersBlocked(viewerId, userId)) return res.status(404).json({ error: "This profile is not available." });
+      if (await areBlocked(viewerId, userId)) return res.status(404).json({ error: "This profile is not available." });
       const userResult = await supabase.from("users").select("id,username,avatar_url,bio,created_at").eq("id", userId).maybeSingle();
       if (userResult.error) throw userResult.error;
       if (!userResult.data) return res.status(404).json({ error: "Profile not found." });
@@ -347,7 +357,7 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
       const target = await supabase.from("users").select("id").eq("id", followingId).maybeSingle();
       if (target.error) throw target.error;
       if (!target.data) return res.status(404).json({ error: "Account not found." });
-      if (await areUsersBlocked(followerId, followingId)) return res.status(403).json({ error: "You cannot follow this account." });
+      if (await areBlocked(followerId, followingId)) return res.status(403).json({ error: "You cannot follow this account." });
       const saved = await supabase.from("social_follows").upsert({ follower_id: followerId, following_id: followingId }, { onConflict: "follower_id,following_id", ignoreDuplicates: true });
       if (saved.error) throw saved.error;
       io.emit("social-follow-updated", { followerId, followingId });
