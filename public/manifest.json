@@ -1,9 +1,9 @@
 {
-  "name": "RealTimeChat",
-  "short_name": "RealTimeChat",
+  "name": "VibeCircle",
+  "short_name": "VibeCircle",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b141a",
   "theme_color": "#111b21",
-  "description": "Real-time chat, groups, calls, statuses, and file sharing."
+  "description": "Share moments, discover creators and stay connected."
 }
