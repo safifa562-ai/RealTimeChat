@@ -116,3 +116,26 @@ Socket.IO now requires the same signed bearer token used by HTTP endpoints, chec
 
 ## Group enhancements
 Group chats can now send uploaded files/voice notes through the existing `chat-files` bucket, search group text history, and let a group creator add a member by User ID from the conversation header. Run `supabase-feature-pack.sql` first so `group_messages` has the file metadata columns.
+
+
+## VibeCircle social network update
+
+This branch adds an original social-network interface alongside the existing messaging product:
+- Feed with posts from accounts you follow and your own posts
+- Explore view for public posts and simple search across the loaded explore set
+- Photo and short-video posts (JPG, PNG, WebP, MP4, WebM; 50 MB maximum)
+- Follow/unfollow, profile bio, likes and comments
+- Signed media links from a private Supabase Storage bucket
+- Existing 24-hour Status, direct messages, groups, and calling remain available from Messages
+
+### Required Supabase setup
+
+1. Open the Supabase project used by the Render service.
+2. Open SQL Editor and run `supabase-social-migration.sql`.
+3. Check that the `social-posts` Storage bucket exists and is private.
+4. Deploy the branch / merged commit on Render.
+5. Sign in and test with two test accounts before inviting users.
+
+The migration is additive; it does not delete or rewrite existing users or chat messages. Never put `SUPABASE_SERVICE_ROLE_KEY` or `JWT_SECRET` in browser code or commit them to GitHub.
+
+This first social release does not yet implement private accounts, saved collections, DMs attached to posts, livestreaming, recommendations/ranking, or push alerts for likes/comments. Do not advertise those features as available until implemented and tested.
