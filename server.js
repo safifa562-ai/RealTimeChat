@@ -1434,6 +1434,29 @@ app.delete("/api/account", authMiddleware, async (req, res) => {
 
     const storedFiles = await collectStorageFiles("chat-files", String(userId));
     const storedAvatarFiles = await collectStorageFiles("profile-avatars", String(userId));
+    // Optional VibeCircle uploads are removed before account rows are deleted.
+    const { data: ownSocialPosts, error: ownSocialPostsError } = await supabase
+      .from("social_posts").select("id").eq("user_id", userId);
+    const socialFeatureInstalled = !ownSocialPostsError || !isMissingFeatureTable(ownSocialPostsError, "social_posts");
+    if (ownSocialPostsError && !isMissingFeatureTable(ownSocialPostsError, "social_posts")) {
+      console.error("ACCOUNT DELETE SOCIAL POSTS:", ownSocialPostsError);
+      throw new Error("Could not inspect social posts");
+    }
+    let storedSocialPostFiles = [];
+    if (socialFeatureInstalled) {
+      const { data: socialBucket, error: socialBucketError } = await supabase.storage.getBucket("social-posts");
+      if (socialBucketError) {
+        const msg = String(socialBucketError.message || "").toLowerCase();
+        if (msg.includes("not found") || String(socialBucketError.statusCode || "") === "404") {
+          console.warn("ACCOUNT DELETE: social-posts bucket not installed; skipping optional social storage cleanup.");
+        } else {
+          console.error("ACCOUNT DELETE SOCIAL BUCKET:", { message: socialBucketError.message, statusCode: socialBucketError.statusCode });
+          throw new Error("Could not inspect social post media");
+        }
+      } else if (socialBucket) {
+        storedSocialPostFiles = await collectStorageFiles("social-posts", String(userId));
+      }
+    }
     // These feature tables are additive; keep account deletion compatible with older deployments
     // that have not run the feature migration yet.
     const { data: ownStatusesForCleanup, error: ownStatusesError } = await supabase.from("user_statuses").select("id").eq("user_id", userId);
@@ -1480,6 +1503,14 @@ app.delete("/api/account", authMiddleware, async (req, res) => {
       if (error) {
         console.error("ACCOUNT DELETE STATUS MEDIA REMOVE:", error);
         throw new Error("Could not remove status media");
+      }
+    });
+
+    await inBatches(storedSocialPostFiles, 100, async paths => {
+      const { error } = await supabase.storage.from("social-posts").remove(paths);
+      if (error) {
+        console.error("ACCOUNT DELETE SOCIAL MEDIA REMOVE:", error);
+        throw new Error("Could not remove social post media");
       }
     });
 
