@@ -1945,22 +1945,30 @@ app.get(
         });
       }
 
-      const {
-        data,
-        error
-      } = await supabase
+      // Load the newest page first. Supabase projects commonly cap API
+      // responses at 100 rows; ascending order here would keep returning the
+      // oldest 100 messages after every refresh.
+      const pageSize = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 100, 1), 100);
+      const beforeId = String(req.query.beforeId || "").trim();
+      let historyQuery = supabase
         .from("messages")
         .select("*")
         .or(
           `and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`
         )
-        .order(
-          "created_at",
-          {
-            ascending: true
-          }
-        )
-        .limit(500);
+        .order("id", { ascending: false })
+        .limit(pageSize);
+
+      // Cursor pagination uses the message identity column so older pages
+      // cannot repeat the newest page.
+      if (/^\\d+$/.test(beforeId) && beforeId !== "0") {
+        historyQuery = historyQuery.lt("id", beforeId);
+      }
+
+      const {
+        data,
+        error
+      } = await historyQuery;
 
       if (error) {
 
@@ -1975,8 +1983,9 @@ app.get(
         });
       }
 
+      // Return oldest-to-newest within each page for the existing UI renderer.
       res.json(
-        data || []
+        (data || []).reverse()
       );
 
     } catch (error) {
