@@ -366,7 +366,7 @@ function renderSocialStories() {
   const own = items.filter(item => Number(item.user_id) === Number(currentUser && currentUser.id));
   const others = items.filter(item => Number(item.user_id) !== Number(currentUser && currentUser.id));
   strip.innerHTML =
-    '<button class="vc-story" onclick="setSidebarTab(\\'status\\');openSocialSection(\\'messages\\')">' +
+    '<button class="vc-story" onclick="setSidebarTab(&quot;status&quot;);openSocialSection(&quot;messages&quot;)">' +
       '<span class="vc-story-ring vc-story-own">' + socialAvatar(currentUser && currentUser.username, currentUser && currentUser.avatar_url, "story") + '<i>＋</i></span><small>Your story</small></button>' +
     others.map(item =>
       '<button class="vc-story" onclick="openStatusViewer(' + Number(item.id) + ')">' +
