@@ -1731,28 +1731,24 @@ async function loadChatHistory(){
       return;
     }
 
-    const messages =
-      await response.json();
+    if (!response.ok) {
+      const failure = await response.json().catch(() => ({}));
+      throw new Error(failure.error || "Could not load chat history.");
+    }
+
+    const messages = await response.json();
 
     await loadPinnedMessages();
-    box.innerHTML="";
+    box.innerHTML = "";
 
-    if(
-      !Array.isArray(messages) ||
-      messages.length===0
-    ){
-
-      box.innerHTML =
-        `<div class="emptyChat">
-          No messages yet.
-        </div>`;
-
-    }else{
-
-      messages.forEach(
-        displayMessage
-      );
-
+    if (!Array.isArray(messages) || messages.length === 0) {
+      box.dataset.oldestMessageId = "";
+      updateLoadOlderButton(box, false);
+      box.innerHTML = `<div class="emptyChat">No messages yet.</div>`;
+    } else {
+      box.dataset.oldestMessageId = String(messages[0].id || "");
+      messages.forEach(message => displayMessage(message));
+      updateLoadOlderButton(box, messages.length >= 100);
     }
 
     scrollMessages();
@@ -1778,6 +1774,76 @@ async function loadChatHistory(){
 
   }
 
+}
+
+
+/* =====================================================
+   PRIVATE CHAT HISTORY PAGINATION
+===================================================== */
+function updateLoadOlderButton(box, hasOlder) {
+  const existing = box.querySelector("#loadOlderMessages");
+  if (!hasOlder) {
+    if (existing) existing.remove();
+    return;
+  }
+  if (existing) return;
+
+  const button = document.createElement("button");
+  button.id = "loadOlderMessages";
+  button.type = "button";
+  button.textContent = "Load older messages";
+  button.style.cssText = "display:block;margin:12px auto;padding:8px 14px;border:1px solid #52616a;border-radius:18px;background:#203038;color:#d6eee8;cursor:pointer;";
+  button.addEventListener("click", loadOlderChatHistory);
+  box.insertBefore(button, box.firstChild);
+}
+
+async function loadOlderChatHistory() {
+  const box = document.getElementById("messages");
+  if (!currentUser || !selectedUser || !box) return;
+
+  const button = box.querySelector("#loadOlderMessages");
+  const beforeId = String(box.dataset.oldestMessageId || "");
+  if (!button || !/^\\d+$/.test(beforeId)) return;
+
+  const userId = Number(currentUser.id);
+  const otherUserId = Number(selectedUser.id);
+  button.disabled = true;
+  button.textContent = "Loading older messages…";
+
+  try {
+    const response = await fetch(
+      `/api/messages/${userId}/${otherUserId}?beforeId=${encodeURIComponent(beforeId)}&limit=100`,
+      { headers: authHeaders() }
+    );
+    const page = await response.json();
+    if (!response.ok) throw new Error(page.error || "Could not load older messages.");
+
+    // Ignore a late response if the user switched conversations meanwhile.
+    if (!selectedUser || Number(selectedUser.id) !== otherUserId || Number(currentUser.id) !== userId) return;
+
+    if (!Array.isArray(page) || page.length === 0) {
+      updateLoadOlderButton(box, false);
+      return;
+    }
+
+    const oldScrollHeight = box.scrollHeight;
+    const oldScrollTop = box.scrollTop;
+    const existingNodes = Array.from(box.children).filter(node => node.id !== "loadOlderMessages");
+
+    // Render the older page first, then put already-visible messages after it.
+    box.innerHTML = "";
+    page.forEach(message => displayMessage(message, false));
+    existingNodes.forEach(node => box.appendChild(node));
+
+    box.dataset.oldestMessageId = String(page[0].id || "");
+    updateLoadOlderButton(box, page.length >= 100);
+    box.scrollTop = oldScrollTop + (box.scrollHeight - oldScrollHeight);
+  } catch (error) {
+    console.error("LOAD OLDER MESSAGES:", error);
+    button.disabled = false;
+    button.textContent = "Load older messages";
+    alert(error.message || "Could not load older messages.");
+  }
 }
 
 
@@ -1851,7 +1917,8 @@ function handleMessageKey(
 ===================================================== */
 
 function displayMessage(
-  message
+  message,
+  shouldScroll = true
 ){
 
   const box =
@@ -2018,7 +2085,7 @@ function displayMessage(
     div
   );
 
-  scrollMessages();
+  if (shouldScroll) scrollMessages();
 
 }
 
