@@ -23,7 +23,10 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
     const result = await supabase.from("user_blocks").select("blocker_id").or(
       `and(blocker_id.eq.${a},blocked_id.eq.${b}),and(blocker_id.eq.${b},blocked_id.eq.${a})`
     ).limit(1);
-    if (result.error) throw result.error;
+    if (result.error) {
+      if (["42P01","PGRST205","PGRST204"].includes(String(result.error.code || ""))) return false;
+      throw result.error;
+    }
     return Boolean(result.data && result.data.length);
   }
 
@@ -130,11 +133,11 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
       let excluded = new Set();
       if (authorIds.length) {
         const blockResult = await supabase.from("user_blocks").select("blocker_id,blocked_id")
-          .or("and(blocker_id.eq." + viewerId + ",blocked_id.in.(" + authorIds.join(",") + ")),and(blocked_id.eq." + viewerId + ",blocker_id.in.(" + authorIds.join(",") + "))");
+          .or(`blocker_id.eq.${viewerId},blocked_id.eq.${viewerId}`).limit(1000);
         if (blockResult.error && !["42P01","PGRST205","PGRST204"].includes(String(blockResult.error.code || ""))) throw blockResult.error;
         for (const row of blockResult.data || []) {
-          excluded.add(Number(row.blocker_id));
-          excluded.add(Number(row.blocked_id));
+          const otherId = Number(row.blocker_id) === viewerId ? Number(row.blocked_id) : Number(row.blocker_id);
+          if (authorIds.includes(otherId)) excluded.add(otherId);
         }
       }
       const visible = (result.data || []).filter(row => !excluded.has(Number(row.user_id)));
