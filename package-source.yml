@@ -1,0 +1,29 @@
+name: Package VibeCircle source
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/package-source.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Build source archive
+        run: |
+          zip -r VibeCircle-full-code.zip . \
+            -x ".git/*" "node_modules/*" "*/node_modules/*" \
+               ".env" "*/.env" ".env.local" "*/.env.local" \
+               ".env.production" "*/.env.production" "*.log" ".DS_Store"
+      - name: Upload ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeCircle-full-code
+          path: VibeCircle-full-code.zip
+          if-no-files-found: error
+          retention-days: 7
