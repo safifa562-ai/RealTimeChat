@@ -1,313 +1,274 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#111b21">
-  <meta name="description" content="VibeCircle — share moments, discover creators and stay connected.">
-  <title>VibeCircle</title>
-  <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/style.css?v=20261114-vibecircle-1">
-  <link rel="stylesheet" href="/social.css?v=20261114-vibecircle-1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeCircle - Clips</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #101010;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  padding: 18px;
+  display: flex;
+  justify-content: space-between;
+  background: #181818;
+  position: sticky;
+  top: 0;
+}
+
+header h2 {
+  color: #a970ff;
+}
+
+.stories {
+  display: flex;
+  gap: 15px;
+  padding: 18px;
+  overflow-x: auto;
+}
+
+.story {
+  text-align: center;
+  min-width: 65px;
+}
+
+.story img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 3px solid #a970ff;
+  object-fit: cover;
+}
+
+.story p {
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.section-title {
+  padding: 12px 18px;
+}
+
+.reel {
+  max-width: 430px;
+  margin: 15px auto;
+  background: #1b1b1b;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.reel video {
+  width: 100%;
+  display: block;
+  max-height: 580px;
+  background: black;
+}
+
+.reel-info {
+  padding: 15px;
+}
+
+.actions {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.actions button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  color: #b78aff;
+}
+
+.upload {
+  margin: 20px auto;
+  padding: 18px;
+  max-width: 430px;
+  background: #1b1b1b;
+  border-radius: 12px;
+}
+
+.upload input {
+  margin-top: 12px;
+  width: 100%;
+}
+
+.highlight {
+  display: flex;
+  gap: 12px;
+  padding: 15px;
+}
+
+.highlight span {
+  background: #292929;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+</style>
 </head>
+
 <body>
-  <section id="authScreen" aria-label="Login and registration">
-    <div class="authBackdrop" aria-hidden="true"></div>
-    <div class="authBox">
-      <div class="authBrand">
-        <span class="brandMark" aria-hidden="true">◔</span>
-        <div><h1>VibeCircle</h1><p>Share your world. Find your people.</p></div>
+
+<header>
+  <h2>VibeCircle</h2>
+  <span>🎬 Clips</span>
+</header>
+
+<h3 class="section-title">Stories</h3>
+
+<div class="stories">
+  <div class="story">
+    <img src="https://i.pravatar.cc/100?img=1">
+    <p>Your Story</p>
+  </div>
+  <div class="story">
+    <img src="https://i.pravatar.cc/100?img=2">
+    <p>Alex</p>
+  </div>
+  <div class="story">
+    <img src="https://i.pravatar.cc/100?img=3">
+    <p>Sarah</p>
+  </div>
+  <div class="story">
+    <img src="https://i.pravatar.cc/100?img=4">
+    <p>David</p>
+  </div>
+</div>
+
+<h3 class="section-title">Highlights</h3>
+
+<div class="highlight">
+  <span>🌍 Travel</span>
+  <span>🎵 Music</span>
+  <span>📸 Memories</span>
+</div>
+
+<div class="upload">
+  <h3>Upload your clip</h3>
+  <input type="file" id="videoInput" accept="video/mp4,video/webm">
+  <p id="uploadMessage" style="margin-top:10px;font-size:13px;color:#bbb">
+    Choose a video to preview.
+  </p>
+</div>
+
+<div id="reelsFeed">
+
+  <div class="reel">
+    <video controls loop playsinline
+      src="https://www.w3schools.com/html/mov_bbb.mp4">
+    </video>
+
+    <div class="reel-info">
+      <h3>@VibeCreator</h3>
+      <p>Welcome to VibeCircle! ✨</p>
+
+      <div class="actions">
+        <button onclick="likePost(this)">♡ Like <span>0</span></button>
+        <button onclick="commentPost()">💬 Comment</button>
+        <button onclick="sharePost()">↗ Share</button>
       </div>
-      <h2>Welcome back</h2>
-      <p class="authHint">Log in to continue your conversations.</p>
-      <form onsubmit="event.preventDefault(); login();">
-        <label class="fieldLabel" for="loginUsername">Username</label>
-        <input id="loginUsername" placeholder="Enter username" autocomplete="username" required>
-        <label class="fieldLabel" for="loginPassword">Password</label>
-        <input id="loginPassword" type="password" placeholder="Enter password" autocomplete="current-password" required>
-        <button class="primaryBtn authLogin" type="submit">Log in</button>
-      </form>
-      <div class="authDivider"><span>NEW HERE?</span></div>
-      <h3>Create account</h3>
-      <form onsubmit="event.preventDefault(); register();">
-        <label class="fieldLabel" for="registerUsername">Choose username</label>
-        <input id="registerUsername" placeholder="At least 3 characters" autocomplete="username" required>
-        <label class="fieldLabel" for="registerPassword">Create password</label>
-        <input id="registerPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password" required>
-        <div class="authButtons">
-          <button class="primaryBtn" type="submit">Create account</button>
-          <button class="secondaryBtn" type="button" onclick="clearAuth()">Clear</button>
-        </div>
-      </form>
-      <div id="authMessage" role="status" aria-live="polite"></div>
-      <nav class="authLegalLinks" aria-label="Legal and support"><a href="/privacy.html" target="_blank" rel="noopener">Privacy</a><a href="/terms.html" target="_blank" rel="noopener">Terms</a><a href="/support.html" target="_blank" rel="noopener">Support</a></nav>
     </div>
-  </section>
-
-  <section id="appScreen" class="hidden" aria-label="VibeCircle social app">
-    <aside class="sidebar" aria-label="Chats and contacts">
-      <header class="sidebarTop">
-        <div class="logo"><span class="brandMark" aria-hidden="true">◔</span><span>VibeCircle</span></div>
-        <div class="sidebarTopActions">
-          <button type="button" class="iconAction" onclick="toggleChatLock()" title="Lock app" aria-label="Lock app">🔒</button>
-          <label class="iconAction muteToggle" title="Mute calls from unknown users" aria-label="Mute unknown calls">
-            <input id="muteUnknownCalls" type="checkbox" onchange="saveMuteUnknownCalls()">
-            <span>🔕</span>
-          </label>
-          <button type="button" id="notificationBell" class="iconAction notificationBell" onclick="toggleNotificationPanel(event)" title="Notifications" aria-label="Notifications" aria-expanded="false">
-            <span aria-hidden="true">🔔</span><span id="notificationBadge" class="notificationBadge hidden">0</span>
-          </button>
-          <section id="notificationPanel" class="notificationPanel hidden" role="dialog" aria-label="Notifications">
-            <div class="notificationPanelHeader">
-              <div><strong>Notifications</strong><small id="notificationPermissionStatus">Browser notifications are off</small></div>
-              <div class="notificationPanelActions">
-                <button type="button" id="notificationPermissionButton" onclick="enableBrowserNotifications(event)">Enable</button>
-                <button type="button" onclick="clearNotifications(event)" title="Clear notification history">Clear</button>
-              </div>
-            </div>
-            <div id="notificationList" class="notificationList"><div class="notificationEmpty">No notifications yet.</div></div>
-          </section>
-        </div>
-      </header>
-
-      <div class="profile">
-        <div class="profileAvatarShell">
-          <button type="button" class="avatar profileAvatar profileAvatarButton" id="profileAvatar" onclick="openAvatarPicker()" aria-label="Change profile picture" title="Change profile picture">U</button>
-          <span class="profileAvatarCamera" aria-hidden="true">📷</span>
-          <input id="avatarFileInput" class="hidden" type="file" accept="image/jpeg,image/png,image/webp" onchange="uploadProfileAvatar(event)" aria-label="Choose profile picture">
-        </div>
-        <div class="profileDetails"><div id="profileName" class="profileName">User</div><div id="premiumStatusBadge" class="premiumStatusBadge hidden" title="This account supports RealTimeChat">✦ Supporter</div><div id="profileId" class="userId">ID: -</div><button type="button" class="changeAvatarText" onclick="openAvatarPicker()">Change DP</button></div>
-        <div class="profileActions">
-          <span class="profileOnline" title="Account active"></span>
-          <button type="button" id="accountMenuToggle" class="accountMenuToggle" onclick="toggleAccountMenu(event)" aria-label="Account options" aria-expanded="false" title="Account options">⋯</button>
-          <div id="accountMenu" class="accountMenu hidden" role="menu">
-            <button type="button" class="accountMenuDelete" role="menuitem" onclick="openAvatarPicker()">📷 Change profile photo</button>
-            <button type="button" class="accountMenuPremium" role="menuitem" onclick="openPremiumDialog()">⭐ Support RealTimeChat</button>
-            <button type="button" class="accountMenuDelete" role="menuitem" onclick="openDeleteAccountDialog()">♲ Delete account</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="searchBox sidebarSearch">
-        <span class="searchGlyph" aria-hidden="true">⌕</span>
-        <input id="searchInput" placeholder="Search people by username" oninput="searchUsers()" aria-label="Search people by username">
-        <span class="searchShortcut" aria-hidden="true">⌘ K</span>
-      </div>
-
-      <nav class="sideTabs" aria-label="Sidebar sections">
-        <button type="button" class="sideTab active" data-tab="chats" onclick="setSidebarTab('chats')"><span class="tabGlyph">▤</span><span>Chats</span></button>
-        <button type="button" class="sideTab" data-tab="status" onclick="setSidebarTab('status')"><span class="tabGlyph">◉</span><span>Status</span></button>
-        <button type="button" class="sideTab" data-tab="requests" onclick="setSidebarTab('requests')"><span class="tabGlyph">♧</span><span>Requests</span><span id="requestBadge" class="badge hidden">0</span></button>
-        <button type="button" class="sideTab" data-tab="groups" onclick="setSidebarTab('groups')"><span class="tabGlyph">♧</span><span>Groups</span></button>
-        <button type="button" class="sideTab" data-tab="users" onclick="setSidebarTab('users')"><span class="tabGlyph">＋</span><span>People</span></button>
-      </nav>
-
-      <div class="sidebarPanels">
-        <section id="sidebarPanelChats" class="sidebarPanel active" aria-label="Chats">
-          <div class="panelHeading"><span>YOUR CHATS</span><span class="panelCaption">Friends</span></div>
-          <div id="friendsList" class="contactList"></div>
-        </section>
-        <section id="sidebarPanelStatus" class="sidebarPanel" aria-label="Status updates">
-          <div class="panelHeading"><span>STATUS</span><span class="panelCaption">Expires in 24 hours</span></div>
-          <form id="statusComposerForm" class="statusComposer" onsubmit="event.preventDefault(); publishStatus();">
-            <label class="fieldLabel" for="statusText">Share an update</label>
-            <textarea id="statusText" maxlength="700" placeholder="What's on your mind? (optional if adding a photo/video)" rows="3"></textarea>
-            <label class="statusMediaPicker" for="statusMediaInput">＋ Add photo or video</label>
-            <input id="statusMediaInput" class="hidden" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
-            <div id="statusMediaName" class="statusMediaName">No media selected · max 20 MB</div>
-            <button id="publishStatusBtn" class="primaryBtn statusPublishBtn" type="submit">Share status</button>
-            <p id="statusComposerMessage" class="statusComposerMessage" role="status" aria-live="polite"></p>
-          </form>
-          <div class="panelHeading"><span>MY STATUS</span><span class="panelCaption">Your updates</span></div>
-          <div id="myStatusesList" class="statusList"><div class="emptySide">Loading your status…</div></div>
-          <div class="panelHeading"><span>RECENT UPDATES</span><span class="panelCaption">Friends</span></div>
-          <div id="friendStatusesList" class="statusList"><div class="emptySide">No recent updates</div></div>
-          <div class="panelHeading"><span>BLOCKED USERS</span><span class="panelCaption">Privacy</span></div>
-          <div id="blockedUsersList" class="statusList"><div class="emptySide">No blocked users</div></div>
-        </section>
-
-        <section id="sidebarPanelRequests" class="sidebarPanel" aria-label="Friend requests">
-          <div class="panelHeading"><span>FRIEND REQUESTS</span><span class="panelCaption">Connect</span></div>
-          <div id="requestsList" class="contactList"></div>
-        </section>
-        <section id="sidebarPanelGroups" class="sidebarPanel" aria-label="Groups">
-          <div class="panelHeading"><span>YOUR GROUPS</span><span class="panelCaption">Together</span></div>
-          <div class="createGroup"><input id="groupNameInput" placeholder="New group name" aria-label="New group name"><button type="button" onclick="createGroup()" title="Create group" aria-label="Create group">＋</button></div>
-          <div id="groupsList" class="contactList"></div>
-        </section>
-        <section id="sidebarPanelUsers" class="sidebarPanel" aria-label="Find people">
-          <div class="panelHeading"><span>FIND PEOPLE</span><span class="panelCaption">Discover</span></div>
-          <div class="connectBox"><input id="connectUserId" type="number" placeholder="Connect using user ID" aria-label="User ID"><button class="connectBtn" type="button" onclick="connectUser()">Connect</button></div>
-          <div id="usersList" class="contactList"></div>
-        </section>
-      </div>
-
-      <footer class="sidebarFooter"><div class="footerStatus"><span class="statusDot"></span><span>Connected space</span></div><button class="logoutBtn" type="button" onclick="logout()">Log out</button></footer>
-    </aside>
-
-    <main id="socialView" class="socialView" aria-label="VibeCircle social feed">
-      <header class="vc-topbar">
-        <div class="vc-brand"><span class="vc-brand-mark">V</span><span>VibeCircle</span></div>
-        <nav class="vc-main-nav" aria-label="Social navigation">
-          <button type="button" data-social-nav="feed" class="active" onclick="openSocialSection('feed')">Feed</button>
-          <button type="button" data-social-nav="explore" onclick="openSocialSection('explore')">Explore</button>
-          <button type="button" onclick="openCreatePost()">＋ Create</button>
-          <button type="button" data-social-nav="messages" onclick="openSocialSection('messages');setSidebarTab('chats')">Messages</button>
-          <button type="button" onclick="openSocialProfile(currentUser.id)">Profile</button>
-        </nav>
-        <div class="vc-top-actions">
-          <input id="socialExploreSearch" class="vc-search" placeholder="Search posts or people" aria-label="Search posts or people" onkeydown="searchSocialExplore(event)">
-          
-        </div>
-      </header>
-      <div class="socialLayout">
-        <section class="vc-social-main">
-          <div id="socialStories" class="vc-stories" aria-label="Stories">
-            <span class="vc-story-empty">Your stories and updates will appear here.</span>
-          </div>
-          <div id="socialFeedPanel">
-            <button class="vc-composer" type="button" onclick="openCreatePost()"><span class="vc-avatar small">＋</span><span>Share a moment, <strong>create a post</strong></span></button>
-            <div id="socialMessage" class="vc-status-message" role="status" aria-live="polite"></div>
-            <div id="socialFeedList"><div class="vc-loading">Loading your feed…</div></div>
-          </div>
-          <section id="socialProfilePanel" class="hidden" aria-label="Social profile"></section>
-        </section>
-        <aside class="vc-social-rail">
-          <div class="vc-side-card">
-            <div class="vc-you-row">
-              <span id="socialSelfAvatar" class="vc-avatar"></span>
-              <span><strong id="socialSelfName">Your profile</strong><small>Welcome to VibeCircle</small></span>
-              <button class="vc-follow-link" type="button" onclick="openSocialProfile(currentUser.id)">View</button>
-            </div>
-          </div>
-          <div class="vc-side-card"><h3>People to discover</h3><div id="socialSuggestions"><p class="vc-muted">Suggestions will appear here.</p></div></div>
-          <div class="vc-side-card"><p class="vc-muted">Be kind. Share responsibly. You can block or report accounts from Messages and People.</p></div>
-        </aside>
-      </div>
-    </main>
-
-    <dialog id="createSocialPostDialog" class="vc-create-dialog" aria-labelledby="createSocialPostTitle">
-      <form id="createSocialPostForm" class="vc-create-inner" onsubmit="publishSocialPost(event)">
-        <header class="vc-create-head"><h2 id="createSocialPostTitle">Create a post</h2><button class="vc-close" type="button" onclick="closeCreatePost()" aria-label="Close">×</button></header>
-        <label class="vc-media-picker" for="socialPostMedia"><strong>＋ Add a photo or video</strong><small id="socialPostFileName">Choose one photo or video · up to 50 MB</small></label>
-        <input id="socialPostMedia" class="hidden" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
-        <textarea id="socialPostCaption" maxlength="2200" placeholder="Write a caption… (up to 2,200 characters)"></textarea>
-        <p id="socialMessageDialog" class="vc-status-message" role="status" aria-live="polite"></p>
-        <div class="vc-create-actions"><button class="vc-secondary" type="button" onclick="closeCreatePost()">Cancel</button><button id="publishSocialPostBtn" class="vc-primary" type="submit">Share post</button></div>
-      </form>
-    </dialog>
-
-    <main class="chatArea" aria-label="Conversation">
-      <header class="chatHeader">
-        <button id="backToChatsBtn" class="mobileBack" type="button" onclick="showMobileSidebar()" aria-label="Back to chats">‹</button>
-        <div class="chatIdentity">
-          <div class="avatar chatAvatar" id="chatAvatar" aria-hidden="true">?</div>
-          <div class="chatIdentityText"><div id="chatUserName" class="chatUserName">Select a chat</div><small id="chatUserStatus">Your conversations appear here</small></div>
-        </div>
-        <div class="chatHeaderActions">
-          <div class="chatSearch"><input id="messageSearchInput" placeholder="Search this chat" aria-label="Search messages" onkeydown="handleMessageSearch(event)"><button type="button" onclick="searchMessages()" title="Search messages" aria-label="Search messages">⌕</button></div>
-          <div class="callButtons" aria-label="Call actions">
-            <button type="button" class="callBtn audioBtn" onclick="startAudioCall()" title="Audio call"><span aria-hidden="true">☎</span><span class="callLabel">Audio</span></button>
-            <button type="button" class="callBtn videoBtn" onclick="startVideoCall()" title="Video call"><span aria-hidden="true">▣</span><span class="callLabel">Video</span></button>
-            <button type="button" class="callBtn screenBtn" onclick="shareScreen()" title="Share screen"><span aria-hidden="true">▤</span><span class="callLabel">Share</span></button>
-          </div>
-          <button type="button" id="groupManageBtn" class="groupManageBtn hidden" onclick="addGroupMember()" title="Add a group member">＋ Member</button>
-          <div class="contactOptionsWrap">
-            <button type="button" id="contactOptionsToggle" class="contactOptionsToggle" onclick="toggleContactOptions(event)" aria-label="Conversation options" aria-expanded="false" title="Conversation options">⋯</button>
-            <div id="contactOptionsMenu" class="contactOptionsMenu hidden" role="menu">
-              <button type="button" role="menuitem" onclick="toggleBlockSelectedUser()" id="blockContactMenuItem">🚫 Block contact</button>
-              <button type="button" role="menuitem" onclick="reportSelectedUser()">⚑ Report contact</button>
-              <button type="button" role="menuitem" onclick="exportCurrentChat()">⇩ Export chat</button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div id="typingIndicator" class="typing hidden" role="status">typing…</div>
-      <div class="messageFilters" role="toolbar" aria-label="Message filters">
-        <button type="button" class="filterChip active" onclick="filterVisibleMessages('all')">All messages</button>
-        <button type="button" class="filterChip" onclick="filterVisibleMessages('text')">Text</button>
-        <button type="button" class="filterChip" onclick="filterVisibleMessages('files')">Files & voice</button>
-      </div>
-
-      <div id="messages" aria-live="polite" aria-label="Messages">
-        <div class="welcomeState"><div class="welcomeOrb">◔</div><h2>Your conversations, together.</h2><p>Select a friend from the left to start chatting.</p><span class="welcomeSecurity">🔒 Messages stay in your account</span></div>
-      </div>
-
-      <div class="messageBar" role="group" aria-label="Compose message">
-        <label class="fileBtn" for="fileInput" title="Attach a file" aria-label="Attach a file">＋</label>
-        <input id="fileInput" type="file" onchange="uploadFile()">
-        <button id="voiceNoteBtn" type="button" class="fileBtn voiceBtn" onclick="toggleVoiceNote()" title="Record voice note" aria-label="Record voice note">🎙</button>
-        <input id="messageInput" placeholder="Write a message" oninput="typingStart()" onkeydown="handleMessageKey(event)" aria-label="Write a message" autocomplete="off">
-        <button type="button" class="sendBtn" onclick="sendMessage()" aria-label="Send message" title="Send message"><span class="sendText">Send</span><span class="sendIcon" aria-hidden="true">➤</span></button>
-      </div>
-    </main>
-  </section>
-
-  <dialog id="premiumDialog" class="accountDialog premiumDialog" aria-labelledby="premiumDialogTitle">
-    <div class="accountDialogInner">
-      <button type="button" class="accountDialogClose" onclick="closePremiumDialog()" aria-label="Close supporter dialog">×</button>
-      <div class="premiumCrown" aria-hidden="true">✦</div>
-      <h2 id="premiumDialogTitle">Support RealTimeChat</h2>
-      <p class="premiumIntro">Help cover hosting and development costs. Checkout is a one-time payment—no auto-renewal.</p>
-      <div class="premiumPrice"><strong>₹49</strong><span>one-time Supporter pass</span></div>
-      <ul class="premiumBenefits"><li>Supporter badge on your profile</li><li>Help fund reliability, privacy and new features</li><li>No recurring charges</li></ul>
-      <p id="premiumStatusMessage" class="premiumStatusMessage" role="status" aria-live="polite">Checking payment setup…</p>
-      <div class="accountDialogActions">
-        <button type="button" class="secondaryBtn" onclick="closePremiumDialog()">Close</button>
-        <button type="button" id="buySupporterBtn" class="premiumBuyBtn" onclick="startSupporterCheckout()" disabled>Checkout not configured</button>
-      </div>
-      <p class="deleteSmallPrint">Payments run through the configured provider. Only continue if the amount and terms are clear to you.</p>
-    </div>
-  </dialog>
-
-  <dialog id="deleteAccountDialog" class="accountDialog" aria-labelledby="deleteAccountTitle">
-    <form class="accountDialogForm" onsubmit="event.preventDefault(); deleteAccountSubmit();">
-      <div class="accountDialogInner">
-        <button type="button" class="accountDialogClose" onclick="closeDeleteAccountDialog()" aria-label="Close delete account dialog">×</button>
-        <div class="deleteWarningIcon" aria-hidden="true">!</div>
-        <h2 id="deleteAccountTitle">Delete account permanently?</h2>
-        <p class="deleteWarningText">This action cannot be undone. Your profile, direct chat history, contacts, friend requests and uploaded files will be removed. Groups with other members will be kept and ownership transferred where possible.</p>
-        <label class="fieldLabel" for="deleteAccountPassword">Current password</label>
-        <input id="deleteAccountPassword" type="password" autocomplete="current-password" required placeholder="Enter your password">
-        <label class="fieldLabel" for="deleteAccountConfirmText">Type DELETE to confirm</label>
-        <input id="deleteAccountConfirmText" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" required placeholder="DELETE">
-        <p id="deleteAccountError" class="deleteAccountError hidden" role="status" aria-live="polite"></p>
-        <div class="accountDialogActions">
-          <button type="button" class="secondaryBtn" onclick="closeDeleteAccountDialog()">Cancel</button>
-          <button type="submit" id="confirmDeleteAccountBtn" class="dangerBtn">Delete permanently</button>
-        </div>
-        <p class="deleteSmallPrint">Your password is checked by the server and is not stored by this form.</p>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="statusViewerDialog" class="statusViewerDialog" aria-labelledby="statusViewerName">
-    <div class="statusViewerInner">
-      <button type="button" class="statusViewerClose" onclick="closeStatusViewer()" aria-label="Close status">×</button>
-      <div class="statusViewerAuthor"><div id="statusViewerAvatar" class="avatar">?</div><div><strong id="statusViewerName">Status</strong><small id="statusViewerTime"></small></div></div>
-      <div id="statusViewerContent" class="statusViewerContent"></div>
-      <div id="statusViewerViews" class="statusViewerViews"></div>
-    </div>
-  </dialog>
-
-  <div id="incomingCall" class="hidden" role="dialog" aria-modal="true" aria-label="Incoming call">
-    <div class="callPopup"><div class="callPopupAvatar">☎</div><h2>Incoming call</h2><p id="callerText">Someone is calling…</p><div class="callPopupActions"><button class="acceptCall" type="button" onclick="acceptCall()">Accept</button><button class="rejectCall" type="button" onclick="rejectCall()">Decline</button></div></div>
   </div>
 
-  <div id="videoPanel" class="hidden" role="dialog" aria-label="Call controls">
-    <div class="videos"><video id="localVideo" autoplay muted playsinline></video><video id="remoteVideo" autoplay playsinline></video></div>
-    <div class="videoControls"><button type="button" onclick="toggleMute()">🎤 Mute</button><button type="button" onclick="toggleCamera()">📷 Camera</button><button class="endCall" type="button" onclick="endCall()">End call</button></div>
-  </div>
+</div>
 
-  <div id="chatLockOverlay" class="hidden" role="dialog" aria-modal="true" aria-label="App locked">
-    <div class="lockCard"><div class="lockIcon">🔒</div><h2>RealTimeChat is locked</h2><p>Enter your passcode to continue.</p><input id="chatUnlockPin" type="password" inputmode="numeric" maxlength="32" placeholder="Passcode"><button type="button" class="primaryBtn" onclick="unlockChatApp()">Unlock</button><div id="chatUnlockError" role="status"></div></div>
-  </div>
+<script>
+function likePost(button) {
+  const count = button.querySelector("span");
+  const liked = button.dataset.liked === "true";
 
-  <div id="notificationToasts" class="notificationToasts" aria-live="polite" aria-relevant="additions"></div>
+  button.dataset.liked = String(!liked);
+  count.textContent = Number(count.textContent) + (liked ? -1 : 1);
+  button.firstChild.textContent = liked ? "♡ Like " : "♥ Liked ";
+}
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/social.js?v=20261114-vibecircle-1"></script>
-  <script src="/app.js?v=20261114-vibecircle-1"></script>
+function commentPost() {
+  const comment = prompt("Write your comment:");
+
+  if (comment && comment.trim()) {
+    alert("Comment preview: " + comment.trim());
+  }
+}
+
+function sharePost() {
+  if (navigator.share) {
+    navigator.share({
+      title: "VibeCircle",
+      text: "Check out this clip!"
+    }).catch(() => {});
+  } else {
+    alert("Sharing is not supported in this browser.");
+  }
+}
+
+document.getElementById("videoInput").addEventListener("change", function() {
+  const file = this.files[0];
+
+  if (!file) return;
+
+  if (!["video/mp4", "video/webm"].includes(file.type)) {
+    alert("Please select an MP4 or WebM video.");
+    this.value = "";
+    return;
+  }
+
+  if (file.size > 30 * 1024 * 1024) {
+    alert("Video must be smaller than 30 MB.");
+    this.value = "";
+    return;
+  }
+
+  const url = URL.createObjectURL(file);
+
+  const reel = document.createElement("div");
+  reel.className = "reel";
+
+  const video = document.createElement("video");
+  video.src = url;
+  video.controls = true;
+  video.loop = true;
+  video.playsInline = true;
+
+  const info = document.createElement("div");
+  info.className = "reel-info";
+  info.innerHTML = `
+    <h3>@You</h3>
+    <p>My new VibeCircle clip ✨</p>
+    <div class="actions">
+      <button onclick="likePost(this)">♡ Like <span>0</span></button>
+      <button onclick="commentPost()">💬 Comment</button>
+      <button onclick="sharePost()">↗ Share</button>
+    </div>
+  `;
+
+  reel.append(video, info);
+  document.getElementById("reelsFeed").prepend(reel);
+
+  document.getElementById("uploadMessage").textContent =
+    "Video preview added. It is not uploaded to the server.";
+
+  this.value = "";
+});
+</script>
+
 </body>
 </html>
