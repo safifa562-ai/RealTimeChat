@@ -366,6 +366,12 @@ async function authMiddleware(
 }
 
 /* =====================================================
+   VIBECIRCLE SOCIAL FEATURES
+===================================================== */
+const { registerSocialRoutes } = require("./social-routes");
+registerSocialRoutes({ app, supabase, authMiddleware, io });
+
+/* =====================================================
    RAZORPAY WEBSITE CHECKOUT (optional, one-time ₹49 supporter pass)
    Never trust client-side price/status. Payment activates only after
    backend signature and Razorpay payment status verification.
