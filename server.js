@@ -1961,7 +1961,7 @@ app.get(
 
       // Cursor pagination uses the message identity column so older pages
       // cannot repeat the newest page.
-      if (/^\\d+$/.test(beforeId) && beforeId !== "0") {
+      if (/^\d+$/.test(beforeId) && beforeId !== "0") {
         historyQuery = historyQuery.lt("id", beforeId);
       }
 
