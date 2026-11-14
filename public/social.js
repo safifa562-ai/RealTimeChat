@@ -30,10 +30,12 @@ function socialTime(value) {
   return Math.floor(mins / 1440) + "d";
 }
 function socialMessage(text, kind) {
-  const el = document.getElementById("socialMessage");
-  if (!el) return;
-  el.textContent = text || "";
-  el.dataset.kind = kind || "info";
+  ["socialMessage", "socialMessageDialog"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text || "";
+    el.dataset.kind = kind || "info";
+  });
 }
 function socialAuthHeaders() {
   return typeof authHeaders === "function" ? authHeaders() : {};
@@ -45,6 +47,8 @@ function openSocialSection(section, refresh) {
   const socialView = document.getElementById("socialView");
   const chatArea = document.querySelector(".chatArea");
   const isMessages = socialSection === "messages";
+  const app = document.getElementById("appScreen");
+  if (app) app.classList.toggle("social-active", !isMessages);
   if (socialView) socialView.classList.toggle("hidden", isMessages);
   if (chatArea) chatArea.classList.toggle("hidden", !isMessages);
   document.querySelectorAll("[data-social-nav]").forEach(button => {
