@@ -88,13 +88,6 @@
         </div>
       </div>
 
-      <nav class="socialMainNav" aria-label="Main navigation">
-        <button type="button" data-social-nav="feed" class="active" onclick="openSocialSection('feed')"><span>⌂</span><span>Feed</span></button>
-        <button type="button" data-social-nav="explore" onclick="openSocialSection('explore')"><span>⌕</span><span>Explore</span></button>
-        <button type="button" data-social-nav="create" onclick="openCreatePost()"><span>＋</span><span>Create</span></button>
-        <button type="button" data-social-nav="messages" onclick="openSocialSection('messages');setSidebarTab('chats')"><span>✉</span><span>Messages</span></button>
-      </nav>
-
       <div class="searchBox sidebarSearch">
         <span class="searchGlyph" aria-hidden="true">⌕</span>
         <input id="searchInput" placeholder="Search people by username" oninput="searchUsers()" aria-label="Search people by username">
@@ -155,9 +148,16 @@
     <main id="socialView" class="socialView" aria-label="VibeCircle social feed">
       <header class="vc-topbar">
         <div class="vc-brand"><span class="vc-brand-mark">V</span><span>VibeCircle</span></div>
+        <nav class="vc-main-nav" aria-label="Social navigation">
+          <button type="button" data-social-nav="feed" class="active" onclick="openSocialSection('feed')">Feed</button>
+          <button type="button" data-social-nav="explore" onclick="openSocialSection('explore')">Explore</button>
+          <button type="button" onclick="openCreatePost()">＋ Create</button>
+          <button type="button" data-social-nav="messages" onclick="openSocialSection('messages');setSidebarTab('chats')">Messages</button>
+          <button type="button" onclick="openSocialProfile(currentUser.id)">Profile</button>
+        </nav>
         <div class="vc-top-actions">
           <input id="socialExploreSearch" class="vc-search" placeholder="Search posts or people" aria-label="Search posts or people" onkeydown="searchSocialExplore(event)">
-          <button class="vc-primary" type="button" onclick="openCreatePost()">＋ Create</button>
+          
         </div>
       </header>
       <div class="socialLayout">
