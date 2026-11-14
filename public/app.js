@@ -817,6 +817,9 @@ function openApp(){
   loadRequests();
 
   loadGroups();
+  if (window.openSocialSection) window.openSocialSection("feed");
+  if (window.renderSocialStories) window.renderSocialStories();
+  if (window.renderSocialSuggestions) window.renderSocialSuggestions();
 
 }
 
@@ -1342,6 +1345,7 @@ function setSidebarTab(tab){
     if (panel) panel.classList.toggle("active", name === target);
   });
   if (target === "status") { loadStatuses(); loadBlockedUsers(); }
+  if (target === "chats" && window.openSocialSection) window.openSocialSection("messages");
 }
 
 function showMobileSidebar(){
@@ -1624,6 +1628,7 @@ async function selectUser(
   user
 ){
 
+  if (window.openSocialSection) window.openSocialSection("messages");
   chatMode = "private";
   const groupButton = document.getElementById("groupManageBtn");
   if (groupButton) groupButton.classList.add("hidden");
@@ -2552,6 +2557,7 @@ async function loadStatuses() {
     }
     statusItems = Array.isArray(data) ? data : [];
     renderStatuses();
+    if (window.renderSocialStories) window.renderSocialStories();
   } catch (error) {
     console.warn("LOAD STATUSES:", error);
     ownList.innerHTML = '<div class="emptySide">Could not connect to status service.</div>';

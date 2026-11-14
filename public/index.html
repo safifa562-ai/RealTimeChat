@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#111b21">
-  <meta name="description" content="RealTimeChat — real-time messaging, groups and calls.">
-  <title>RealTimeChat</title>
+  <meta name="description" content="VibeCircle — share moments, discover creators and stay connected.">
+  <title>VibeCircle</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/style.css?v=20261017-ultimate-features-2">
+  <link rel="stylesheet" href="/style.css?v=20261114-vibecircle-1">
+  <link rel="stylesheet" href="/social.css?v=20261114-vibecircle-1">
 </head>
 <body>
   <section id="authScreen" aria-label="Login and registration">
@@ -15,7 +16,7 @@
     <div class="authBox">
       <div class="authBrand">
         <span class="brandMark" aria-hidden="true">◔</span>
-        <div><h1>RealTimeChat</h1><p>Simple. Secure. Connected.</p></div>
+        <div><h1>VibeCircle</h1><p>Share your world. Find your people.</p></div>
       </div>
       <h2>Welcome back</h2>
       <p class="authHint">Log in to continue your conversations.</p>
@@ -43,10 +44,10 @@
     </div>
   </section>
 
-  <section id="appScreen" class="hidden" aria-label="RealTimeChat app">
+  <section id="appScreen" class="hidden" aria-label="VibeCircle social app">
     <aside class="sidebar" aria-label="Chats and contacts">
       <header class="sidebarTop">
-        <div class="logo"><span class="brandMark" aria-hidden="true">◔</span><span>RealTimeChat</span></div>
+        <div class="logo"><span class="brandMark" aria-hidden="true">◔</span><span>VibeCircle</span></div>
         <div class="sidebarTopActions">
           <button type="button" class="iconAction" onclick="toggleChatLock()" title="Lock app" aria-label="Lock app">🔒</button>
           <label class="iconAction muteToggle" title="Mute calls from unknown users" aria-label="Mute unknown calls">
@@ -143,6 +144,58 @@
 
       <footer class="sidebarFooter"><div class="footerStatus"><span class="statusDot"></span><span>Connected space</span></div><button class="logoutBtn" type="button" onclick="logout()">Log out</button></footer>
     </aside>
+
+    <main id="socialView" class="socialView" aria-label="VibeCircle social feed">
+      <header class="vc-topbar">
+        <div class="vc-brand"><span class="vc-brand-mark">V</span><span>VibeCircle</span></div>
+        <nav class="vc-main-nav" aria-label="Social navigation">
+          <button type="button" data-social-nav="feed" class="active" onclick="openSocialSection('feed')">Feed</button>
+          <button type="button" data-social-nav="explore" onclick="openSocialSection('explore')">Explore</button>
+          <button type="button" onclick="openCreatePost()">＋ Create</button>
+          <button type="button" data-social-nav="messages" onclick="openSocialSection('messages');setSidebarTab('chats')">Messages</button>
+          <button type="button" onclick="openSocialProfile(currentUser.id)">Profile</button>
+        </nav>
+        <div class="vc-top-actions">
+          <input id="socialExploreSearch" class="vc-search" placeholder="Search posts or people" aria-label="Search posts or people" onkeydown="searchSocialExplore(event)">
+          
+        </div>
+      </header>
+      <div class="socialLayout">
+        <section class="vc-social-main">
+          <div id="socialStories" class="vc-stories" aria-label="Stories">
+            <span class="vc-story-empty">Your stories and updates will appear here.</span>
+          </div>
+          <div id="socialFeedPanel">
+            <button class="vc-composer" type="button" onclick="openCreatePost()"><span class="vc-avatar small">＋</span><span>Share a moment, <strong>create a post</strong></span></button>
+            <div id="socialMessage" class="vc-status-message" role="status" aria-live="polite"></div>
+            <div id="socialFeedList"><div class="vc-loading">Loading your feed…</div></div>
+          </div>
+          <section id="socialProfilePanel" class="hidden" aria-label="Social profile"></section>
+        </section>
+        <aside class="vc-social-rail">
+          <div class="vc-side-card">
+            <div class="vc-you-row">
+              <span id="socialSelfAvatar" class="vc-avatar"></span>
+              <span><strong id="socialSelfName">Your profile</strong><small>Welcome to VibeCircle</small></span>
+              <button class="vc-follow-link" type="button" onclick="openSocialProfile(currentUser.id)">View</button>
+            </div>
+          </div>
+          <div class="vc-side-card"><h3>People to discover</h3><div id="socialSuggestions"><p class="vc-muted">Suggestions will appear here.</p></div></div>
+          <div class="vc-side-card"><p class="vc-muted">Be kind. Share responsibly. You can block or report accounts from Messages and People.</p></div>
+        </aside>
+      </div>
+    </main>
+
+    <dialog id="createSocialPostDialog" class="vc-create-dialog" aria-labelledby="createSocialPostTitle">
+      <form id="createSocialPostForm" class="vc-create-inner" onsubmit="publishSocialPost(event)">
+        <header class="vc-create-head"><h2 id="createSocialPostTitle">Create a post</h2><button class="vc-close" type="button" onclick="closeCreatePost()" aria-label="Close">×</button></header>
+        <label class="vc-media-picker" for="socialPostMedia"><strong>＋ Add a photo or video</strong><small id="socialPostFileName">Choose one photo or video · up to 50 MB</small></label>
+        <input id="socialPostMedia" class="hidden" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm">
+        <textarea id="socialPostCaption" maxlength="2200" placeholder="Write a caption… (up to 2,200 characters)"></textarea>
+        <p id="socialMessageDialog" class="vc-status-message" role="status" aria-live="polite"></p>
+        <div class="vc-create-actions"><button class="vc-secondary" type="button" onclick="closeCreatePost()">Cancel</button><button id="publishSocialPostBtn" class="vc-primary" type="submit">Share post</button></div>
+      </form>
+    </dialog>
 
     <main class="chatArea" aria-label="Conversation">
       <header class="chatHeader">
@@ -254,6 +307,7 @@
   <div id="notificationToasts" class="notificationToasts" aria-live="polite" aria-relevant="additions"></div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app.js?v=20261017-ultimate-features-2"></script>
+  <script src="/social.js?v=20261114-vibecircle-1"></script>
+  <script src="/app.js?v=20261114-vibecircle-1"></script>
 </body>
 </html>
