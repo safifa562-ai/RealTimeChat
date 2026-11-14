@@ -1916,80 +1916,93 @@ app.get("/api/groups/:groupId/messages/search", authMiddleware, async (req,res)=
 
 /* =========================================================
    CHAT HISTORY
+   Read in small keyset pages so Supabase's API Max Rows setting
+   (commonly 100) cannot hide newer messages after a page refresh.
 ========================================================= */
 
 app.get(
   "/api/messages/:userId/:otherUserId",
   authMiddleware,
   async (req, res) => {
-
     try {
+      const userId = Number(req.params.userId);
+      const otherUserId = Number(req.params.otherUserId);
 
-      const userId =
-        Number(
-          req.params.userId
-        );
-
-      const otherUserId =
-        Number(
-          req.params.otherUserId
-        );
-
-      if (
-        userId !==
-        Number(req.user.id)
-      ) {
-        return res.status(403).json({
-          error:
-            "Access denied"
-        });
+      if (!Number.isSafeInteger(userId) || userId < 1 ||
+          !Number.isSafeInteger(otherUserId) || otherUserId < 1 ||
+          userId === otherUserId) {
+        return res.status(400).json({ error: "Invalid conversation." });
       }
 
-      const {
-        data,
-        error
-      } = await supabase
-        .from("messages")
-        .select("*")
-        .or(
-          `and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`
-        )
-        .order(
-          "created_at",
-          {
-            ascending: true
-          }
-        )
-        .limit(500);
-
-      if (error) {
-
-        console.error(
-          "HISTORY:",
-          error
-        );
-
-        return res.status(500).json({
-          error:
-            "Could not load chat history"
-        });
+      if (userId !== Number(req.user.id)) {
+        return res.status(403).json({ error: "Access denied" });
       }
 
-      res.json(
-        data || []
-      );
+      // Keep every individual PostgREST response below a common configured
+      // Max Rows value. Keyset pagination continues until a page is empty,
+      // even when the project's limit is lower than PAGE_SIZE.
+      const PAGE_SIZE = 100;
+      const messages = [];
+      let lastSeenId = null;
 
-    } catch (error) {
+      while (true) {
+        let query = supabase
+          .from("messages")
+          .select("*")
+          .or(
+            `and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`
+          );
 
-      console.error(
-        "HISTORY ERROR:",
-        error
-      );
+        if (lastSeenId !== null) {
+          query = query.gt("id", lastSeenId);
+        }
 
-      res.status(500).json({
-        error:
-          "Chat history failed"
+        const { data: page, error } = await query
+          .order("id", { ascending: true })
+          .limit(PAGE_SIZE);
+
+        if (error) {
+          console.error("HISTORY:", {
+            code: error.code || null,
+            message: error.message || null
+          });
+          return res.status(500).json({ error: "Could not load chat history" });
+        }
+
+        if (!Array.isArray(page) || page.length === 0) break;
+
+        messages.push(...page);
+        const nextId = page[page.length - 1].id;
+
+        // Defensive stop: a keyset cursor must always move forward.
+        if (nextId === null || nextId === undefined ||
+            (lastSeenId !== null && String(nextId) === String(lastSeenId))) {
+          console.error("HISTORY: pagination cursor did not advance.");
+          return res.status(500).json({ error: "Chat history pagination failed. Please retry." });
+        }
+
+        lastSeenId = nextId;
+      }
+
+      // Show the conversation in chronological order. ID is the tie-breaker
+      // for multiple messages created within the same timestamp precision.
+      messages.sort((a, b) => {
+        const timeA = Date.parse(a.created_at || "");
+        const timeB = Date.parse(b.created_at || "");
+        if (Number.isFinite(timeA) && Number.isFinite(timeB) && timeA !== timeB) {
+          return timeA - timeB;
+        }
+        return String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
       });
+
+      res.setHeader("Cache-Control", "no-store");
+      return res.json(messages);
+    } catch (error) {
+      console.error("HISTORY ERROR:", {
+        code: error.code || null,
+        message: error.message || null
+      });
+      return res.status(500).json({ error: "Chat history failed" });
     }
   }
 );
