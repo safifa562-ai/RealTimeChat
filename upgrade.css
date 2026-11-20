@@ -1,0 +1,19 @@
+/* Connection and install affordances. Kept separate to avoid touching existing chat styles. */
+.rtc-connection-banner {
+  position: fixed;
+  z-index: 10000;
+  inset: 0 0 auto;
+  padding: 10px 16px;
+  text-align: center;
+  color: #fff;
+  background: #9a5b12;
+  font: 600 13px/1.45 system-ui, sans-serif;
+  box-shadow: 0 3px 14px rgba(0,0,0,.22);
+}
+.rtc-connection-banner[data-state="online"] { background: #087f68; }
+.rtc-connection-banner[hidden], .rtc-install-button[hidden] { display: none !important; }
+.rtc-install-button { font-size: 21px; line-height: 1; }
+.rtc-install-button:disabled { opacity: .55; cursor: wait; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
