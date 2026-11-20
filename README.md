@@ -139,3 +139,15 @@ This branch adds an original social-network interface alongside the existing mes
 The migration is additive; it does not delete or rewrite existing users or chat messages. Never put `SUPABASE_SERVICE_ROLE_KEY` or `JWT_SECRET` in browser code or commit them to GitHub.
 
 This first social release does not yet implement private accounts, saved collections, DMs attached to posts, livestreaming, recommendations/ranking, or push alerts for likes/comments. Do not advertise those features as available until implemented and tested.
+
+
+## November 2026 additive app upgrade
+
+This release adds small, backward-compatible usability improvements without changing the existing Supabase schema, account records, chat history, or message APIs:
+
+- An accessible connection banner reports offline and restored connectivity. The banner does not claim that messages are queued or delivered while offline.
+- A browser-supported **Install app** prompt appears when the browser exposes the PWA install event.
+- `Ctrl+K`, `Cmd+K`, or `/` (when not typing in a field) focuses the existing People search input.
+- The PWA shell cache version is bumped and the new upgrade assets are precached so browsers can receive the update.
+
+The existing chat, groups, social feed, account, Supabase and Socket.IO code paths are left intact. This is an additive UX release, not a claim that every production integration has been live-tested. After merging, check the Render deployment and test login, sending/receiving messages, uploads, and calling with non-critical accounts.
