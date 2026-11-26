@@ -137,3 +137,15 @@
   .vc-search{width:35vw}
   .socialLayout{padding-bottom:55px}
 }
+
+
+/* Saved-post action */
+.vc-save-action{margin-left:auto}
+.vc-save-action.saved{color:#087f68}
+.vc-save-action span{font-size:17px}
+.vc-post-actions{flex-wrap:wrap}
+
+
+/* Report action */
+.vc-report-link{border:0;background:transparent;color:#8a929b;font-size:12px;padding:6px 8px;cursor:pointer}
+.vc-report-link:hover,.vc-report-link:focus-visible{color:#c43f4b;text-decoration:underline}

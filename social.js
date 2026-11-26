@@ -42,7 +42,7 @@ function socialAuthHeaders() {
 }
 
 function openSocialSection(section, refresh) {
-  const allowed = ["feed", "explore", "messages", "profile"];
+  const allowed = ["feed", "explore", "saved", "messages", "profile"];
   socialSection = allowed.includes(section) ? section : "feed";
   const socialView = document.getElementById("socialView");
   const chatArea = document.querySelector(".chatArea");
@@ -62,13 +62,13 @@ function openSocialSection(section, refresh) {
   if (socialSection === "profile" && socialProfileUserId) {
     loadSocialProfile(socialProfileUserId);
   } else {
-    loadSocialFeed(socialSection === "explore" ? "explore" : "feed");
+    loadSocialFeed(socialSection === "explore" ? "explore" : socialSection === "saved" ? "saved" : "feed");
   }
 }
 window.openSocialSection = openSocialSection;
 
 async function loadSocialFeed(mode) {
-  mode = mode === "explore" ? "explore" : "feed";
+  mode = ["explore", "saved"].includes(mode) ? mode : "feed";
   const list = document.getElementById("socialFeedList");
   const profilePanel = document.getElementById("socialProfilePanel");
   const feedPanel = document.getElementById("socialFeedPanel");
@@ -76,11 +76,11 @@ async function loadSocialFeed(mode) {
   if (!list || !currentUser) return;
   if (profilePanel) profilePanel.classList.add("hidden");
   if (feedPanel) feedPanel.classList.remove("hidden");
-  if (title) title.textContent = mode === "explore" ? "Explore" : "Your feed";
+  if (title) title.textContent = mode === "explore" ? "Explore" : mode === "saved" ? "Saved posts" : "Your feed";
   list.innerHTML = '<div class="vc-loading"><span class="vc-spinner"></span> Loading posts…</div>';
   try {
     const q = mode === "explore" ? String((document.getElementById("socialExploreSearch") || {}).value || "").trim() : "";
-    let url = mode === "explore" ? "/api/social/explore" : "/api/social/feed";
+    let url = mode === "explore" ? "/api/social/explore" : mode === "saved" ? "/api/social/saved" : "/api/social/feed";
     const response = await fetch(url, { headers: socialAuthHeaders() });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || "Could not load posts.");
@@ -111,6 +111,7 @@ function renderSocialPosts() {
     return;
   }
   list.innerHTML = socialPosts.map(post => socialPostCard(post)).join("");
+  openSharedSocialPost();
 }
 
 function socialPostCard(post) {
@@ -121,19 +122,21 @@ function socialPostCard(post) {
     : "";
   const follow = post.is_mine ? "" : '<button class="vc-follow-link" onclick="toggleSocialFollow(' + Number(post.user_id) + ',' + (post.following_author ? 'false' : 'true') + ')">' + (post.following_author ? "Following" : "Follow") + '</button>';
   const deleteButton = post.is_mine ? '<button class="vc-icon-btn" onclick="deleteSocialPost(' + Number(post.id) + ')" title="Delete your post" aria-label="Delete post">⋯</button>' : "";
+  const reportButton = post.is_mine ? "" : '<button class="vc-report-link" type="button" onclick="reportSocialPost(' + Number(post.id) + ')" aria-label="Report post">Report</button>';
   const caption = post.caption ? '<p class="vc-caption"><strong>' + socialEscape(post.username) + '</strong> ' + socialEscape(post.caption) + '</p>' : "";
   return '<article class="vc-post-card" id="socialPost-' + Number(post.id) + '">' +
     '<header class="vc-post-head">' +
       '<button class="vc-user-link" onclick="openSocialProfile(' + Number(post.user_id) + ')">' +
         socialAvatar(post.username, post.avatar_url, "small") +
         '<span><strong>' + socialEscape(post.username) + '</strong><small>' + socialTime(post.created_at) + '</small></span>' +
-      '</button>' + follow + deleteButton +
+      '</button>' + follow + reportButton + deleteButton +
     '</header>' +
     '<div class="vc-post-media-wrap">' + media + '</div>' +
     '<div class="vc-post-actions">' +
       '<button class="vc-action ' + (post.liked_by_me ? "liked" : "") + '" onclick="toggleSocialLike(' + Number(post.id) + ')"><span>' + (post.liked_by_me ? "♥" : "♡") + '</span> ' + Number(post.like_count || 0) + '</button>' +
       '<button class="vc-action" onclick="toggleSocialComments(' + Number(post.id) + ')"><span>◯</span> ' + Number(post.comment_count || 0) + ' comments</button>' +
-      '<span class="vc-save-hint">VibeCircle</span>' +
+      '<button class="vc-action vc-save-action ' + (post.saved_by_me ? "saved" : "") + '" onclick="toggleSocialSave(' + Number(post.id) + ')" aria-label="' + (post.saved_by_me ? "Remove saved post" : "Save post") + '"><span>' + (post.saved_by_me ? "▣" : "▢") + '</span> ' + (post.saved_by_me ? "Saved" : "Save") + '</button>' +
+      '<button class="vc-action vc-share-action" type="button" onclick="shareSocialPost(' + Number(post.id) + ')" aria-label="Share post"><span>↗</span> Share</button>' +
     '</div>' +
     '<div class="vc-post-caption">' + caption + '</div>' +
     '<section class="vc-comments hidden" id="socialComments-' + Number(post.id) + '">' +
@@ -145,6 +148,30 @@ function socialPostCard(post) {
     '</section>' +
   '</article>';
 }
+
+async function reportSocialPost(postId) {
+  const choices = ["spam", "harassment", "bullying", "inappropriate", "misinformation", "other"];
+  const reason = window.prompt("Why are you reporting this post? Choose: " + choices.join(", "));
+  if (reason === null) return;
+  const normalized = String(reason).trim().toLowerCase();
+  if (!choices.includes(normalized)) {
+    alert("Please enter one of: " + choices.join(", "));
+    return;
+  }
+  try {
+    const response = await fetch("/api/social/posts/" + Number(postId) + "/report", {
+      method: "POST",
+      headers: { ...socialAuthHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: normalized })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not submit report.");
+    alert(data.message || "Report submitted.");
+  } catch (error) {
+    alert(error.message || "Report failed.");
+  }
+}
+window.reportSocialPost = reportSocialPost;
 
 async function toggleSocialLike(postId) {
   try {
@@ -161,6 +188,65 @@ async function toggleSocialLike(postId) {
     }
   } catch (error) {
     alert(error.message || "Like failed.");
+  }
+}
+
+async function toggleSocialSave(postId) {
+  try {
+    const response = await fetch("/api/social/posts/" + Number(postId) + "/save", {
+      method: "POST", headers: socialAuthHeaders()
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not save post.");
+    const post = socialPosts.find(item => Number(item.id) === Number(postId));
+    if (post) {
+      post.saved_by_me = Boolean(data.saved);
+      if (socialSection === "saved" && !data.saved) {
+        socialPosts = socialPosts.filter(item => Number(item.id) !== Number(postId));
+      }
+      renderSocialPosts();
+    }
+  } catch (error) {
+    alert(error.message || "Save failed.");
+  }
+}
+
+window.toggleSocialSave = toggleSocialSave;
+
+async function shareSocialPost(postId) {
+  const id = Number(postId);
+  if (!Number.isSafeInteger(id) || id < 1) return;
+  const shareUrl = window.location.origin + window.location.pathname + "#post-" + id;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(shareUrl);
+    } else {
+      const field = document.createElement("textarea");
+      field.value = shareUrl;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      const copied = document.execCommand("copy");
+      field.remove();
+      if (!copied) throw new Error("Copy is not available in this browser.");
+    }
+    socialMessage("Post link copied. You can now share it.", "success");
+  } catch (error) {
+    alert("Could not copy the link. Please copy it from the address bar: " + shareUrl);
+  }
+}
+window.shareSocialPost = shareSocialPost;
+
+function openSharedSocialPost() {
+  const match = String(window.location.hash || "").match(/^#post-(\d+)$/);
+  if (!match) return;
+  const post = document.getElementById("socialPost-" + Number(match[1]));
+  if (post) {
+    post.scrollIntoView({ behavior: "smooth", block: "center" });
+    post.setAttribute("tabindex", "-1");
+    post.focus({ preventScroll: true });
   }
 }
 
