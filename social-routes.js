@@ -257,6 +257,34 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
     }
   });
 
+  app.post("/api/social/posts/:postId/report", authMiddleware, async (req, res) => {
+    try {
+      const postId = Number(req.params.postId), reporterId = Number(req.user.id);
+      const reason = String(req.body.reason || "").trim();
+      const allowedReasons = ["spam", "harassment", "bullying", "inappropriate", "misinformation", "other"];
+      if (!Number.isInteger(postId) || postId < 1) return res.status(400).json({ error: "Invalid post." });
+      if (!allowedReasons.includes(reason)) return res.status(400).json({ error: "Choose a valid report reason." });
+      const post = await supabase.from("social_posts").select("id,user_id").eq("id", postId).maybeSingle();
+      if (post.error) throw post.error;
+      if (!post.data) return res.status(404).json({ error: "Post not found." });
+      if (Number(post.data.user_id) === reporterId) return res.status(400).json({ error: "You cannot report your own post." });
+      if (await areBlocked(reporterId, Number(post.data.user_id))) return res.status(403).json({ error: "This action is unavailable for this account." });
+      const existing = await supabase.from("social_post_reports").select("id")
+        .eq("post_id", postId).eq("reporter_id", reporterId).maybeSingle();
+      if (existing.error) throw existing.error;
+      if (existing.data) return res.status(409).json({ error: "You have already reported this post." });
+      const created = await supabase.from("social_post_reports").insert({
+        post_id: postId, reporter_id: reporterId, reported_user_id: Number(post.data.user_id), reason
+      });
+      if (created.error) throw created.error;
+      res.status(201).json({ success: true, message: "Thanks. Your report has been submitted for review." });
+    } catch (error) {
+      console.error("SOCIAL POST REPORT:", { code: error && error.code, message: error && error.message });
+      const missing = ["42P01","PGRST205","PGRST204"].includes(String(error && error.code || ""));
+      res.status(missing ? 503 : 500).json({ error: missing ? "Post reports are not set up. Run the latest Supabase migration." : "Could not submit your report." });
+    }
+  });
+
   app.get("/api/social/posts/:postId/comments", authMiddleware, async (req, res) => {
     try {
       const postId = Number(req.params.postId);
