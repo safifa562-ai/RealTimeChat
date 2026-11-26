@@ -370,6 +370,8 @@ async function authMiddleware(
 ===================================================== */
 const { registerSocialRoutes } = require("./social-routes");
 registerSocialRoutes({ app, supabase, authMiddleware, io });
+const { registerBookmarkRoutes } = require("./social-bookmarks");
+registerBookmarkRoutes({ app, supabase, authMiddleware });
 
 /* =====================================================
    RAZORPAY WEBSITE CHECKOUT (optional, one-time ₹49 supporter pass)
