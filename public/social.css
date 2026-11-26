@@ -149,3 +149,14 @@
 /* Report action */
 .vc-report-link{border:0;background:transparent;color:#8a929b;font-size:12px;padding:6px 8px;cursor:pointer}
 .vc-report-link:hover,.vc-report-link:focus-visible{color:#c43f4b;text-decoration:underline}
+
+
+/* Instagram-style hashtag discovery and touch-friendly post actions */
+.vc-hashtag{display:inline;border:0;background:transparent;padding:0 1px;color:#087f68;font:inherit;font-weight:750;cursor:pointer}
+.vc-hashtag:hover{text-decoration:underline}
+.vc-post-media{touch-action:pan-y}
+@media(max-width:680px){
+  .vc-post-actions{gap:14px;flex-wrap:wrap}
+  .vc-action{min-height:36px}
+  .vc-hashtag{min-height:24px}
+}

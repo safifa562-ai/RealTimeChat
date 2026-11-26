@@ -20,6 +20,22 @@ function socialAvatar(name, url, sizeClass) {
     (safeSrc ? '<img src="' + socialAttr(safeSrc) + '" alt="" loading="lazy">' : '<span>' + socialInitial(name) + '</span>') +
     '</span>';
 }
+function socialCaptionHtml(value) {
+  const source = String(value || "");
+  const pattern = /#[\p{L}\p{N}_]{1,40}/gu;
+  let output = "";
+  let cursor = 0;
+  let match;
+  while ((match = pattern.exec(source))) {
+    output += socialEscape(source.slice(cursor, match.index));
+    const tag = match[0].slice(1).toLowerCase();
+    output += '<button class="vc-hashtag" type="button" data-hashtag="' + socialAttr(tag) + '">' +
+      socialEscape(match[0]) + '</button>';
+    cursor = match.index + match[0].length;
+  }
+  return output + socialEscape(source.slice(cursor));
+}
+
 function socialTime(value) {
   const time = new Date(value).getTime();
   if (!Number.isFinite(time)) return "now";
@@ -123,7 +139,7 @@ function socialPostCard(post) {
   const follow = post.is_mine ? "" : '<button class="vc-follow-link" onclick="toggleSocialFollow(' + Number(post.user_id) + ',' + (post.following_author ? 'false' : 'true') + ')">' + (post.following_author ? "Following" : "Follow") + '</button>';
   const deleteButton = post.is_mine ? '<button class="vc-icon-btn" onclick="deleteSocialPost(' + Number(post.id) + ')" title="Delete your post" aria-label="Delete post">⋯</button>' : "";
   const reportButton = post.is_mine ? "" : '<button class="vc-report-link" type="button" onclick="reportSocialPost(' + Number(post.id) + ')" aria-label="Report post">Report</button>';
-  const caption = post.caption ? '<p class="vc-caption"><strong>' + socialEscape(post.username) + '</strong> ' + socialEscape(post.caption) + '</p>' : "";
+  const caption = post.caption ? '<p class="vc-caption"><strong>' + socialEscape(post.username) + '</strong> ' + socialCaptionHtml(post.caption) + '</p>' : "";
   return '<article class="vc-post-card" id="socialPost-' + Number(post.id) + '">' +
     '<header class="vc-post-head">' +
       '<button class="vc-user-link" onclick="openSocialProfile(' + Number(post.user_id) + ')">' +
@@ -218,6 +234,14 @@ async function shareSocialPost(postId) {
   if (!Number.isSafeInteger(id) || id < 1) return;
   const shareUrl = window.location.origin + window.location.pathname + "#post-" + id;
   try {
+    if (typeof navigator.share === "function") {
+      await navigator.share({
+        title: "VibeCircle post",
+        text: "Check out this post on VibeCircle",
+        url: shareUrl
+      });
+      return;
+    }
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(shareUrl);
     } else {
@@ -234,7 +258,8 @@ async function shareSocialPost(postId) {
     }
     socialMessage("Post link copied. You can now share it.", "success");
   } catch (error) {
-    alert("Could not copy the link. Please copy it from the address bar: " + shareUrl);
+    if (error && error.name === "AbortError") return;
+    alert("Could not share the link. Please copy it manually: " + shareUrl);
   }
 }
 window.shareSocialPost = shareSocialPost;
@@ -481,6 +506,12 @@ function searchSocialExplore(event) {
   if (event && event.key && event.key !== "Enter") return;
   loadSocialFeed("explore");
 }
+function searchSocialHashtag(tag) {
+  const input = document.getElementById("socialExploreSearch");
+  if (input) input.value = "#" + String(tag || "").replace(/^#/, "").trim();
+  openSocialSection("explore");
+}
+window.searchSocialHashtag = searchSocialHashtag;
 window.renderSocialStories = renderSocialStories;
 window.renderSocialSuggestions = renderSocialSuggestions;
 
@@ -490,4 +521,32 @@ document.addEventListener("DOMContentLoaded", function() {
     const node = document.getElementById("socialPostFileName");
     if (node) node.textContent = media.files && media.files[0] ? media.files[0].name : "Choose one photo or video · up to 50 MB";
   });
+
+  const feed = document.getElementById("socialFeedList");
+  if (feed) {
+    feed.addEventListener("click", function(event) {
+      const hashtag = event.target.closest("[data-hashtag]");
+      if (hashtag) {
+        event.preventDefault();
+        searchSocialHashtag(hashtag.dataset.hashtag || "");
+      }
+    });
+    let lastImageTap = { image: null, time: 0 };
+    feed.addEventListener("pointerup", function(event) {
+      const image = event.target.closest("img.vc-post-media");
+      if (!image) return;
+      const now = Date.now();
+      if (image === lastImageTap.image && now - lastImageTap.time < 320) {
+        const card = image.closest(".vc-post-card");
+        const match = card && card.id.match(/^socialPost-(\d+)$/);
+        if (match) {
+          const post = socialPosts.find(item => Number(item.id) === Number(match[1]));
+          if (post && !post.liked_by_me) toggleSocialLike(Number(match[1]));
+        }
+        lastImageTap = { image: null, time: 0 };
+      } else {
+        lastImageTap = { image: image, time: now };
+      }
+    });
+  }
 });
