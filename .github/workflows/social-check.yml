@@ -17,5 +17,6 @@ jobs:
         run: |
           node --check server.js
           node --check social-routes.js
+          node --check social-bookmarks.js
           node --check public/app.js
           node --check public/social.js
