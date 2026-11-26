@@ -111,6 +111,7 @@ function renderSocialPosts() {
     return;
   }
   list.innerHTML = socialPosts.map(post => socialPostCard(post)).join("");
+  openSharedSocialPost();
 }
 
 function socialPostCard(post) {
@@ -135,6 +136,7 @@ function socialPostCard(post) {
       '<button class="vc-action ' + (post.liked_by_me ? "liked" : "") + '" onclick="toggleSocialLike(' + Number(post.id) + ')"><span>' + (post.liked_by_me ? "♥" : "♡") + '</span> ' + Number(post.like_count || 0) + '</button>' +
       '<button class="vc-action" onclick="toggleSocialComments(' + Number(post.id) + ')"><span>◯</span> ' + Number(post.comment_count || 0) + ' comments</button>' +
       '<button class="vc-action vc-save-action ' + (post.saved_by_me ? "saved" : "") + '" onclick="toggleSocialSave(' + Number(post.id) + ')" aria-label="' + (post.saved_by_me ? "Remove saved post" : "Save post") + '"><span>' + (post.saved_by_me ? "▣" : "▢") + '</span> ' + (post.saved_by_me ? "Saved" : "Save") + '</button>' +
+      '<button class="vc-action vc-share-action" type="button" onclick="shareSocialPost(' + Number(post.id) + ')" aria-label="Share post"><span>↗</span> Share</button>' +
     '</div>' +
     '<div class="vc-post-caption">' + caption + '</div>' +
     '<section class="vc-comments hidden" id="socialComments-' + Number(post.id) + '">' +
@@ -208,7 +210,45 @@ async function toggleSocialSave(postId) {
     alert(error.message || "Save failed.");
   }
 }
+
 window.toggleSocialSave = toggleSocialSave;
+
+async function shareSocialPost(postId) {
+  const id = Number(postId);
+  if (!Number.isSafeInteger(id) || id < 1) return;
+  const shareUrl = window.location.origin + window.location.pathname + "#post-" + id;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(shareUrl);
+    } else {
+      const field = document.createElement("textarea");
+      field.value = shareUrl;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      const copied = document.execCommand("copy");
+      field.remove();
+      if (!copied) throw new Error("Copy is not available in this browser.");
+    }
+    socialMessage("Post link copied. You can now share it.", "success");
+  } catch (error) {
+    alert("Could not copy the link. Please copy it from the address bar: " + shareUrl);
+  }
+}
+window.shareSocialPost = shareSocialPost;
+
+function openSharedSocialPost() {
+  const match = String(window.location.hash || "").match(/^#post-(\d+)$/);
+  if (!match) return;
+  const post = document.getElementById("socialPost-" + Number(match[1]));
+  if (post) {
+    post.scrollIntoView({ behavior: "smooth", block: "center" });
+    post.setAttribute("tabindex", "-1");
+    post.focus({ preventScroll: true });
+  }
+}
 
 async function toggleSocialComments(postId) {
   const panel = document.getElementById("socialComments-" + Number(postId));
