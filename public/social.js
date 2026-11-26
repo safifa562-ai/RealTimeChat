@@ -22,7 +22,7 @@ function socialAvatar(name, url, sizeClass) {
 }
 function socialCaptionHtml(value) {
   const source = String(value || "");
-  const pattern = /#[\\p{L}\\p{N}_]{1,40}/gu;
+  const pattern = /#[\p{L}\p{N}_]{1,40}/gu;
   let output = "";
   let cursor = 0;
   let match;
@@ -531,21 +531,21 @@ document.addEventListener("DOMContentLoaded", function() {
         searchSocialHashtag(hashtag.dataset.hashtag || "");
       }
     });
-    let lastImageTap = 0;
+    let lastImageTap = { image: null, time: 0 };
     feed.addEventListener("pointerup", function(event) {
       const image = event.target.closest("img.vc-post-media");
       if (!image) return;
       const now = Date.now();
-      if (now - lastImageTap < 320) {
+      if (image === lastImageTap.image && now - lastImageTap.time < 320) {
         const card = image.closest(".vc-post-card");
-        const match = card && card.id.match(/^socialPost-(\\d+)$/);
+        const match = card && card.id.match(/^socialPost-(\d+)$/);
         if (match) {
           const post = socialPosts.find(item => Number(item.id) === Number(match[1]));
           if (post && !post.liked_by_me) toggleSocialLike(Number(match[1]));
         }
-        lastImageTap = 0;
+        lastImageTap = { image: null, time: 0 };
       } else {
-        lastImageTap = now;
+        lastImageTap = { image: image, time: now };
       }
     });
   }
