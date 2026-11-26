@@ -137,3 +137,9 @@
   .vc-search{width:35vw}
   .socialLayout{padding-bottom:55px}
 }
+
+
+/* Saved-post bookmark action */
+.vc-bookmark-action { margin-left: auto; }
+.vc-bookmark-action.saved { color: #a78bfa; font-weight: 700; }
+.vc-bookmark-action:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 6px; }
