@@ -7,9 +7,9 @@
   <meta name="description" content="VibeCircle — share moments, discover creators and stay connected.">
   <title>VibeCircle</title>
   <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/style.css?v=20261120-complete-upgrade-1">
-  <link rel="stylesheet" href="/social.css?v=20261120-complete-upgrade-1">
-  <link rel="stylesheet" href="/upgrade.css?v=20261120-complete-upgrade-1">
+  <link rel="stylesheet" href="/style.css?v=20261126-bookmarks-1">
+  <link rel="stylesheet" href="/social.css?v=20261126-bookmarks-1">
+  <link rel="stylesheet" href="/upgrade.css?v=20261126-bookmarks-1">
 </head>
 <body>
   <section id="authScreen" aria-label="Login and registration">
@@ -152,6 +152,7 @@
         <nav class="vc-main-nav" aria-label="Social navigation">
           <button type="button" data-social-nav="feed" class="active" onclick="openSocialSection('feed')">Feed</button>
           <button type="button" data-social-nav="explore" onclick="openSocialSection('explore')">Explore</button>
+          <button type="button" data-social-nav="saved" onclick="openSocialSection('saved')">Saved</button>
           <button type="button" onclick="openCreatePost()">＋ Create</button>
           <button type="button" data-social-nav="messages" onclick="openSocialSection('messages');setSidebarTab('chats')">Messages</button>
           <button type="button" onclick="openSocialProfile(currentUser.id)">Profile</button>
@@ -308,8 +309,8 @@
   <div id="notificationToasts" class="notificationToasts" aria-live="polite" aria-relevant="additions"></div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/social.js?v=20261120-complete-upgrade-1"></script>
-  <script src="/app.js?v=20261120-complete-upgrade-1"></script>
-  <script src="/upgrade.js?v=20261120-complete-upgrade-1"></script>
+  <script src="/social.js?v=20261126-bookmarks-1"></script>
+  <script src="/app.js?v=20261126-bookmarks-1"></script>
+  <script src="/upgrade.js?v=20261126-bookmarks-1"></script>
 </body>
 </html>
