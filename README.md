@@ -151,3 +151,10 @@ This release adds small, backward-compatible usability improvements without chan
 - The PWA shell cache version is bumped and the new upgrade assets are precached so browsers can receive the update.
 
 The existing chat, groups, social feed, account, Supabase and Socket.IO code paths are left intact. This is an additive UX release, not a claim that every production integration has been live-tested. After merging, check the Render deployment and test login, sending/receiving messages, uploads, and calling with non-critical accounts.
+
+
+## VibeCircle saved-posts upgrade
+- Save and unsave any post from its card.
+- Open the **Saved** navigation tab to view your private saved-post list.
+- Saved posts are scoped to the signed-in account and are not visible to other users.
+- Run the updated `supabase-social-migration.sql` once in the same Supabase project before using this feature. The migration is additive and does not remove existing data.

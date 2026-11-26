@@ -72,19 +72,21 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
     if (!rows || !rows.length) return [];
     const ids = rows.map(row => Number(row.id));
     const authorIds = Array.from(new Set(rows.map(row => Number(row.user_id))));
-    const [authorsResult, likesResult, commentsResult, followsResult] = await Promise.all([
+    const [authorsResult, likesResult, commentsResult, followsResult, savesResult] = await Promise.all([
       supabase.from("users").select("id,username,avatar_url,bio").in("id", authorIds),
       supabase.from("social_post_likes").select("post_id,user_id").in("post_id", ids),
       supabase.from("social_post_comments").select("post_id").in("post_id", ids),
-      supabase.from("social_follows").select("following_id").eq("follower_id", viewerId).in("following_id", authorIds)
+      supabase.from("social_follows").select("following_id").eq("follower_id", viewerId).in("following_id", authorIds),
+      supabase.from("social_post_saves").select("post_id").eq("user_id", viewerId).in("post_id", ids)
     ]);
-    for (const result of [authorsResult, likesResult, commentsResult, followsResult]) {
+    for (const result of [authorsResult, likesResult, commentsResult, followsResult, savesResult]) {
       if (result.error) throw result.error;
     }
     const authors = new Map((authorsResult.data || []).map(user => [Number(user.id), user]));
     const likes = likesResult.data || [];
     const comments = commentsResult.data || [];
     const followed = new Set((followsResult.data || []).map(row => Number(row.following_id)));
+    const savedPostIds = new Set((savesResult.data || []).map(row => Number(row.post_id)));
     return await Promise.all(rows.map(async row => {
       let mediaUrl = null;
       if (row.media_path) {
@@ -105,6 +107,7 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
         like_count: postLikes.length,
         comment_count: comments.filter(item => Number(item.post_id) === Number(row.id)).length,
         liked_by_me: postLikes.some(item => Number(item.user_id) === Number(viewerId)),
+        saved_by_me: savedPostIds.has(Number(row.id)),
         following_author: Number(row.user_id) === Number(viewerId) || followed.has(Number(row.user_id)),
         is_mine: Number(row.user_id) === Number(viewerId)
       };
@@ -307,6 +310,55 @@ function registerSocialRoutes({ app, supabase, authMiddleware, io }) {
     } catch (error) {
       console.error("SOCIAL COMMENT CREATE:", { code: error && error.code, message: error && error.message });
       res.status(500).json({ error: "Could not add comment. Run the social SQL migration." });
+    }
+  });
+
+  app.get("/api/social/saved", authMiddleware, async (req, res) => {
+    try {
+      const userId = Number(req.user.id);
+      const saved = await supabase.from("social_post_saves").select("post_id,created_at")
+        .eq("user_id", userId).order("created_at", { ascending: false }).limit(100);
+      if (saved.error) throw saved.error;
+      const ids = (saved.data || []).map(row => Number(row.post_id));
+      if (!ids.length) return res.json([]);
+      const posts = await supabase.from("social_posts")
+        .select("id,user_id,caption,media_path,media_type,created_at").in("id", ids);
+      if (posts.error) throw posts.error;
+      const byId = new Map((posts.data || []).map(row => [Number(row.id), row]));
+      const ordered = ids.map(id => byId.get(id)).filter(Boolean);
+      res.json(await shapePosts(ordered, userId));
+    } catch (error) {
+      console.error("SOCIAL SAVED POSTS:", { code: error && error.code, message: error && error.message });
+      const missing = ["42P01","PGRST205","PGRST204"].includes(String(error && error.code || ""));
+      res.status(missing ? 503 : 500).json({ error: missing ? "Saved posts are not set up. Run the latest supabase-social-migration.sql." : "Could not load saved posts." });
+    }
+  });
+
+  app.post("/api/social/posts/:postId/save", authMiddleware, async (req, res) => {
+    try {
+      const postId = Number(req.params.postId), userId = Number(req.user.id);
+      if (!Number.isInteger(postId) || postId < 1) return res.status(400).json({ error: "Invalid post." });
+      const post = await supabase.from("social_posts").select("id,user_id").eq("id", postId).maybeSingle();
+      if (post.error) throw post.error;
+      if (!post.data) return res.status(404).json({ error: "Post not found." });
+      if (await areBlocked(userId, Number(post.data.user_id))) return res.status(403).json({ error: "You cannot save this post." });
+      const existing = await supabase.from("social_post_saves").select("id").eq("post_id", postId).eq("user_id", userId).maybeSingle();
+      if (existing.error) throw existing.error;
+      let saved;
+      if (existing.data) {
+        const removed = await supabase.from("social_post_saves").delete().eq("post_id", postId).eq("user_id", userId);
+        if (removed.error) throw removed.error;
+        saved = false;
+      } else {
+        const inserted = await supabase.from("social_post_saves").insert({ post_id: postId, user_id: userId });
+        if (inserted.error) throw inserted.error;
+        saved = true;
+      }
+      res.json({ success: true, saved });
+    } catch (error) {
+      console.error("SOCIAL SAVE POST:", { code: error && error.code, message: error && error.message });
+      const missing = ["42P01","PGRST205","PGRST204"].includes(String(error && error.code || ""));
+      res.status(missing ? 503 : 500).json({ error: missing ? "Saved posts are not set up. Run the latest supabase-social-migration.sql." : "Could not save this post." });
     }
   });
 
