@@ -158,3 +158,10 @@ The existing chat, groups, social feed, account, Supabase and Socket.IO code pat
 - Open the **Saved** navigation tab to view your private saved-post list.
 - Saved posts are scoped to the signed-in account and are not visible to other users.
 - Run the updated `supabase-social-migration.sql` once in the same Supabase project before using this feature. The migration is additive and does not remove existing data.
+
+
+## Community safety: post reporting
+- Signed-in users can report another account's post for spam, harassment, bullying, inappropriate content, misinformation or another concern.
+- A user can submit one report per post. Reports are stored privately in `social_post_reports` for owner/moderator review.
+- This feature stores reports; it does not automatically hide content or perform moderation actions.
+- Run the latest `supabase-social-migration.sql` before deploying this change.
