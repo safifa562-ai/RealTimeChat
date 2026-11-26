@@ -121,13 +121,14 @@ function socialPostCard(post) {
     : "";
   const follow = post.is_mine ? "" : '<button class="vc-follow-link" onclick="toggleSocialFollow(' + Number(post.user_id) + ',' + (post.following_author ? 'false' : 'true') + ')">' + (post.following_author ? "Following" : "Follow") + '</button>';
   const deleteButton = post.is_mine ? '<button class="vc-icon-btn" onclick="deleteSocialPost(' + Number(post.id) + ')" title="Delete your post" aria-label="Delete post">⋯</button>' : "";
+  const reportButton = post.is_mine ? "" : '<button class="vc-report-link" type="button" onclick="reportSocialPost(' + Number(post.id) + ')" aria-label="Report post">Report</button>';
   const caption = post.caption ? '<p class="vc-caption"><strong>' + socialEscape(post.username) + '</strong> ' + socialEscape(post.caption) + '</p>' : "";
   return '<article class="vc-post-card" id="socialPost-' + Number(post.id) + '">' +
     '<header class="vc-post-head">' +
       '<button class="vc-user-link" onclick="openSocialProfile(' + Number(post.user_id) + ')">' +
         socialAvatar(post.username, post.avatar_url, "small") +
         '<span><strong>' + socialEscape(post.username) + '</strong><small>' + socialTime(post.created_at) + '</small></span>' +
-      '</button>' + follow + deleteButton +
+      '</button>' + follow + reportButton + deleteButton +
     '</header>' +
     '<div class="vc-post-media-wrap">' + media + '</div>' +
     '<div class="vc-post-actions">' +
@@ -145,6 +146,30 @@ function socialPostCard(post) {
     '</section>' +
   '</article>';
 }
+
+async function reportSocialPost(postId) {
+  const choices = ["spam", "harassment", "bullying", "inappropriate", "misinformation", "other"];
+  const reason = window.prompt("Why are you reporting this post? Choose: " + choices.join(", "));
+  if (reason === null) return;
+  const normalized = String(reason).trim().toLowerCase();
+  if (!choices.includes(normalized)) {
+    alert("Please enter one of: " + choices.join(", "));
+    return;
+  }
+  try {
+    const response = await fetch("/api/social/posts/" + Number(postId) + "/report", {
+      method: "POST",
+      headers: { ...socialAuthHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ reason: normalized })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "Could not submit report.");
+    alert(data.message || "Report submitted.");
+  } catch (error) {
+    alert(error.message || "Report failed.");
+  }
+}
+window.reportSocialPost = reportSocialPost;
 
 async function toggleSocialLike(postId) {
   try {
